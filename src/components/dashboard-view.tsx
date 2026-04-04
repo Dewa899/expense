@@ -23,7 +23,8 @@ import {
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/components/language-provider";
 
-const GOOGLE_CLIENT_ID = "151196003585-j4f3p4j6d3g45o3a4lrfabc7fv6c6s18.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID =
+	"151196003585-j4f3p4j6d3g45o3a4lrfabc7fv6c6s18.apps.googleusercontent.com";
 
 export function DashboardView() {
 	const { t } = useLanguage();
@@ -31,7 +32,10 @@ export function DashboardView() {
 	const [categories, setCategories] = React.useState<string[]>([]);
 	const [formData, setFormData] = React.useState<Record<string, string>>({});
 	const [loading, setLoading] = React.useState(false);
-	const [user, setUser] = React.useState<{ name: string; accessToken: string } | null>(null);
+	const [user, setUser] = React.useState<{
+		name: string;
+		accessToken: string;
+	} | null>(null);
 	const [config, setConfig] = React.useState({
 		sheetId: "",
 	});
@@ -40,7 +44,7 @@ export function DashboardView() {
 	React.useEffect(() => {
 		const savedSheetId = localStorage.getItem("sheetId") || "";
 		const savedUser = localStorage.getItem("googleUser");
-		
+
 		if (savedUser) {
 			const parsedUser = JSON.parse(savedUser);
 			setUser(parsedUser);
@@ -56,10 +60,11 @@ export function DashboardView() {
 	}, []);
 
 	const handleGoogleLogin = () => {
-		const scope = "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file";
+		const scope =
+			"https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file";
 		const redirectUri = window.location.origin;
 		const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=token&scope=${encodeURIComponent(scope)}&include_granted_scopes=true`;
-		
+
 		window.location.href = authUrl;
 	};
 
@@ -83,38 +88,47 @@ export function DashboardView() {
 		setLoading(true);
 		try {
 			// 1. Search for existing sheet
-			const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='Expense Tracker' and mimeType='application/vnd.google-apps.spreadsheet'`, {
-				headers: { Authorization: `Bearer ${token}` }
-			});
+			const searchRes = await fetch(
+				`https://www.googleapis.com/drive/v3/files?q=name='Expense Tracker' and mimeType='application/vnd.google-apps.spreadsheet'`,
+				{
+					headers: { Authorization: `Bearer ${token}` },
+				},
+			);
 			const searchData = await searchRes.json();
-			
+
 			let sheetId = "";
 			if (searchData.files && searchData.files.length > 0) {
 				sheetId = searchData.files[0].id;
 			} else {
 				// 2. Create new sheet if not found
-				const createRes = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
-					method: "POST",
-					headers: { 
-						Authorization: `Bearer ${token}`,
-						"Content-Type": "application/json"
+				const createRes = await fetch(
+					"https://sheets.googleapis.com/v4/spreadsheets",
+					{
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${token}`,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({
+							properties: { title: "Expense Tracker" },
+							sheets: [{ properties: { title: "Sheet1" } }],
+						}),
 					},
-					body: JSON.stringify({
-						properties: { title: "Expense Tracker" },
-						sheets: [{ properties: { title: "Sheet1" } }]
-					})
-				});
+				);
 				const createData = await createRes.json();
 				sheetId = createData.spreadsheetId;
 
 				// 3. Initialize headers
-				await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet1!A1:E1?valueInputOption=RAW`, {
-					method: "PUT",
-					headers: { Authorization: `Bearer ${token}` },
-					body: JSON.stringify({
-						values: [["Tanggal", "Nama", "Jumlah", "Kategori", "Catatan"]]
-					})
-				});
+				await fetch(
+					`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet1!A1:E1?valueInputOption=RAW`,
+					{
+						method: "PUT",
+						headers: { Authorization: `Bearer ${token}` },
+						body: JSON.stringify({
+							values: [["Tanggal", "Nama", "Jumlah", "Kategori", "Catatan"]],
+						}),
+					},
+				);
 			}
 
 			localStorage.setItem("sheetId", sheetId);
@@ -130,9 +144,12 @@ export function DashboardView() {
 	const fetchSheetData = async (sheetId: string, token: string) => {
 		try {
 			setLoading(true);
-			const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet1!A1:E1`, {
-				headers: { Authorization: `Bearer ${token}` }
-			});
+			const response = await fetch(
+				`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet1!A1:E1`,
+				{
+					headers: { Authorization: `Bearer ${token}` },
+				},
+			);
 			const data = await response.json();
 			if (data.values && data.values[0]) {
 				setHeaders(data.values[0]);
@@ -153,19 +170,23 @@ export function DashboardView() {
 
 		setLoading(true);
 		try {
-			const values = headers.map(h => {
-				if (h.toLowerCase().includes("tanggal")) return new Date().toLocaleString();
+			const values = headers.map((h) => {
+				if (h.toLowerCase().includes("tanggal"))
+					return new Date().toLocaleString();
 				return formData[h] || "";
 			});
 
-			await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/Sheet1!A1:append?valueInputOption=USER_ENTERED`, {
-				method: "POST",
-				headers: { 
-					Authorization: `Bearer ${user.accessToken}`,
-					"Content-Type": "application/json"
+			await fetch(
+				`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/Sheet1!A1:append?valueInputOption=USER_ENTERED`,
+				{
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${user.accessToken}`,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({ values: [values] }),
 				},
-				body: JSON.stringify({ values: [values] })
-			});
+			);
 
 			alert("Expense added to Google Sheets!");
 			setFormData({});
@@ -224,16 +245,23 @@ export function DashboardView() {
 
 								<div className="py-6 flex flex-col items-center text-center gap-4">
 									<div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
-										<Wallet className="text-emerald-600 dark:text-emerald-400" size={32} />
+										<Wallet
+											className="text-emerald-600 dark:text-emerald-400"
+											size={32}
+										/>
 									</div>
-									
+
 									{user ? (
 										<div className="space-y-2">
-											<p className="font-bold text-sm text-emerald-600">{t("googleSyncActive")}</p>
-											<p className="text-[10px] text-zinc-500 italic opacity-70">File: Expense Tracker</p>
-											<Button 
-												variant="ghost" 
-												size="sm" 
+											<p className="font-bold text-sm text-emerald-600">
+												{t("googleSyncActive")}
+											</p>
+											<p className="text-[10px] text-zinc-500 italic opacity-70">
+												File: Expense Tracker
+											</p>
+											<Button
+												variant="ghost"
+												size="sm"
 												className="text-destructive hover:bg-destructive/10 font-bold text-[10px] mt-4"
 												onClick={() => {
 													localStorage.removeItem("googleUser");
@@ -247,13 +275,15 @@ export function DashboardView() {
 									) : (
 										<>
 											<div>
-												<p className="font-bold text-sm mb-1">{t("googleSyncTitle")}</p>
+												<p className="font-bold text-sm mb-1">
+													{t("googleSyncTitle")}
+												</p>
 												<p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed px-4">
 													{t("googleSyncDesc")}
 												</p>
 											</div>
-											
-											<Button 
+
+											<Button
 												className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold h-12 rounded-xl flex items-center justify-center gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors shadow-sm"
 												onClick={handleGoogleLogin}
 												disabled={loading}
@@ -315,7 +345,9 @@ export function DashboardView() {
 									{header.toLowerCase() === "kategori" &&
 									categories.length > 0 ? (
 										<Select
-											onValueChange={(val) => handleInputChange(header, val)}
+											onValueChange={(val) =>
+												handleInputChange(header, val as string)
+											}
 										>
 											<SelectTrigger className="h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
 												<SelectValue placeholder={t("selectCategory")} />
