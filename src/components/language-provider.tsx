@@ -141,6 +141,7 @@ const dictionary: Dictionary = {
 	},
 	transactionTrend: { en: "Transaction Trend", id: "Tren Transaksi" },
 	expenseByCat: { en: "Expense by Category", id: "Pengeluaran per Kategori" },
+	noDataFound: { en: "No data found for this month", id: "Data tidak ditemukan untuk bulan ini" },
 	back: { en: "Back", id: "Kembali" },
 	delete: { en: "Delete", id: "Hapus" },
 	ocrTitle: { en: "Receipt Scanning", id: "Scan Struk" },
@@ -192,6 +193,35 @@ const dictionary: Dictionary = {
 
 	sheetsTitle: { en: "Real-time Sync", id: "Sinkronisasi Real-time" },
 	sheetsDesc: { en: "Your data stays in your control. Expenses are synced directly to your personal Google Sheets.", id: "Data Anda tetap dalam kendali Anda. Pengeluaran disinkronkan langsung ke Google Sheets pribadi Anda." },
+	
+	// Privacy Policy
+	privacyTitle: { en: "Privacy Policy", id: "Kebijakan Privasi" },
+	lastUpdated: { en: "Last updated", id: "Terakhir diperbarui" },
+	introTitle: { en: "Introduction", id: "Pendahuluan" },
+	introDesc: { 
+		en: "Welcome to Expense by GENLORD. Your privacy is our top priority. This app is designed as a client-side interface that connects directly to your personal Google Sheets. We do not own your data; you do.",
+		id: "Selamat datang di Expense by GENLORD. Privasi Anda adalah prioritas utama kami. Aplikasi ini dirancang sebagai antarmuka sisi klien yang terhubung langsung ke Google Sheets pribadi Anda. Kami tidak memiliki data Anda; Anda yang memilikinya."
+	},
+	infoTitle: { en: "Information We Access", id: "Informasi yang Kami Akses" },
+	infoDesc: { en: "To provide our service, we request access to your Google Account via the following scopes:", id: "Untuk menyediakan layanan kami, kami meminta akses ke Akun Google Anda melalui scope berikut:" },
+	scopeSheets: { en: "Google Sheets API: To create, read, and update the specific 'Expense Tracker' spreadsheet in your account.", id: "Google Sheets API: Untuk membuat, membaca, dan memperbarui spreadsheet 'Expense Tracker' spesifik di akun Anda." },
+	scopeDrive: { en: "Google Drive (file-specific) API: To search for and identify the 'Expense Tracker' file so you can resume tracking across sessions.", id: "Google Drive (file-specific) API: Untuk mencari dan mengidentifikasi file 'Expense Tracker' sehingga Anda dapat melanjutkan pelacakan antar sesi." },
+	usageTitle: { en: "How We Use Your Data", id: "Bagaimana Kami Menggunakan Data Anda" },
+	usageDesc1: { 
+		en: "All your financial data is stored exclusively in your personal Google Sheets. Expense by GENLORD does not have a central database to store your personal transactions. The processing of your data happens locally in your browser.",
+		id: "Semua data keuangan Anda disimpan secara eksklusif di Google Sheets pribadi Anda. Expense by GENLORD tidak memiliki database pusat untuk menyimpan transaksi pribadi Anda. Pemrosesan data Anda terjadi secara lokal di browser Anda."
+	},
+	usagePoint1: { en: "We do not sell your personal information.", id: "Kami tidak menjual informasi pribadi Anda." },
+	usagePoint2: { en: "We do not use your data for advertising purposes.", id: "Kami tidak menggunakan data Anda untuk tujuan periklanan." },
+	usagePoint3: { en: "We do not share your data with third parties.", id: "Kami tidak membagikan data Anda dengan pihak ketiga." },
+	securityTitle: { en: "Security", id: "Keamanan" },
+	securityDesc: { 
+		en: "We use industry-standard OAuth 2.0 to authenticate with Google. Your access token is stored locally in your browser's localStorage and is never sent to our servers.",
+		id: "Kami menggunakan standar industri OAuth 2.0 untuk autentikasi dengan Google. Token akses Anda disimpan secara lokal di localStorage browser Anda dan tidak pernah dikirim ke server kami."
+	},
+	contactTitle: { en: "Contact Us", id: "Hubungi Kami" },
+	contactDesc: { en: "If you have any questions about this Privacy Policy, please contact us via our support modal:", id: "Jika Anda memiliki pertanyaan tentang Kebijakan Privasi ini, silakan hubungi kami melalui modal bantuan kami:" },
+	openSupport: { en: "Open Support Modal", id: "Buka Modal Bantuan" },
 };
 
 type LanguageContextType = {

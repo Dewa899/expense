@@ -32,6 +32,7 @@ export const metadata: Metadata = {
   authors: [{ name: "GENLORD" }],
   creator: "GENLORD",
   metadataBase: new URL("https://expense.my.id"),
+  manifest: "/manifest.json",
   alternates: {
     canonical: "/",
   },
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
     siteName: "Expense by GENLORD",
     images: [
       {
-        url: "/og-image.png", // Anda bisa menambahkan file ini nanti di folder public
+        url: "/icons/og-image.png",
         width: 1200,
         height: 630,
         alt: "Expense by GENLORD Preview",
@@ -56,7 +57,7 @@ export const metadata: Metadata = {
     title: "Expense by GENLORD",
     description: "Minimalist money management integrated with Google Sheets.",
     creator: "@genlord", // Ganti dengan handle twitter Anda jika ada
-    images: ["/og-image.png"],
+    images: ["/icons/og-image.png"],
   },
   robots: {
     index: true,

@@ -279,10 +279,12 @@ export function useDashboardLogic() {
 	const ensureAndGetSheetId = async (spreadsheetId: string, sheetName: string, token: string): Promise<number> => {
 		const metadataRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`, { headers: { Authorization: `Bearer ${token}` } });
 		const metadata = await metadataRes.json();
-		const existingSheet = metadata.sheets?.find((s: any) => s.properties?.title === sheetName);
-		const sheet1 = metadata.sheets?.find((s: any) => s.properties?.title === "Sheet1");
+		
+		let existingSheet = metadata.sheets?.find((s: any) => s.properties?.title === sheetName);
 		let targetSheetId: number;
+
 		if (!existingSheet) {
+			// Create new sheet
 			const createRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
 				method: "POST",
 				headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -290,19 +292,28 @@ export function useDashboardLogic() {
 			});
 			const createData = await createRes.json();
 			targetSheetId = createData.replies[0].addSheet.properties.sheetId;
-		} else targetSheetId = existingSheet.properties.sheetId;
-		if (sheet1 && sheet1.properties?.title !== sheetName) {
-			const totalSheets = metadata.sheets?.length || 0;
-			if (totalSheets > 1) {
+			
+			// Re-fetch metadata to get updated list of sheets for deletion
+			const updatedMetaRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`, { headers: { Authorization: `Bearer ${token}` } });
+			const updatedMeta = await updatedMetaRes.json();
+			const sheet1 = updatedMeta.sheets?.find((s: any) => s.properties?.title === "Sheet1");
+			
+			// Delete Sheet1 only if we just created a new one and Sheet1 exists
+			if (sheet1 && updatedMeta.sheets.length > 1) {
 				try {
 					await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
 						method: "POST",
 						headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
 						body: JSON.stringify({ requests: [{ deleteSheet: { sheetId: sheet1.properties.sheetId } }] }),
 					});
-				} catch (e) {}
+				} catch (e) {
+					console.error("Failed to delete Sheet1:", e);
+				}
 			}
+		} else {
+			targetSheetId = existingSheet.properties.sheetId;
 		}
+
 		return targetSheetId;
 	};
 
@@ -387,7 +398,10 @@ export function useDashboardLogic() {
 	};
 
 	const handleGoogleLogin = () => {
-		const scope = "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file";
+		const scope = [
+			"https://www.googleapis.com/auth/spreadsheets",
+			"https://www.googleapis.com/auth/drive.file"
+		].join(" ");
 		const redirectUri = window.location.origin;
 		const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=token&scope=${encodeURIComponent(scope)}&include_granted_scopes=true`;
 		window.location.href = authUrl;

@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowLeft, CalendarDays, TrendingUp, TrendingDown, AlertCircle, PieChart as PieChartIcon, Wallet, Plus, Trash2, Loader2, ArrowRight, Settings } from "lucide-react";
+import { ArrowLeft, CalendarDays, TrendingUp, TrendingDown, PieChart as PieChartIcon, Wallet, Plus, Trash2, Loader2, ArrowRight, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -394,9 +395,14 @@ export function AnalyticsView({
 					)}
 				</div>
 			) : (
-				<div className="h-[400px] flex flex-col items-center justify-center text-zinc-400 gap-2">
-					<AlertCircle size={48} className="opacity-20" />
-					<p>No data found for this month.</p>
+				<div className="h-[400px] flex flex-col items-center justify-center text-zinc-400 gap-4">
+					<Image 
+						src="/illustrations/file-not-found.png" 
+						alt="No data found" 
+						width={200} 
+						height={200} 
+					/>
+					<p className="font-bold text-[10px] uppercase tracking-widest text-zinc-400">{t("noDataFound")}</p>
 				</div>
 			)}
 		</motion.div>

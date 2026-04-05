@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { 
 	Cloud, 
@@ -10,7 +11,6 @@ import {
 	ChevronLeft, 
 	CheckCircle2, 
 	Globe,
-	Wallet,
 	Settings2,
 	UserPlus,
 	Send,
@@ -128,12 +128,12 @@ export function OnboardingTutorial({
 			title: t("step1Title"),
 			desc: t("step1Desc"),
 			vision: true,
-			customLogo: LogoComponent
+			icon: <Image src="/illustrations/hello.png" alt="Hello" width={180} height={180} className="scale-125" />
 		},
 		{
 			title: t("step3Title"),
 			desc: t("step3Desc"),
-			icon: <Wallet className="text-emerald-600" size={48} />
+			customLogo: LogoComponent
 		},
 		{
 			title: t("step4Title"),
@@ -236,10 +236,10 @@ export function OnboardingTutorial({
 						key={step}
 						initial={{ y: 20, opacity: 0 }}
 						animate={{ y: 0, opacity: 1 }}
-						className="min-h-[96px] flex items-center justify-center mb-2"
+						className="min-h-[120px] flex items-center justify-center mb-2"
 					>
 						{currentStep.customLogo ? currentStep.customLogo : (
-							<div className="w-24 h-24 rounded-full bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-center">
+							<div className={`${currentStep.title === t("step1Title") ? "" : "w-24 h-24 rounded-full bg-zinc-50 dark:bg-zinc-800/50"} flex items-center justify-center`}>
 								{currentStep.icon}
 							</div>
 						)}
