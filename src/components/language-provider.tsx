@@ -80,6 +80,18 @@ const dictionary: Dictionary = {
 	disconnectWarningDesc: { en: "Your custom field settings (types and options) will be removed from this browser. However, your data and columns will remain safe in your Google Sheets.", id: "Konfigurasi kolom kustom Anda (tipe dan pilihan) akan dihapus dari browser ini. Namun, data dan kolom Anda akan tetap aman di Google Sheets Anda." },
 	disconnectConfirm: { en: "Disconnect Now", id: "Putuskan Sekarang" },
 	googleSyncPrivacy: { en: "We only request access to create and edit the specific 'Expense Tracker' sheet in your Drive.", id: "Kami hanya meminta akses untuk membuat dan mengedit file 'Expense Tracker' spesifik di Drive Anda." },
+	syncGeneralPrompt: { 
+		en: "Unlock full potential! Connect your Google account to start tracking and managing your finances better.", 
+		id: "Buka fitur lengkap! Hubungkan akun Google Anda untuk mulai mencatat dan mengelola keuangan dengan lebih hebat." 
+	},
+	syncFieldsPrompt: { 
+		en: "Personalize your tracker! Sync your account to add custom columns and manage your data structure.", 
+		id: "Personalisasi catatan Anda! Hubungkan akun untuk menambah kolom kustom dan mengelola struktur data Anda." 
+	},
+	syncBalancePrompt: { 
+		en: "Get accurate insights! Sync to set your starting balance and track your net worth accurately.", 
+		id: "Dapatkan analisis akurat! Hubungkan akun untuk mengatur saldo awal dan pantau kekayaan bersih Anda dengan tepat." 
+	},
 	quickAdd: { en: "Quick Add", id: "Tambah Cepat" },
 	transactionType: { en: "Transaction Type", id: "Tipe Transaksi" },
 	income: { en: "Income", id: "Pemasukan" },

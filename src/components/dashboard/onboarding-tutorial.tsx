@@ -50,9 +50,9 @@ export function OnboardingTutorial({ isOpen, onClose, isSynced, onGoogleLogin }:
 	);
 
 	const ManageFieldsButtonPreview = (
-		<div className="bg-zinc-100 dark:bg-zinc-800 rounded-full px-6 py-3 flex items-center gap-3 border-none shadow-md scale-[1.75] mb-8 mt-4">
-			<Settings2 size={20} className="text-emerald-600 dark:text-emerald-400" />
-			<span className="text-sm font-black text-zinc-900 dark:text-zinc-100 uppercase tracking-tight">
+		<div className="bg-zinc-100 dark:bg-zinc-800 rounded-full px-5 py-2.5 flex items-center gap-2 border-none shadow-md scale-[1.4] mb-6 mt-4">
+			<Settings2 size={18} className="text-emerald-600 dark:text-emerald-400" />
+			<span className="text-[12px] font-black text-zinc-900 dark:text-zinc-100 uppercase tracking-tight">
 				{t("manageFields")}
 			</span>
 		</div>

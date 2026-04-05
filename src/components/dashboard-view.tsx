@@ -84,6 +84,7 @@ export function DashboardView({
 							availableMonths={logic.availableMonths}
 							selectedMonth={logic.selectedMonth}
 							loading={logic.loading}
+							user={logic.user}
 							customFields={logic.customFields}
 							customChartConfigs={logic.customChartConfigs}
 							onBack={() => logic.setView("form")}
@@ -91,6 +92,7 @@ export function DashboardView({
 							onAddCustomChart={logic.handleAddCustomChart}
 							onDeleteCustomChart={logic.handleDeleteCustomChart}
 							onSetInitialBalance={logic.handleSetInitialBalance}
+							onGoogleLogin={logic.handleGoogleLogin}
 							formatCurrency={logic.formatCurrency}
 							/>					</div>
 				)}
