@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useLanguage } from "@/components/language-provider";
 
-const GOOGLE_CLIENT_ID = "151196003585-j4f3p4j6d3g45o3a4lrfabc7fv6c6s18.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
 export type CustomFieldDef = {
 	name: string;

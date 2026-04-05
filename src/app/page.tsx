@@ -6,7 +6,8 @@ import {
   Moon, 
   Sun, 
   Languages, 
-  ArrowLeft
+  ArrowLeft,
+  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
@@ -40,9 +41,15 @@ export default function Home() {
   const { language, setLanguage } = useLanguage();
   const [mounted, setMounted] = React.useState(false);
   const [view, setView] = React.useState<"dashboard" | "landing">("dashboard");
+  const [isTutorialOpen, setIsTutorialOpen] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
+    // Auto open tutorial for first time
+    const tutorialDone = localStorage.getItem("onboarding_complete");
+    if (!tutorialDone) {
+      setIsTutorialOpen(true);
+    }
   }, []);
 
   if (!mounted) return null;
@@ -53,6 +60,11 @@ export default function Home() {
 
   const toggleLanguage = () => {
     setLanguage(language === "en" ? "id" : "en");
+  };
+
+  const handleCloseTutorial = () => {
+    setIsTutorialOpen(false);
+    localStorage.setItem("onboarding_complete", "true");
   };
 
   return (
@@ -68,6 +80,16 @@ export default function Home() {
               App
             </Button>
           )}
+
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setIsTutorialOpen(true)}
+            className="rounded-full h-8 w-8 text-zinc-600 dark:text-zinc-400"
+          >
+            <HelpCircle size={16} />
+          </Button>
+
           <Button variant="ghost" size="icon" onClick={toggleLanguage} className="rounded-full h-8 w-8 text-zinc-600 dark:text-zinc-400">
             <Languages size={16} />
             <span className="sr-only">Toggle Language</span>
@@ -85,7 +107,7 @@ export default function Home() {
       <main className="flex-grow flex flex-col relative overflow-hidden">
         <AnimatePresence mode="wait">
           {view === "dashboard" ? (
-            <DashboardView key="dashboard" />
+            <DashboardView key="dashboard" isTutorialOpen={isTutorialOpen} onTutorialClose={handleCloseTutorial} />
           ) : (
             <LandingView key="landing" onGetStarted={() => setView("dashboard")} />
           )}

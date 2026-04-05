@@ -8,11 +8,17 @@ import { AnalyticsView } from "./dashboard/analytics-view";
 import { StatusModal } from "./dashboard/status-modal";
 import { DisconnectModal } from "./dashboard/disconnect-modal";
 import { DeleteFieldModal } from "./dashboard/delete-field-modal";
+import { OnboardingTutorial } from "./dashboard/onboarding-tutorial";
 import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/components/language-provider";
 
-export function DashboardView() {
+interface DashboardViewProps {
+	isTutorialOpen?: boolean;
+	onTutorialClose?: () => void;
+}
+
+export function DashboardView({ isTutorialOpen = false, onTutorialClose = () => {} }: DashboardViewProps) {
 	const { t } = useLanguage();
 	const logic = useDashboardLogic();
 	
@@ -27,7 +33,7 @@ export function DashboardView() {
 	};
 
 	return (
-		<div className="flex flex-col p-4 gap-6 max-w-md mx-auto w-full min-h-screen">
+		<div className="flex flex-col p-4 gap-6 max-w-md mx-auto w-full min-h-screen relative">
 			<AnimatePresence mode="wait">
 				{logic.view === "form" ? (
 					<FormView 
@@ -85,11 +91,17 @@ export function DashboardView() {
 				fieldName={deleteConfirm.fieldName}
 				onOpenChange={(open) => setDeleteConfirm(prev => ({ ...prev, isOpen: open }))}
 				onConfirm={async () => {
-					// We need to proxy this through logic
-					logic.setDeleteConfirmIndex(deleteConfirm.index); // Added this to hook
+					logic.setDeleteConfirmIndex(deleteConfirm.index);
 					await logic.handleDeleteField();
 					setDeleteConfirm({ isOpen: false, fieldName: "", index: -1 });
 				}}
+			/>
+
+			<OnboardingTutorial 
+				isOpen={isTutorialOpen} 
+				onClose={onTutorialClose} 
+				isSynced={!!logic.user}
+				onGoogleLogin={logic.handleGoogleLogin}
 			/>
 
 			{/* OCR Placeholder Section */}
