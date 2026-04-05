@@ -18,13 +18,15 @@ interface DashboardViewProps {
 	onTutorialClose?: () => void;
 	externalStatusModal?: { isOpen: boolean; title: string; desc: string };
 	onExternalStatusClose?: () => void;
+	onRequestAccess?: (email: string) => void;
 }
 
 export function DashboardView({ 
 	isTutorialOpen = false, 
 	onTutorialClose = () => {},
 	externalStatusModal = { isOpen: false, title: "", desc: "" },
-	onExternalStatusClose = () => {}
+	onExternalStatusClose = () => {},
+	onRequestAccess = () => {}
 }: DashboardViewProps) {
 	const { t } = useLanguage();
 	const logic = useDashboardLogic();
@@ -61,6 +63,7 @@ export function DashboardView({
 							onGoogleLogin={logic.handleGoogleLogin}
 							currentMonth={logic.selectedMonth || "..."}
 							onDisconnect={() => setIsDisconnectModalOpen(true)}
+							onRequestAccess={onRequestAccess}
 						/>
 
 						{/* OCR Placeholder Section moved inside the same width container */}
@@ -94,6 +97,7 @@ export function DashboardView({
 							onSetInitialBalance={logic.handleSetInitialBalance}
 							onGoogleLogin={logic.handleGoogleLogin}
 							formatCurrency={logic.formatCurrency}
+							onRequestAccess={onRequestAccess}
 							/>					</div>
 				)}
 			</AnimatePresence>
@@ -144,6 +148,7 @@ export function DashboardView({
 				onClose={onTutorialClose} 
 				isSynced={!!logic.user}
 				onGoogleLogin={logic.handleGoogleLogin}
+				onRequestAccess={onRequestAccess}
 			/>
 		</div>
 	);

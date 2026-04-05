@@ -8,14 +8,14 @@ import {
   Languages, 
   ArrowLeft,
   HelpCircle,
-  Bug
+  MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/components/language-provider";
 import { DashboardView } from "@/components/dashboard-view";
 import { LandingView } from "@/components/landing-view";
-import { BugReportModal } from "@/components/dashboard/bug-report-modal";
+import { SupportModal } from "@/components/dashboard/bug-report-modal";
 
 export function Logo({ 
   className = "", 
@@ -46,7 +46,8 @@ export default function Home() {
   const [mounted, setMounted] = React.useState(false);
   const [view, setView] = React.useState<"dashboard" | "landing">("dashboard");
   const [isTutorialOpen, setIsTutorialOpen] = React.useState(false);
-  const [isBugModalOpen, setIsBugModalOpen] = React.useState(false);
+  const [isSupportModalOpen, setIsSupportModalOpen] = React.useState(false);
+  const [supportInitialData, setSupportInitialData] = React.useState({ category: "bug", email: "" });
   const [statusModal, setStatusModal] = React.useState<{ isOpen: boolean; title: string; desc: string }>({
     isOpen: false, title: "", desc: ""
   });
@@ -75,8 +76,13 @@ export default function Home() {
     localStorage.setItem("onboarding_complete", "true");
   };
 
-  const handleBugSuccess = (title: string, desc: string) => {
+  const handleSupportSuccess = (title: string, desc: string) => {
     setStatusModal({ isOpen: true, title, desc });
+  };
+
+  const openSupportModal = (category = "bug", email = "") => {
+    setSupportInitialData({ category, email });
+    setIsSupportModalOpen(true);
   };
 
   return (
@@ -125,6 +131,7 @@ export default function Home() {
               onTutorialClose={handleCloseTutorial}
               externalStatusModal={statusModal}
               onExternalStatusClose={() => setStatusModal(prev => ({ ...prev, isOpen: false }))}
+              onRequestAccess={(email) => openSupportModal("access", email)}
             />
           ) : (
             <LandingView key="landing" onGetStarted={() => setView("dashboard")} />
@@ -132,24 +139,26 @@ export default function Home() {
         </AnimatePresence>
       </main>
 
-      {/* Floating Report Bug Button */}
+      {/* Floating Support Button */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ opacity: 1, scale: 1 }}
         className="fixed bottom-6 right-6 z-[60]"
       >
         <Button 
-          onClick={() => setIsBugModalOpen(true)}
+          onClick={() => openSupportModal("bug")}
           className="w-12 h-12 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-black shadow-xl hover:scale-110 active:scale-95 transition-all p-0 flex items-center justify-center group"
         >
-          <Bug size={20} className="group-hover:text-red-500 transition-colors" />
+          <MessageSquare size={20} className="group-hover:text-emerald-500 transition-colors" />
         </Button>
       </motion.div>
 
-      <BugReportModal 
-        isOpen={isBugModalOpen}
-        onOpenChange={setIsBugModalOpen}
-        onSuccess={handleBugSuccess}
+      <SupportModal 
+        isOpen={isSupportModalOpen}
+        onOpenChange={setIsSupportModalOpen}
+        onSuccess={handleSupportSuccess}
+        initialCategory={supportInitialData.category}
+        initialEmail={supportInitialData.email}
       />
 
       {/* Footer / Credits */}

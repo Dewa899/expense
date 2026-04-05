@@ -48,6 +48,11 @@ const dictionary: Dictionary = {
 		en: "Switch to 'View Details' to see trends, category breakdowns, and even add your own custom charts based on your fields.",
 		id: "Pindah ke 'Lihat Detail' untuk melihat tren, pembagian kategori, dan bahkan menambah grafik kustom Anda sendiri."
 	},
+	step6Title: { en: "Limited Testing Access", id: "Akses Testing Terbatas" },
+	step6Desc: {
+		en: "During our testing phase, only approved emails can sync with Google Sheets. Please provide your email below to request access.",
+		id: "Selama fase testing, hanya email yang disetujui yang dapat sinkron dengan Google Sheets. Silakan masukkan email Anda di bawah untuk meminta akses."
+	},
 
 	// Common UI
 	heroTitle: { en: "Your Expenses, Your Rules.", id: "Pengeluaran Anda, Aturan Anda." },
@@ -57,7 +62,7 @@ const dictionary: Dictionary = {
 	features: { en: "Features", id: "Fitur" },
 	integration: { en: "Integration", id: "Integrasi" },
 	pricing: { en: "Pricing", id: "Harga" },
-	signIn: { en: "Sign In", id: "Masuk" },
+	signIn: { en: "Connect to Google", id: "Hubungkan ke Google" },
 	name: { en: "Name", id: "Nama" },
 	amount: { en: "Amount", id: "Jumlah" },
 	category: { en: "Category", id: "Kategori" },
@@ -142,42 +147,49 @@ const dictionary: Dictionary = {
 	ocrDesc: { en: "Coming soon: Instantly capture expenses from receipts using AI-powered OCR technology.", id: "Segera hadir: Catat pengeluaran secara instan dari struk menggunakan teknologi OCR berbasis AI." },
 	dynamicTitle: { en: "Dynamic Schema", id: "Skema Dinamis" },
 	dynamicDesc: { en: "Adapt to any Google Sheet structure. Define your own categories and columns easily.", id: "Menyesuaikan dengan struktur Google Sheet apa pun. Tentukan kategori dan kolom Anda sendiri dengan mudah." },
-	reportBug: {
-		en: "Report Bug",
-		id: "Laporkan Masalah",
+	contactSupport: {
+		en: "Contact Support",
+		id: "Hubungi Support",
 	},
-	bugTitle: {
-		en: "Issue Title",
-		id: "Judul Masalah",
+	supportTitle: {
+		en: "Message Title",
+		id: "Judul Pesan",
 	},
-	bugTitlePlaceholder: {
-		en: "What happened?",
-		id: "Apa yang terjadi?",
+	supportTitlePlaceholder: {
+		en: "What can we help you with?",
+		id: "Apa yang bisa kami bantu?",
 	},
-	bugEmailPlaceholder: {
+	supportEmailPlaceholder: {
 		en: "Your email for follow-up",
 		id: "Email Anda untuk tindak lanjut",
 	},
-	bugDesc: {
-		en: "Describe the problem...",
-		id: "Jelaskan masalahnya...",
+	supportDesc: {
+		en: "Describe your issue or request...",
+		id: "Jelaskan masalah atau permintaan Anda...",
 	},
-	bugSupportDesc: {
-		en: "Found a glitch? Let's fix it together and make Expense better for everyone.",
-		id: "Menemukan kendala? Mari perbaiki bersama dan buat Expense jadi lebih hebat untuk semua!",
+	supportHelperDesc: {
+		en: "Need help or want to request integration access? Let us know and we'll get back to you soon.",
+		id: "Butuh bantuan atau ingin minta akses integrasi? Beri tahu kami dan kami akan segera membalas.",
 	},
-	bugSuccess: {
-		en: "Report Sent!",
-		id: "Laporan Terkirim!",
+	supportSuccess: {
+		en: "Message Sent!",
+		id: "Pesan Terkirim!",
 	},
-	bugSuccessDesc: {
-		en: "Thank you! We've received your report and will look into it soon.",
-		id: "Terima kasih! Kami telah menerima laporan Anda dan akan segera memeriksanya.",
+	supportSuccessDesc: {
+		en: "Thank you! We've received your message and will look into it soon.",
+		id: "Terima kasih! Kami telah menerima pesan Anda dan akan segera memeriksanya.",
 	},
-	sendReport: {
-		en: "Send Report",
-		id: "Kirim Laporan",
+	sendMessage: {
+		en: "Send Message",
+		id: "Kirim Pesan",
 	},
+	supportCategory: { en: "Category", id: "Kategori" },
+	supportCatBug: { en: "Report a Bug", id: "Laporkan Bug" },
+	supportCatAccess: { en: "Request Integration Access", id: "Minta Akses Integrasi" },
+	supportCatOther: { en: "Other Question", id: "Pertanyaan Lain" },
+	requestAccess: { en: "Request Access", id: "Minta Akses" },
+	emailInputPlaceholder: { en: "yourname@gmail.com", id: "namaanda@gmail.com" },
+
 	sheetsTitle: { en: "Real-time Sync", id: "Sinkronisasi Real-time" },
 	sheetsDesc: { en: "Your data stays in your control. Expenses are synced directly to your personal Google Sheets.", id: "Data Anda tetap dalam kendali Anda. Pengeluaran disinkronkan langsung ke Google Sheets pribadi Anda." },
 };
