@@ -72,6 +72,23 @@ export function useDashboardLogic() {
 		return now.toLocaleString("id-ID", { month: "long", year: "numeric" });
 	};
 
+	const getPreviousMonthName = (currentMonthName: string) => {
+		// Expects format "Bulan Tahun" e.g. "April 2026"
+		const [month, year] = currentMonthName.split(' ');
+		const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+		let monthIdx = months.indexOf(month);
+		let prevYear = parseInt(year);
+		
+		if (monthIdx === 0) {
+			monthIdx = 11;
+			prevYear -= 1;
+		} else {
+			monthIdx -= 1;
+		}
+		
+		return `${months[monthIdx]} ${prevYear}`;
+	};
+
 	const formatCurrency = (val: number) => {
 		return new Intl.NumberFormat("id-ID", { 
 			style: "currency", currency: "IDR", minimumFractionDigits: 0 
@@ -85,12 +102,6 @@ export function useDashboardLogic() {
 		return Math.abs(parseFloat(cleaned)) || 0;
 	};
 
-	// Storage Keys
-	const KEY_CATS = "customCategories";
-	const KEY_FIELDS = "customFieldDefs";
-	const KEY_CHARTS = "customChartConfigs";
-
-	// API & Data Actions
 	const fetchSheetData = async (sheetId: string, token: string, sheetName: string) => {
 		try {
 			setLoading(true);
@@ -118,15 +129,14 @@ export function useDashboardLogic() {
 						type: type,
 						category: row[catIdx] || "",
 						note: row[noteIdx] || "",
-						raw: row // Keep raw for custom fields
+						raw: row
 					};
 				});
 				
 				setTransactions(rowData);
 				setTotalAmount(rowData.reduce((sum: number, t: any) => sum + t.amount, 0));
 
-				// Auto-Discovery logic
-				const savedFieldsStr = localStorage.getItem(KEY_FIELDS);
+				const savedFieldsStr = localStorage.getItem("customFieldDefs");
 				const savedFields: CustomFieldDef[] = savedFieldsStr ? JSON.parse(savedFieldsStr) : [];
 				const discoveredFields: CustomFieldDef[] = [];
 				fetchedHeaders.forEach((h: string) => {
@@ -137,132 +147,27 @@ export function useDashboardLogic() {
 					}
 				});
 				setCustomFields(discoveredFields);
-				localStorage.setItem(KEY_FIELDS, JSON.stringify(discoveredFields));
+				localStorage.setItem("customFieldDefs", JSON.stringify(discoveredFields));
 			} else { setHeaders(DEFAULT_HEADERS); setTotalAmount(0); setTransactions([]); }
 		} catch (error) { setHeaders(DEFAULT_HEADERS); } finally { setLoading(false); }
 	};
 
-	const handleAddCustomChart = (config: CustomChartConfig) => {
-		if (customChartConfigs.length >= 2) return;
-		const updated = [...customChartConfigs, config];
-		setCustomChartConfigs(updated);
-		localStorage.setItem(KEY_CHARTS, JSON.stringify(updated));
-	};
-
-	const handleDeleteCustomChart = (idx: number) => {
-		const updated = customChartConfigs.filter((_, i) => i !== idx);
-		setCustomChartConfigs(updated);
-		localStorage.setItem(KEY_CHARTS, JSON.stringify(updated));
-	};
-
-	const handleAddCategory = () => {
-		if (!newCategoryInput.trim() || categories.includes(newCategoryInput.trim())) return;
-		const updated = [...categories, newCategoryInput.trim()];
-		setCategories(updated);
-		localStorage.setItem(KEY_CATS, JSON.stringify(updated));
-		setNewCategoryInput("");
-	};
-
-	const handleDeleteCategory = (cat: string) => {
-		const updated = categories.filter((c) => c !== cat);
-		setCategories(updated);
-		localStorage.setItem(KEY_CATS, JSON.stringify(updated));
-	};
-
-	const handleAddField = async () => {
-		if (!newFieldName.trim() || customFields.length >= 2 || !user?.accessToken || !config.sheetId) return;
-		const newField: CustomFieldDef = { name: newFieldName.trim(), type: newFieldType, required: newFieldRequired, options: newFieldType === "dropdown" ? ["Default"] : [] };
-		const updatedFields = [...customFields, newField];
-		setLoading(true);
-		try {
-			const sheetName = getCurrentMonthSheetName();
-			const internalSheetId = await ensureAndGetSheetId(config.sheetId, sheetName, user.accessToken);
-			setCustomFields(updatedFields);
-			localStorage.setItem(KEY_FIELDS, JSON.stringify(updatedFields));
-			await initializeSheetFormatting(config.sheetId, user.accessToken, sheetName, internalSheetId, updatedFields);
-			setNewFieldName("");
-			setNewFieldRequired(true);
-			await fetchSheetData(config.sheetId, user.accessToken, sheetName);
-		} catch (e) { alert("Failed to add field"); } finally { setLoading(false); }
-	};
-
-	const handleUpdateField = async (idx: number, name: string, type: "text" | "dropdown", req: boolean) => {
-		if (idx === -1 || !name.trim() || !user?.accessToken || !config.sheetId) return;
-		const updatedFields = [...customFields];
-		updatedFields[idx].name = name.trim();
-		updatedFields[idx].type = type;
-		updatedFields[idx].required = req;
-		if (type === "dropdown" && (!updatedFields[idx].options || updatedFields[idx].options.length === 0)) {
-			updatedFields[idx].options = ["Default"];
-		}
-		setLoading(true);
-		try {
-			const sheetName = getCurrentMonthSheetName();
-			const internalSheetId = await ensureAndGetSheetId(config.sheetId, sheetName, user.accessToken);
-			setCustomFields(updatedFields);
-			localStorage.setItem(KEY_FIELDS, JSON.stringify(updatedFields));
-			await initializeSheetFormatting(config.sheetId, user.accessToken, sheetName, internalSheetId, updatedFields);
-			await fetchSheetData(config.sheetId, user.accessToken, sheetName);
-		} catch (e) { alert("Failed to update field"); } finally { setLoading(false); }
-	};
-
-	const handleDeleteField = async () => {
-		if (deleteConfirmIndex === -1 || !user?.accessToken || !config.sheetId) return;
-		setLoading(true);
-		try {
-			const sheetName = getCurrentMonthSheetName();
-			const internalSheetId = await ensureAndGetSheetId(config.sheetId, sheetName, user.accessToken);
-			const colIndex = CORE_FIELDS_COUNT + deleteConfirmIndex;
-			await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}:batchUpdate`, {
-				method: "POST",
-				headers: { Authorization: `Bearer ${user.accessToken}`, "Content-Type": "application/json" },
-				body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId: internalSheetId, dimension: "COLUMNS", startIndex: colIndex, endIndex: colIndex + 1 } } }] })
-			});
-			const updatedFields = customFields.filter((_, i) => i !== deleteConfirmIndex);
-			
-			// Also remove associated charts
-			const fieldNameToDelete = customFields[deleteConfirmIndex].name;
-			const updatedCharts = customChartConfigs.filter(c => c.fieldName !== fieldNameToDelete);
-			setCustomChartConfigs(updatedCharts);
-			localStorage.setItem(KEY_CHARTS, JSON.stringify(updatedCharts));
-
-			setCustomFields(updatedFields);
-			localStorage.setItem(KEY_FIELDS, JSON.stringify(updatedFields));
-			setDeleteConfirmIndex(-1);
-			await fetchSheetData(config.sheetId, user.accessToken, sheetName);
-		} catch (e) { alert("Failed to delete column"); } finally { setLoading(false); }
-	};
-
-	const handleAddOptionToField = (idx: number, input: string) => {
-		if (idx === -1 || !input.trim()) return;
-		const updatedFields = [...customFields];
-		const field = updatedFields[idx];
-		if (!field.options) field.options = [];
-		if (field.options.includes(input.trim())) return;
-		field.options.push(input.trim());
-		setCustomFields(updatedFields);
-		localStorage.setItem(KEY_FIELDS, JSON.stringify(updatedFields));
-		setNewOptionInput("");
-	};
-
-	const handleDeleteOptionFromField = (idx: number, optToDelete: string) => {
-		if (idx === -1) return;
-		const updatedFields = [...customFields];
-		const field = updatedFields[idx];
-		if (field.options) {
-			field.options = field.options.filter(o => o !== optToDelete);
-			setCustomFields(updatedFields);
-			localStorage.setItem(KEY_FIELDS, JSON.stringify(updatedFields));
-		}
-	};
-
 	const setupGoogleSheet = async (token: string) => {
 		setLoading(true);
+		setStatusModal({ 
+			isOpen: true, 
+			type: null, 
+			title: t("integrationTitle"), 
+			description: "Connecting to Google Drive..." 
+		});
+		
 		try {
 			const folderSearchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='expense by genlord' and mimeType='application/vnd.google-apps.folder' and trashed=false`, { headers: { Authorization: `Bearer ${token}` } });
 			const folderSearchData = await folderSearchRes.json();
 			let folderId = folderSearchData.files?.[0]?.id;
+			
 			if (!folderId) {
+				setStatusModal(prev => ({ ...prev, description: "Creating application folder..." }));
 				const folderCreateRes = await fetch("https://www.googleapis.com/drive/v3/files", {
 					method: "POST",
 					headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -271,10 +176,14 @@ export function useDashboardLogic() {
 				const folderData = await folderCreateRes.json();
 				folderId = folderData.id;
 			}
+
+			setStatusModal(prev => ({ ...prev, description: "Preparing your Expense Tracker..." }));
 			const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='Expense Tracker' and '${folderId}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`, { headers: { Authorization: `Bearer ${token}` } });
 			const searchData = await searchRes.json();
 			let spreadsheetId = searchData.files?.[0]?.id;
+			
 			if (!spreadsheetId) {
+				setStatusModal(prev => ({ ...prev, description: "Creating new Google Sheet..." }));
 				const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
 					method: "POST",
 					headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -283,15 +192,88 @@ export function useDashboardLogic() {
 				const createData = await createRes.json();
 				spreadsheetId = createData.id;
 			}
+
 			const sheetName = getCurrentMonthSheetName();
+			setStatusModal(prev => ({ ...prev, description: `Setting up sheet: ${sheetName}...` }));
+			const isNewSheet = await checkIfSheetIsNew(spreadsheetId, sheetName, token);
 			const internalSheetId = await ensureAndGetSheetId(spreadsheetId, sheetName, token);
 			await initializeSheetFormatting(spreadsheetId, token, sheetName, internalSheetId);
+			
+			if (isNewSheet) {
+				await handleInitialBalanceCarryForward(spreadsheetId, sheetName, token);
+			}
+
 			localStorage.setItem("sheetId", spreadsheetId);
 			setConfig({ sheetId: spreadsheetId });
 			setSelectedMonth(sheetName);
-			fetchSheetData(spreadsheetId, token, sheetName);
-			fetchAvailableMonths(spreadsheetId, token);
-		} catch (error: any) { setStatusModal({ isOpen: true, type: "error", title: "Sync Failed", description: error.message }); } finally { setLoading(false); }
+			
+			await fetchSheetData(spreadsheetId, token, sheetName);
+			await fetchAvailableMonths(spreadsheetId, token);
+
+			setStatusModal({ 
+				isOpen: true, 
+				type: "success", 
+				title: "Sync Successful", 
+				description: "Your account is now fully integrated with Google Sheets." 
+			});
+		} catch (error: any) { 
+			setStatusModal({ 
+				isOpen: true, 
+				type: "error", 
+				title: "Sync Failed", 
+				description: error.message || "An error occurred while connecting to Google." 
+			}); 
+		} finally { 
+			setLoading(false); 
+		}
+	};
+
+	const checkIfSheetIsNew = async (spreadsheetId: string, sheetName: string, token: string): Promise<boolean> => {
+		const metadataRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties.title`, { headers: { Authorization: `Bearer ${token}` } });
+		const metadata = await metadataRes.json();
+		return !metadata.sheets?.some((s: any) => s.properties?.title === sheetName);
+	};
+
+	const handleInitialBalanceCarryForward = async (spreadsheetId: string, currentMonth: string, token: string) => {
+		const prevMonthName = getPreviousMonthName(currentMonth);
+		try {
+			// Try to fetch previous month data
+			const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(prevMonthName)}!A:C`, { headers: { Authorization: `Bearer ${token}` } });
+			const data = await res.json();
+			
+			if (data.values && data.values.length > 1) {
+				// Calculate previous balance
+				const amountIdx = data.values[0].findIndex((h: string) => h.toLowerCase().includes("jumlah") || h.toLowerCase().includes("amount"));
+				const typeIdx = data.values[0].findIndex((h: string) => h.toLowerCase().includes("tipe") || h.toLowerCase().includes("type"));
+				
+				const balance = data.values.slice(1).reduce((sum: number, row: any) => {
+					const rawAmount = cleanNumber(row[amountIdx]);
+					const type = row[typeIdx] || "";
+					const isExpense = type.toLowerCase().includes("expense") || type.toLowerCase().includes("pengeluaran") || type.toLowerCase().includes("out");
+					return sum + (isExpense ? -rawAmount : rawAmount);
+				}, 0);
+
+				if (balance !== 0) {
+					// Add as first row in current month
+					const values = [
+						new Date().toLocaleString(),
+						`${t("initialBalance")} (${prevMonthName})`,
+						Math.abs(balance).toString(),
+						balance >= 0 ? "Pemasukan / Income" : "Pengeluaran / Expense",
+						"Initial Balance",
+						t("fromPreviousMonth")
+					];
+					
+					await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(currentMonth)}!A1:append?valueInputOption=USER_ENTERED`, {
+						method: "POST",
+						headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+						body: JSON.stringify({ values: [values] }),
+					});
+				}
+			}
+		} catch (e) {
+			console.log("No previous month data to carry forward");
+		}
 	};
 
 	const ensureAndGetSheetId = async (spreadsheetId: string, sheetName: string, token: string): Promise<number> => {
@@ -371,6 +353,39 @@ export function useDashboardLogic() {
 		if (user?.accessToken) fetchSheetData(config.sheetId, user.accessToken, month);
 	};
 
+	const handleSetInitialBalance = async (amount: number) => {
+		if (!user?.accessToken || !config.sheetId || !selectedMonth) return;
+		setLoading(true);
+		try {
+			const values = [
+				new Date().toLocaleString(),
+				`${t("initialBalance")} (Manual Setup)`,
+				Math.abs(amount).toString(),
+				"Pemasukan / Income",
+				"Initial Balance",
+				"Manual Setup"
+			];
+			
+			await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(selectedMonth)}!A1:append?valueInputOption=USER_ENTERED`, {
+				method: "POST",
+				headers: { Authorization: `Bearer ${user.accessToken}`, "Content-Type": "application/json" },
+				body: JSON.stringify({ values: [values] }),
+			});
+			
+			await fetchSheetData(config.sheetId, user.accessToken, selectedMonth);
+			setStatusModal({ 
+				isOpen: true, 
+				type: "success", 
+				title: t("successTitle"), 
+				description: "Starting balance has been set successfully." 
+			});
+		} catch (error: any) {
+			setStatusModal({ isOpen: true, type: "error", title: "Setup Failed", description: error.message });
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	const handleGoogleLogin = () => {
 		const scope = "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file";
 		const redirectUri = window.location.origin;
@@ -382,15 +397,15 @@ export function useDashboardLogic() {
 	React.useEffect(() => {
 		const savedSheetId = localStorage.getItem("sheetId") || "";
 		const savedUser = localStorage.getItem("googleUser");
-		const savedCats = localStorage.getItem(KEY_CATS);
-		const savedFields = localStorage.getItem(KEY_FIELDS);
-		const savedCharts = localStorage.getItem(KEY_CHARTS);
+		const savedCats = localStorage.getItem("customCategories");
+		const savedFields = localStorage.getItem("customFieldDefs");
+		const savedCharts = localStorage.getItem("customChartConfigs");
 
 		if (savedCats) setCategories(JSON.parse(savedCats));
 		else {
 			const defaultCats = ["Gaji", "Makanan & Minuman", "Transportasi", "Kesehatan", "Belanja", "Tagihan", "Hiburan", "Pendidikan", "Lainnya"];
 			setCategories(defaultCats);
-			localStorage.setItem(KEY_CATS, JSON.stringify(defaultCats));
+			localStorage.setItem("customCategories", JSON.stringify(defaultCats));
 		}
 
 		if (savedFields) setCustomFields(JSON.parse(savedFields));
@@ -466,6 +481,120 @@ export function useDashboardLogic() {
 		} catch (error: any) { setStatusModal({ isOpen: true, type: "error", title: "Submission Failed", description: error.message }); } finally { setLoading(false); }
 	};
 
+	const handleAddCategory = () => {
+		if (!newCategoryInput.trim() || categories.includes(newCategoryInput.trim())) return;
+		const updated = [...categories, newCategoryInput.trim()];
+		setCategories(updated);
+		localStorage.setItem("customCategories", JSON.stringify(updated));
+		setNewCategoryInput("");
+	};
+
+	const handleDeleteCategory = (cat: string) => {
+		const updated = categories.filter((c) => c !== cat);
+		setCategories(updated);
+		localStorage.setItem("customCategories", JSON.stringify(updated));
+	};
+
+	const handleAddField = async () => {
+		if (!newFieldName.trim() || customFields.length >= 2 || !user?.accessToken || !config.sheetId) return;
+		const newField: CustomFieldDef = { name: newFieldName.trim(), type: newFieldType, required: newFieldRequired, options: newFieldType === "dropdown" ? ["Default"] : [] };
+		const updatedFields = [...customFields, newField];
+		setLoading(true);
+		try {
+			const sheetName = getCurrentMonthSheetName();
+			const internalSheetId = await ensureAndGetSheetId(config.sheetId, sheetName, user.accessToken);
+			setCustomFields(updatedFields);
+			localStorage.setItem("customFieldDefs", JSON.stringify(updatedFields));
+			await initializeSheetFormatting(config.sheetId, user.accessToken, sheetName, internalSheetId, updatedFields);
+			setNewFieldName("");
+			setNewFieldRequired(true);
+			await fetchSheetData(config.sheetId, user.accessToken, sheetName);
+		} catch (e) { alert("Failed to add field"); } finally { setLoading(false); }
+	};
+
+	const handleUpdateField = async (idx: number, name: string, type: "text" | "dropdown", req: boolean) => {
+		if (idx === -1 || !name.trim() || !user?.accessToken || !config.sheetId) return;
+		const updatedFields = [...customFields];
+		updatedFields[idx].name = name.trim();
+		updatedFields[idx].type = type;
+		updatedFields[idx].required = req;
+		if (type === "dropdown" && (!updatedFields[idx].options || updatedFields[idx].options.length === 0)) {
+			updatedFields[idx].options = ["Default"];
+		}
+		setLoading(true);
+		try {
+			const sheetName = getCurrentMonthSheetName();
+			const internalSheetId = await ensureAndGetSheetId(config.sheetId, sheetName, user.accessToken);
+			setCustomFields(updatedFields);
+			localStorage.setItem("customFieldDefs", JSON.stringify(updatedFields));
+			await initializeSheetFormatting(config.sheetId, user.accessToken, sheetName, internalSheetId, updatedFields);
+			await fetchSheetData(config.sheetId, user.accessToken, sheetName);
+		} catch (e) { alert("Failed to update field"); } finally { setLoading(false); }
+	};
+
+	const handleDeleteField = async () => {
+		if (deleteConfirmIndex === -1 || !user?.accessToken || !config.sheetId) return;
+		setLoading(true);
+		try {
+			const sheetName = getCurrentMonthSheetName();
+			const internalSheetId = await ensureAndGetSheetId(config.sheetId, sheetName, user.accessToken);
+			const colIndex = CORE_FIELDS_COUNT + deleteConfirmIndex;
+			await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}:batchUpdate`, {
+				method: "POST",
+				headers: { Authorization: `Bearer ${user.accessToken}`, "Content-Type": "application/json" },
+				body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId: internalSheetId, dimension: "COLUMNS", startIndex: colIndex, endIndex: colIndex + 1 } } }] })
+			});
+			const updatedFields = customFields.filter((_, i) => i !== deleteConfirmIndex);
+			
+			// Also remove associated charts
+			const fieldNameToDelete = customFields[deleteConfirmIndex].name;
+			const updatedCharts = customChartConfigs.filter(c => c.fieldName !== fieldNameToDelete);
+			setCustomChartConfigs(updatedCharts);
+			localStorage.setItem("customChartConfigs", JSON.stringify(updatedCharts));
+
+			setCustomFields(updatedFields);
+			localStorage.setItem("customFieldDefs", JSON.stringify(updatedFields));
+			setDeleteConfirmIndex(-1);
+			await fetchSheetData(config.sheetId, user.accessToken, sheetName);
+		} catch (e) { alert("Failed to delete column"); } finally { setLoading(false); }
+	};
+
+	const handleAddOptionToField = (idx: number, input: string) => {
+		if (idx === -1 || !input.trim()) return;
+		const updatedFields = [...customFields];
+		const field = updatedFields[idx];
+		if (!field.options) field.options = [];
+		if (field.options.includes(input.trim())) return;
+		field.options.push(input.trim());
+		setCustomFields(updatedFields);
+		localStorage.setItem("customFieldDefs", JSON.stringify(updatedFields));
+		setNewOptionInput("");
+	};
+
+	const handleDeleteOptionFromField = (idx: number, optToDelete: string) => {
+		if (idx === -1) return;
+		const updatedFields = [...customFields];
+		const field = updatedFields[idx];
+		if (field.options) {
+			field.options = field.options.filter(o => o !== optToDelete);
+			setCustomFields(updatedFields);
+			localStorage.setItem("customFieldDefs", JSON.stringify(updatedFields));
+		}
+	};
+
+	const handleAddCustomChart = (config: CustomChartConfig) => {
+		if (customChartConfigs.length >= 2) return;
+		const updated = [...customChartConfigs, config];
+		setCustomChartConfigs(updated);
+		localStorage.setItem("customChartConfigs", JSON.stringify(updated));
+	};
+
+	const handleDeleteCustomChart = (idx: number) => {
+		const updated = customChartConfigs.filter((_, i) => i !== idx);
+		setCustomChartConfigs(updated);
+		localStorage.setItem("customChartConfigs", JSON.stringify(updated));
+	};
+
 	return {
 		view, setView,
 		headers, categories, customFields, transactions,
@@ -482,6 +611,7 @@ export function useDashboardLogic() {
 		handleAddOptionToField, handleDeleteOptionFromField,
 		handleAddField, handleUpdateField, handleDeleteField,
 		customChartConfigs, handleAddCustomChart, handleDeleteCustomChart,
+		handleSetInitialBalance,
 		handleGoogleLogin, handleMonthChange, handleSubmit,
 		translateHeader: (header: string) => {
 			const h = header.toLowerCase();

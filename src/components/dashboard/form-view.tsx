@@ -221,11 +221,16 @@ export function FormView(props: FormViewProps) {
 							const customFieldIdx = props.customFields.findIndex(f => f.name.toLowerCase() === hL);
 							const customField = customFieldIdx !== -1 ? props.customFields[customFieldIdx] : null;
 
+							const isNote = hL.includes("catatan") || hL.includes("note");
+
 							return (
 								<div key={header} className="space-y-2">
 									<div className="flex items-center justify-between ml-1">
-										<Label className="text-xs text-zinc-500 dark:text-zinc-400">{props.translateHeader(header)} {customField?.required && <span className="text-red-500">*</span>}</Label>
-										{(isCoreCat || customField?.type === "dropdown") && (
+										<Label className="text-xs text-zinc-500 dark:text-zinc-400">
+											{props.translateHeader(header)} 
+											{customField?.required && <span className="text-red-500 ml-1">*</span>}
+											{isNote && <span className="text-[10px] opacity-60 font-normal ml-1">({t("optionalLabel")})</span>}
+										</Label>										{(isCoreCat || customField?.type === "dropdown") && (
 											<Dialog>
 												<DialogTrigger render={<Button variant="ghost" size="sm" disabled={props.loading || !props.user} className="h-6 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 px-2 rounded-lg" />}>
 													{t("manageOptions")}

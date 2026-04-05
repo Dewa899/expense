@@ -113,6 +113,15 @@ const dictionary: Dictionary = {
 	incomeTotal: { en: "Total Income", id: "Total Pemasukan" },
 	expenseTotal: { en: "Total Expense", id: "Total Pengeluaran" },
 	netBalance: { en: "Net Balance", id: "Saldo Bersih" },
+	initialBalance: { en: "Initial Balance", id: "Saldo Awal" },
+	startingBalance: { en: "Starting Balance", id: "Saldo Awal" },
+	endingBalance: { en: "Ending Balance", id: "Saldo Akhir" },
+	fromPreviousMonth: { en: "From previous month", id: "Dari bulan sebelumnya" },
+	setupInitialBalance: { en: "Setup Initial Balance", id: "Atur Saldo Awal" },
+	initialBalanceDesc: { 
+		en: "Enter your current total balance to start tracking accurately.", 
+		id: "Masukkan total saldo Anda saat ini untuk mulai mencatat dengan akurat." 
+	},
 	transactionTrend: { en: "Transaction Trend", id: "Tren Transaksi" },
 	expenseByCat: { en: "Expense by Category", id: "Pengeluaran per Kategori" },
 	back: { en: "Back", id: "Kembali" },

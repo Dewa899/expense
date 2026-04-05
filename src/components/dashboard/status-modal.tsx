@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -19,15 +19,26 @@ interface StatusModalProps {
 
 export function StatusModal({ state, onClose }: StatusModalProps) {
 	const { t } = useLanguage();
+	const isLoading = state.type === null && state.isOpen;
 
 	return (
-		<Dialog open={state.isOpen} onOpenChange={(open) => !open && onClose()}>
-			<DialogContent className="sm:max-w-[400px] rounded-[32px] p-8">
+		<Dialog open={state.isOpen} onOpenChange={(open) => {
+			if (!open && isLoading) return; // Prevent closing if loading
+			if (!open) onClose();
+		}}>
+			<DialogContent 
+				className="sm:max-w-[400px] rounded-[32px] p-8"
+				showCloseButton={!isLoading}
+			>
 				<div className="flex flex-col items-center text-center gap-4">
 					<div className={`w-20 h-20 rounded-full flex items-center justify-center ${
-						state.type === "success" ? "bg-emerald-500/10 text-emerald-500" : "bg-destructive/10 text-destructive"
+						state.type === "success" ? "bg-emerald-500/10 text-emerald-500" : 
+						state.type === "error" ? "bg-destructive/10 text-destructive" :
+						"bg-zinc-100 dark:bg-zinc-800 text-zinc-400"
 					}`}>
-						{state.type === "success" ? <CheckCircle2 size={48} /> : <AlertCircle size={48} />}
+						{state.type === "success" ? <CheckCircle2 size={48} /> : 
+						 state.type === "error" ? <AlertCircle size={48} /> :
+						 <Loader2 size={48} className="animate-spin" />}
 					</div>
 					<div className="space-y-2">
 						<DialogTitle className="text-2xl font-black tracking-tight">{state.title}</DialogTitle>
@@ -35,14 +46,17 @@ export function StatusModal({ state, onClose }: StatusModalProps) {
 							{state.description}
 						</DialogDescription>
 					</div>
-					<Button 
-						onClick={onClose} 
-						className={`w-full h-12 rounded-xl font-bold mt-2 ${
-							state.type === "success" ? "bg-emerald-500 hover:bg-emerald-600 text-black" : "bg-destructive hover:bg-destructive/90 text-white"
-						}`}
-					>
-						{t("close")}
-					</Button>
+					
+					{state.type !== null && (
+						<Button 
+							onClick={onClose} 
+							className={`w-full h-12 rounded-xl font-bold mt-2 ${
+								state.type === "success" ? "bg-emerald-500 hover:bg-emerald-600 text-black" : "bg-destructive hover:bg-destructive/90 text-white"
+							}`}
+						>
+							{t("close")}
+						</Button>
+					)}
 				</div>
 			</DialogContent>
 		</Dialog>

@@ -27,7 +27,7 @@ export function Logo({
   return (
     <button 
       onClick={onClick}
-      className={`flex items-center gap-1 leading-none text-left hover:opacity-80 transition-opacity ${className}`}
+      className={`flex items-center gap-1 leading-none text-left hover:opacity-80 transition-opacity cursor-pointer ${className}`}
     >
       <div className="flex flex-col">
         <div className="flex items-baseline">
