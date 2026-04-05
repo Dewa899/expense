@@ -100,9 +100,57 @@ const dictionary: Dictionary = {
     en: "Quick Add",
     id: "Tambah Cepat",
   },
+  name: {
+    en: "Name",
+    id: "Nama",
+  },
+  amount: {
+    en: "Amount",
+    id: "Jumlah",
+  },
+  category: {
+    en: "Category",
+    id: "Kategori",
+  },
+  note: {
+    en: "Note",
+    id: "Catatan",
+  },
+  transactionType: {
+    en: "Transaction Type",
+    id: "Tipe Transaksi",
+  },
+  income: {
+    en: "Income",
+    id: "Pemasukan",
+  },
+  expense: {
+    en: "Expense",
+    id: "Pengeluaran",
+  },
   selectCategory: {
     en: "Select a category",
     id: "Pilih kategori",
+  },
+  newCategory: {
+    en: "New Category",
+    id: "Kategori Baru",
+  },
+  addManualCategory: {
+    en: "Or type manual category...",
+    id: "Atau ketik kategori manual...",
+  },
+  manageCategories: {
+    en: "Manage Categories",
+    id: "Kelola Kategori",
+  },
+  add: {
+    en: "Add",
+    id: "Tambah",
+  },
+  delete: {
+    en: "Delete",
+    id: "Hapus",
   },
   ocrTitle: {
     en: "Receipt Scanning",
