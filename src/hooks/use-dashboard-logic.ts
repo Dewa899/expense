@@ -277,8 +277,8 @@ export function useDashboardLogic() {
 	};
 
 	const ensureAndGetSheetId = async (spreadsheetId: string, sheetName: string, token: string): Promise<number> => {
-		const metadataRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`, { headers: { Authorization: `Bearer ${token}` } });
-		const metadata = await metadataRes.json();
+		let metadataRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`, { headers: { Authorization: `Bearer ${token}` } });
+		let metadata = await metadataRes.json();
 		
 		let existingSheet = metadata.sheets?.find((s: any) => s.properties?.title === sheetName);
 		let targetSheetId: number;
@@ -293,25 +293,25 @@ export function useDashboardLogic() {
 			const createData = await createRes.json();
 			targetSheetId = createData.replies[0].addSheet.properties.sheetId;
 			
-			// Re-fetch metadata to get updated list of sheets for deletion
-			const updatedMetaRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`, { headers: { Authorization: `Bearer ${token}` } });
-			const updatedMeta = await updatedMetaRes.json();
-			const sheet1 = updatedMeta.sheets?.find((s: any) => s.properties?.title === "Sheet1");
-			
-			// Delete Sheet1 only if we just created a new one and Sheet1 exists
-			if (sheet1 && updatedMeta.sheets.length > 1) {
-				try {
-					await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
-						method: "POST",
-						headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-						body: JSON.stringify({ requests: [{ deleteSheet: { sheetId: sheet1.properties.sheetId } }] }),
-					});
-				} catch (e) {
-					console.error("Failed to delete Sheet1:", e);
-				}
-			}
+			// Refresh metadata because we just added a sheet
+			metadataRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`, { headers: { Authorization: `Bearer ${token}` } });
+			metadata = await metadataRes.json();
 		} else {
 			targetSheetId = existingSheet.properties.sheetId;
+		}
+
+		// Always check if Sheet1 needs to be deleted
+		const sheet1 = metadata.sheets?.find((s: any) => s.properties?.title === "Sheet1");
+		if (sheet1 && metadata.sheets.length > 1) {
+			try {
+				await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+					method: "POST",
+					headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+					body: JSON.stringify({ requests: [{ deleteSheet: { sheetId: sheet1.properties.sheetId } }] }),
+				});
+			} catch (e) {
+				console.error("Failed to delete Sheet1:", e);
+			}
 		}
 
 		return targetSheetId;
