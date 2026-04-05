@@ -1,40 +1,44 @@
 "use client";
 
 import * as React from "react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { 
   Moon, 
   Sun, 
   Languages, 
   ArrowLeft,
-  HelpCircle
+  HelpCircle,
+  Bug
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/components/language-provider";
 import { DashboardView } from "@/components/dashboard-view";
 import { LandingView } from "@/components/landing-view";
+import { BugReportModal } from "@/components/dashboard/bug-report-modal";
 
-const Logo = ({ 
+export function Logo({ 
   className = "", 
   onClick 
 }: { 
   className?: string;
   onClick: () => void;
-}) => (
-  <button 
-    onClick={onClick}
-    className={`flex items-center gap-1 leading-none text-left hover:opacity-80 transition-opacity ${className}`}
-  >
-    <div className="flex flex-col">
-      <div className="flex items-baseline">
-        <span className="text-xl font-black tracking-tighter text-emerald-500 italic">EXP</span>
-        <span className="text-xs font-bold tracking-tight text-emerald-600/70 dark:text-emerald-400/50 -ml-0.5">ense</span>
+}) {
+  return (
+    <button 
+      onClick={onClick}
+      className={`flex items-center gap-1 leading-none text-left hover:opacity-80 transition-opacity ${className}`}
+    >
+      <div className="flex flex-col">
+        <div className="flex items-baseline">
+          <span className="text-xl font-black tracking-tighter text-emerald-500 italic">EXP</span>
+          <span className="text-xs font-bold tracking-tight text-emerald-600/70 dark:text-emerald-400/50 -ml-0.5">ense</span>
+        </div>
+        <span className="text-[8px] font-light tracking-[0.2em] uppercase text-zinc-500 dark:text-zinc-500 ml-0.5">by GENLORD</span>
       </div>
-      <span className="text-[8px] font-light tracking-[0.2em] uppercase text-zinc-500 dark:text-zinc-500 ml-0.5">by GENLORD</span>
-    </div>
-  </button>
-);
+    </button>
+  );
+}
 
 export default function Home() {
   const { theme, setTheme } = useTheme();
@@ -42,6 +46,10 @@ export default function Home() {
   const [mounted, setMounted] = React.useState(false);
   const [view, setView] = React.useState<"dashboard" | "landing">("dashboard");
   const [isTutorialOpen, setIsTutorialOpen] = React.useState(false);
+  const [isBugModalOpen, setIsBugModalOpen] = React.useState(false);
+  const [statusModal, setStatusModal] = React.useState<{ isOpen: boolean; title: string; desc: string }>({
+    isOpen: false, title: "", desc: ""
+  });
 
   React.useEffect(() => {
     setMounted(true);
@@ -67,8 +75,12 @@ export default function Home() {
     localStorage.setItem("onboarding_complete", "true");
   };
 
+  const handleBugSuccess = (title: string, desc: string) => {
+    setStatusModal({ isOpen: true, title, desc });
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 transition-colors duration-300">
+    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 transition-colors duration-300 relative">
       {/* Navbar / Header */}
       <header className="px-4 py-3 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/50 backdrop-blur-sm sticky top-0 z-50 bg-white/80 dark:bg-zinc-950/80">
         <Logo onClick={() => setView(view === "dashboard" ? "landing" : "dashboard")} />
@@ -85,7 +97,7 @@ export default function Home() {
             variant="ghost" 
             size="icon" 
             onClick={() => setIsTutorialOpen(true)}
-            className="rounded-full h-8 w-8 text-zinc-600 dark:text-zinc-400"
+            className="rounded-full h-8 w-8 text-zinc-600 dark:text-zinc-400 hover:text-emerald-500"
           >
             <HelpCircle size={16} />
           </Button>
@@ -107,12 +119,38 @@ export default function Home() {
       <main className="flex-grow flex flex-col relative overflow-hidden">
         <AnimatePresence mode="wait">
           {view === "dashboard" ? (
-            <DashboardView key="dashboard" isTutorialOpen={isTutorialOpen} onTutorialClose={handleCloseTutorial} />
+            <DashboardView 
+              key="dashboard" 
+              isTutorialOpen={isTutorialOpen} 
+              onTutorialClose={handleCloseTutorial}
+              externalStatusModal={statusModal}
+              onExternalStatusClose={() => setStatusModal(prev => ({ ...prev, isOpen: false }))}
+            />
           ) : (
             <LandingView key="landing" onGetStarted={() => setView("dashboard")} />
           )}
         </AnimatePresence>
       </main>
+
+      {/* Floating Report Bug Button */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="fixed bottom-6 right-6 z-[60]"
+      >
+        <Button 
+          onClick={() => setIsBugModalOpen(true)}
+          className="w-12 h-12 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-black shadow-xl hover:scale-110 active:scale-95 transition-all p-0 flex items-center justify-center group"
+        >
+          <Bug size={20} className="group-hover:text-red-500 transition-colors" />
+        </Button>
+      </motion.div>
+
+      <BugReportModal 
+        isOpen={isBugModalOpen}
+        onOpenChange={setIsBugModalOpen}
+        onSuccess={handleBugSuccess}
+      />
 
       {/* Footer / Credits */}
       <footer className="p-8 text-center mt-auto border-t border-zinc-200 dark:border-zinc-800/50">

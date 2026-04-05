@@ -16,9 +16,16 @@ import { useLanguage } from "@/components/language-provider";
 interface DashboardViewProps {
 	isTutorialOpen?: boolean;
 	onTutorialClose?: () => void;
+	externalStatusModal?: { isOpen: boolean; title: string; desc: string };
+	onExternalStatusClose?: () => void;
 }
 
-export function DashboardView({ isTutorialOpen = false, onTutorialClose = () => {} }: DashboardViewProps) {
+export function DashboardView({ 
+	isTutorialOpen = false, 
+	onTutorialClose = () => {},
+	externalStatusModal = { isOpen: false, title: "", desc: "" },
+	onExternalStatusClose = () => {}
+}: DashboardViewProps) {
 	const { t } = useLanguage();
 	const logic = useDashboardLogic();
 	
@@ -75,6 +82,17 @@ export function DashboardView({ isTutorialOpen = false, onTutorialClose = () => 
 			<StatusModal 
 				state={logic.statusModal} 
 				onClose={() => logic.setStatusModal(prev => ({ ...prev, isOpen: false }))} 
+			/>
+
+			{/* External Status Modal (for Bug Report Success) */}
+			<StatusModal 
+				state={{
+					isOpen: externalStatusModal.isOpen,
+					type: "success",
+					title: externalStatusModal.title,
+					description: externalStatusModal.desc
+				}} 
+				onClose={onExternalStatusClose} 
 			/>
 
 			<DisconnectModal 

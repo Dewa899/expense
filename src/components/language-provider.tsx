@@ -121,6 +121,42 @@ const dictionary: Dictionary = {
 	ocrDesc: { en: "Coming soon: Instantly capture expenses from receipts using AI-powered OCR technology.", id: "Segera hadir: Catat pengeluaran secara instan dari struk menggunakan teknologi OCR berbasis AI." },
 	dynamicTitle: { en: "Dynamic Schema", id: "Skema Dinamis" },
 	dynamicDesc: { en: "Adapt to any Google Sheet structure. Define your own categories and columns easily.", id: "Menyesuaikan dengan struktur Google Sheet apa pun. Tentukan kategori dan kolom Anda sendiri dengan mudah." },
+	reportBug: {
+		en: "Report Bug",
+		id: "Laporkan Masalah",
+	},
+	bugTitle: {
+		en: "Issue Title",
+		id: "Judul Masalah",
+	},
+	bugTitlePlaceholder: {
+		en: "What happened?",
+		id: "Apa yang terjadi?",
+	},
+	bugEmailPlaceholder: {
+		en: "Your email for follow-up",
+		id: "Email Anda untuk tindak lanjut",
+	},
+	bugDesc: {
+		en: "Describe the problem...",
+		id: "Jelaskan masalahnya...",
+	},
+	bugSupportDesc: {
+		en: "Found a glitch? Let's fix it together and make Expense better for everyone.",
+		id: "Menemukan kendala? Mari perbaiki bersama dan buat Expense jadi lebih hebat untuk semua!",
+	},
+	bugSuccess: {
+		en: "Report Sent!",
+		id: "Laporan Terkirim!",
+	},
+	bugSuccessDesc: {
+		en: "Thank you! We've received your report and will look into it soon.",
+		id: "Terima kasih! Kami telah menerima laporan Anda dan akan segera memeriksanya.",
+	},
+	sendReport: {
+		en: "Send Report",
+		id: "Kirim Laporan",
+	},
 	sheetsTitle: { en: "Real-time Sync", id: "Sinkronisasi Real-time" },
 	sheetsDesc: { en: "Your data stays in your control. Expenses are synced directly to your personal Google Sheets.", id: "Data Anda tetap dalam kendali Anda. Pengeluaran disinkronkan langsung ke Google Sheets pribadi Anda." },
 };
