@@ -60,6 +60,26 @@ const dictionary: Dictionary = {
     en: "Add Expense",
     id: "Tambah Pengeluaran",
   },
+  validationError: {
+    en: "Missing Information",
+    id: "Data Belum Lengkap",
+  },
+  validationDesc: {
+    en: "Please fill in all fields except Note before submitting.",
+    id: "Silakan isi semua bidang kecuali Catatan sebelum mengirim.",
+  },
+  successTitle: {
+    en: "Transaction Saved!",
+    id: "Transaksi Tersimpan!",
+  },
+  successDesc: {
+    en: "Your expense has been successfully added to Google Sheets.",
+    id: "Pengeluaran Anda telah berhasil ditambahkan ke Google Sheets.",
+  },
+  close: {
+    en: "Close",
+    id: "Tutup",
+  },
   ocrComingSoon: {
     en: "OCR Receipt (Coming Soon)",
     id: "OCR Struk (Segera Hadir)",
@@ -91,6 +111,18 @@ const dictionary: Dictionary = {
   googleSyncDisconnect: {
     en: "Disconnect Account",
     id: "Putuskan Akun",
+  },
+  disconnectWarningTitle: {
+    en: "Disconnect Account?",
+    id: "Putuskan Akun?",
+  },
+  disconnectWarningDesc: {
+    en: "Your custom field settings (types and options) will be removed from this browser. However, your data and columns will remain safe in your Google Sheets.",
+    id: "Konfigurasi kolom kustom Anda (tipe dan pilihan) akan dihapus dari browser ini. Namun, data dan kolom Anda akan tetap aman di Google Sheets Anda.",
+  },
+  disconnectConfirm: {
+    en: "Disconnect Now",
+    id: "Putuskan Sekarang",
   },
   googleSyncPrivacy: {
     en: "We only request access to create and edit the specific 'Expense Tracker' sheet in your Drive.",
@@ -144,9 +176,101 @@ const dictionary: Dictionary = {
     en: "Manage Categories",
     id: "Kelola Kategori",
   },
+  manageFields: {
+    en: "Manage Fields",
+    id: "Kelola Kolom",
+  },
+  isRequired: {
+    en: "Wajib Diisi?",
+    id: "Wajib Diisi?",
+  },
+  requiredLabel: {
+    en: "Required",
+    id: "Wajib",
+  },
+  optionalLabel: {
+    en: "Optional",
+    id: "Opsional",
+  },
+  manageOptions: {
+    en: "Manage Options",
+    id: "Kelola Opsi",
+  },
+  newOption: {
+    en: "New Option",
+    id: "Opsi Baru",
+  },
+  addField: {
+    en: "Add New Field",
+    id: "Tambah Kolom Baru",
+  },
+  editField: {
+    en: "Edit Field Name",
+    id: "Ubah Nama Kolom",
+  },
+  fieldType: {
+    en: "Field Type",
+    id: "Tipe Kolom",
+  },
+  text: {
+    en: "Text",
+    id: "Teks",
+  },
+  dropdown: {
+    en: "Dropdown",
+    id: "Pilihan",
+  },
+  deleteFieldWarning: {
+    en: "Delete Column?",
+    id: "Hapus Kolom?",
+  },
+  deleteFieldDesc: {
+    en: "This will permanently remove the column and ALL data inside it from your Google Sheets. This action cannot be undone.",
+    id: "Ini akan menghapus kolom dan SELURUH data di dalamnya secara permanen dari Google Sheets Anda. Tindakan ini tidak dapat dibatalkan.",
+  },
+  maxFieldsReached: {
+    en: "Maximum 2 custom fields reached.",
+    id: "Batas maksimal 2 kolom kustom tercapai.",
+  },
   add: {
     en: "Add",
     id: "Tambah",
+  },
+  detailedDashboard: {
+    en: "Detailed Dashboard",
+    id: "Dashboard Detail",
+  },
+  selectMonth: {
+    en: "Select Month",
+    id: "Pilih Bulan",
+  },
+  viewDetail: {
+    en: "View Details",
+    id: "Lihat Detail",
+  },
+  incomeTotal: {
+    en: "Total Income",
+    id: "Total Pemasukan",
+  },
+  expenseTotal: {
+    en: "Total Expense",
+    id: "Total Pengeluaran",
+  },
+  netBalance: {
+    en: "Net Balance",
+    id: "Saldo Bersih",
+  },
+  transactionTrend: {
+    en: "Transaction Trend",
+    id: "Tren Transaksi",
+  },
+  expenseByCat: {
+    en: "Expense by Category",
+    id: "Pengeluaran per Kategori",
+  },
+  back: {
+    en: "Back",
+    id: "Kembali",
   },
   delete: {
     en: "Delete",
