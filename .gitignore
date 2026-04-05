@@ -17,6 +17,10 @@
 /.next/
 /out/
 
+# Skills & References
+clean-coder/
+clean-coder.skill
+
 # production
 /build
 
