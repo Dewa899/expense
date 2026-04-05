@@ -75,7 +75,6 @@ interface FormViewProps {
 	onGoogleLogin: () => void;
 	onDisconnect: () => void;
 	currentMonth: string;
-	onRequestAccess?: (email: string) => void;
 }
 
 export function FormView(props: FormViewProps) {
@@ -320,12 +319,6 @@ export function FormView(props: FormViewProps) {
 										</svg>
 										{t("googleSyncBtn")}
 									</Button>
-									<button 
-										onClick={() => { setIsSyncModalOpen(false); props.onRequestAccess?.(""); }}
-										className="text-[10px] font-bold text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-2 cursor-pointer"
-									>
-										{t("requestAccess")}
-									</button>
 								</div>
 							</div>
 						)}
@@ -401,12 +394,6 @@ export function FormView(props: FormViewProps) {
 							<Button onClick={handleGeneralSyncClick} className="w-full h-14 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-black text-lg rounded-2xl mt-4 shadow-sm cursor-pointer">
 								{t("signIn")}
 							</Button>
-							<button 
-								onClick={() => props.onRequestAccess?.("")}
-								className="text-[10px] font-bold text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-2 cursor-pointer"
-							>
-								{t("requestAccess")}
-							</button>
 						</div>
 					)}
 				</div>

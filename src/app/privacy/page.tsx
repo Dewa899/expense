@@ -9,7 +9,10 @@ import { useLanguage } from "@/components/language-provider";
 import { SupportModal } from "@/components/dashboard/bug-report-modal";
 import { Logo } from "@/app/page";
 
+import { useRouter } from "next/navigation";
+
 export default function PrivacyPolicy() {
+  const router = useRouter();
   const { theme, setTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const [isSupportModalOpen, setIsSupportModalOpen] = React.useState(false);
@@ -24,7 +27,7 @@ export default function PrivacyPolicy() {
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 transition-colors duration-300">
       {/* Consistent Navbar */}
       <header className="px-4 py-3 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/50 backdrop-blur-sm sticky top-0 z-50 bg-white/80 dark:bg-zinc-950/80">
-        <Logo onClick={() => window.location.href = "/"} />
+        <Logo onClick={() => router.push("/")} />
         
         <div className="flex items-center gap-1">
           <Link href="/">

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { MessageSquare, X, Send, Bug, UserPlus, HelpCircle } from "lucide-react";
+import { X, Send, Bug, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,15 +43,13 @@ export function SupportModal({
 				...prev,
 				category: initialCategory,
 				email: initialEmail || prev.email,
-				title: initialCategory === "access" ? "Integration Access Request" : (prev.title === "Integration Access Request" ? "" : prev.title)
 			}));
 		}
 	}, [isOpen, initialCategory, initialEmail]);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		const isAccess = formData.category === "access";
-		if (!formData.title || !formData.message || !formData.category || (isAccess && !formData.email)) return;
+		if (!formData.title || !formData.message || !formData.category) return;
 
 		setLoading(true);
 		try {
@@ -84,18 +82,14 @@ export function SupportModal({
 	const getIcon = () => {
 		switch (formData.category) {
 			case "bug": return <Bug size={32} />;
-			case "access": return <UserPlus size={32} />;
 			default: return <HelpCircle size={32} />;
 		}
 	};
 
 	const categories = [
 		{ id: "bug", label: t("supportCatBug"), icon: <Bug size={14} /> },
-		{ id: "access", label: t("supportCatAccess"), icon: <UserPlus size={14} /> },
 		{ id: "other", label: t("supportCatOther"), icon: <HelpCircle size={14} /> },
 	];
-
-	const isEmailRequired = formData.category === "access";
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -123,8 +117,7 @@ export function SupportModal({
 									variant={formData.category === cat.id ? "default" : "outline"}
 									onClick={() => setFormData(prev => ({ 
 										...prev, 
-										category: cat.id,
-										title: cat.id === "access" ? "Integration Access Request" : (prev.title === "Integration Access Request" ? "" : prev.title)
+										category: cat.id
 									}))}
 									className={`h-12 justify-start gap-3 rounded-2xl font-bold transition-all ${
 										formData.category === cat.id 
@@ -158,11 +151,10 @@ export function SupportModal({
 
 					<div className="space-y-2">
 						<Label className="text-xs font-bold text-zinc-500 uppercase tracking-tighter ml-1">
-							Email {isEmailRequired ? "*" : `(${t("optionalLabel")})`}
+							Email ({t("optionalLabel")})
 						</Label>
 						<Input 
 							type="email"
-							required={isEmailRequired}
 							placeholder={t("supportEmailPlaceholder")} 
 							value={formData.email}
 							onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
@@ -185,7 +177,7 @@ export function SupportModal({
 
 					<Button 
 						type="submit" 
-						disabled={loading || !formData.title || !formData.message || (isEmailRequired && !formData.email)}
+						disabled={loading || !formData.title || !formData.message}
 						className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-black font-black text-lg rounded-[20px] shadow-lg shadow-emerald-500/20 gap-2 mt-2"
 					>
 						{loading ? "..." : (

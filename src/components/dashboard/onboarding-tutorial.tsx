@@ -25,22 +25,17 @@ interface OnboardingTutorialProps {
 	onClose: () => void;
 	isSynced: boolean;
 	onGoogleLogin: () => void;
-	onRequestAccess?: (email: string) => void;
 }
 
 export function OnboardingTutorial({ 
 	isOpen, 
 	onClose, 
 	isSynced, 
-	onGoogleLogin,
-	onRequestAccess = () => {}
+	onGoogleLogin
 }: OnboardingTutorialProps) {
 	const { t, language, setLanguage } = useLanguage();
 	const [step, setStep] = React.useState(0);
 	const [isReopen, setIsReopen] = React.useState(false);
-	const [requestEmail, setRequestEmail] = React.useState("");
-	const [loading, setLoading] = React.useState(false);
-	const [submitted, setSubmitted] = React.useState(false);
 
 	// Clean Coder: Reset tutorial states whenever it's opened
 	React.useEffect(() => {
@@ -48,38 +43,8 @@ export function OnboardingTutorial({
 			const completed = localStorage.getItem("onboarding_complete") === "true";
 			setIsReopen(completed);
 			setStep(completed ? 1 : 0);
-			setSubmitted(false);
-			setRequestEmail("");
 		}
 	}, [isOpen]);
-
-	const handleSendRequest = async () => {
-		if (!requestEmail.includes("@")) return;
-		setLoading(true);
-		try {
-			// Web3Forms API Integration
-			const response = await fetch("https://api.web3forms.com/submit", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					access_key: process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY,
-					subject: "[ACCESS] Integration Access Request",
-					from_name: "Expense App User (Tutorial)",
-					email: requestEmail,
-					category: "access",
-					message: `User requested integration access from the onboarding tutorial. Email: ${requestEmail}`,
-				}),
-			});
-
-			if (response.ok) {
-				setSubmitted(true);
-			}
-		} catch (error) {
-			console.error("Failed to send access request");
-		} finally {
-			setLoading(false);
-		}
-	};
 
 	const LogoComponent = (
 		<div className="flex flex-col items-center text-left leading-none scale-150 mb-4">
@@ -146,35 +111,6 @@ export function OnboardingTutorial({
 			icon: <BarChart3 className="text-pink-500" size={48} />
 		},
 		{
-			title: submitted ? t("supportSuccess") : t("step6Title"),
-			desc: submitted ? t("supportSuccessDesc") : t("step6Desc"),
-			icon: submitted ? <CheckCircle2 className="text-emerald-500" size={48} /> : <UserPlus className="text-zinc-500" size={48} />,
-			content: !submitted ? (
-				<div className="w-full flex flex-col gap-3 mt-4">
-					<Input 
-						type="email"
-						placeholder={t("emailInputPlaceholder")}
-						value={requestEmail}
-						onChange={(e) => setRequestEmail(e.target.value)}
-						className="h-12 rounded-2xl border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-medium text-center"
-						disabled={loading}
-					/>
-					<Button 
-						onClick={handleSendRequest}
-						disabled={loading || !requestEmail.includes("@")}
-						className="w-full bg-zinc-900 dark:bg-white text-white dark:text-black font-black h-12 rounded-2xl shadow-lg gap-2"
-					>
-						{loading ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
-						{t("requestAccess")}
-					</Button>
-				</div>
-			) : (
-				<div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl border border-emerald-100 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
-					{t("supportSuccessDesc")}
-				</div>
-			)
-		},
-		{
 			title: isSynced ? "You're ready to go!" : t("step2Title"),
 			desc: isSynced ? "Your account is already connected and ready to track your expenses." : t("step2Desc"),
 			icon: isSynced ? <CheckCircle2 className="text-emerald-500" size={48} /> : <Cloud className="text-emerald-500" size={48} />,
@@ -192,12 +128,6 @@ export function OnboardingTutorial({
 						</svg>
 						Continue with Google
 					</Button>
-					<button 
-						onClick={() => setStep(steps.findIndex(s => s.title === t("step6Title")))}
-						className="text-[10px] font-bold text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-2 cursor-pointer"
-					>
-						{t("requestAccess")}
-					</button>
 				</div>
 			) : null
 		}

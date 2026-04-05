@@ -131,7 +131,6 @@ export default function Home() {
               onTutorialClose={handleCloseTutorial}
               externalStatusModal={statusModal}
               onExternalStatusClose={() => setStatusModal(prev => ({ ...prev, isOpen: false }))}
-              onRequestAccess={(email) => openSupportModal("access", email)}
             />
           ) : (
             <LandingView key="landing" onGetStarted={() => setView("dashboard")} />
