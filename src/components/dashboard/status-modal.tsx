@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,13 +32,22 @@ export function StatusModal({ state, onClose }: StatusModalProps) {
 				showCloseButton={!isLoading}
 			>
 				<div className="flex flex-col items-center text-center gap-4">
-					<div className={`w-20 h-20 rounded-full flex items-center justify-center ${
-						state.type === "success" ? "bg-emerald-500/10 text-emerald-500" : 
-						state.type === "error" ? "bg-destructive/10 text-destructive" :
-						"bg-zinc-100 dark:bg-zinc-800 text-zinc-400"
+					<div className={`flex items-center justify-center ${
+						state.type === "success" ? "w-full h-40" : 
+						state.type === "error" ? "w-20 h-20 rounded-full bg-destructive/10 text-destructive" :
+						"w-20 h-20 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400"
 					}`}>
-						{state.type === "success" ? <CheckCircle2 size={48} /> : 
-						 state.type === "error" ? <AlertCircle size={48} /> :
+						{state.type === "success" ? (
+							<div className="relative w-full h-full">
+								<Image 
+									src="/illustrations/done.png" 
+									alt="Success" 
+									fill
+									className="object-contain"
+									priority
+								/>
+							</div>
+						) : state.type === "error" ? <AlertCircle size={48} /> :
 						 <Loader2 size={48} className="animate-spin" />}
 					</div>
 					<div className="space-y-2">
