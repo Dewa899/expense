@@ -109,6 +109,11 @@ const dictionary: Dictionary = {
 		id: "Terhubung ke Google Sheets",
 	},
 	googleSyncDisconnect: { en: "Disconnect Account", id: "Putuskan Akun" },
+	syncSuccessTitle: { en: "Sync Successful", id: "Sinkronisasi Berhasil" },
+	syncSuccessDesc: {
+		en: "Your account is now fully integrated with Google Sheets.",
+		id: "Akun Anda sekarang telah terintegrasi sepenuhnya dengan Google Sheets.",
+	},
 	disconnectWarningTitle: { en: "Disconnect Account?", id: "Putuskan Akun?" },
 	disconnectWarningDesc: {
 		en: "Your custom field settings (types and options) will be removed from this browser. However, your data and columns will remain safe in your Google Sheets.",

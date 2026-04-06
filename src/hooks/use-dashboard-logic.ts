@@ -213,8 +213,8 @@ export function useDashboardLogic() {
 			setStatusModal({ 
 				isOpen: true, 
 				type: "success", 
-				title: "Sync Successful", 
-				description: "Your account is now fully integrated with Google Sheets." 
+				title: t("syncSuccessTitle"), 
+				description: t("syncSuccessDesc") 
 			});
 		} catch (error: any) { 
 			setStatusModal({ 

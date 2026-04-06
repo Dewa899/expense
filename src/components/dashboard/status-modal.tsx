@@ -21,6 +21,7 @@ interface StatusModalProps {
 export function StatusModal({ state, onClose }: StatusModalProps) {
 	const { t } = useLanguage();
 	const isLoading = state.type === null && state.isOpen;
+	const isSyncSuccess = state.type === "success" && state.title === t("syncSuccessTitle");
 
 	return (
 		<Dialog open={state.isOpen} onOpenChange={(open) => {
@@ -33,11 +34,12 @@ export function StatusModal({ state, onClose }: StatusModalProps) {
 			>
 				<div className="flex flex-col items-center text-center gap-4">
 					<div className={`flex items-center justify-center ${
-						state.type === "success" ? "w-full h-40" : 
+						isSyncSuccess ? "w-full h-40" : 
+						state.type === "success" ? "w-20 h-20 rounded-full bg-emerald-500/10 text-emerald-500" :
 						state.type === "error" ? "w-20 h-20 rounded-full bg-destructive/10 text-destructive" :
 						"w-20 h-20 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400"
 					}`}>
-						{state.type === "success" ? (
+						{isSyncSuccess ? (
 							<div className="relative w-full h-full">
 								<Image 
 									src="/illustrations/done.png" 
@@ -47,7 +49,8 @@ export function StatusModal({ state, onClose }: StatusModalProps) {
 									priority
 								/>
 							</div>
-						) : state.type === "error" ? <AlertCircle size={48} /> :
+						) : state.type === "success" ? <CheckCircle2 size={48} /> : 
+						 state.type === "error" ? <AlertCircle size={48} /> :
 						 <Loader2 size={48} className="animate-spin" />}
 					</div>
 					<div className="space-y-2">

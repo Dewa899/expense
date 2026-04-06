@@ -138,13 +138,6 @@ export function DashboardView({
 					setDeleteConfirm({ isOpen: false, fieldName: "", index: -1 });
 				}}
 			/>
-
-			<OnboardingTutorial 
-				isOpen={isTutorialOpen} 
-				onClose={onTutorialClose} 
-				isSynced={!!logic.user}
-				onGoogleLogin={logic.handleGoogleLogin}
-			/>
 		</div>
 	);
 }

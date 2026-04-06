@@ -16,6 +16,8 @@ import { useLanguage } from "@/components/language-provider";
 import { DashboardView } from "@/components/dashboard-view";
 import { LandingView } from "@/components/landing-view";
 import { SupportModal } from "@/components/dashboard/bug-report-modal";
+import { OnboardingTutorial } from "@/components/dashboard/onboarding-tutorial";
+import { useDashboardLogic } from "@/hooks/use-dashboard-logic";
 
 export function Logo({ 
   className = "", 
@@ -41,6 +43,7 @@ export function Logo({
 }
 
 export default function Home() {
+  const logic = useDashboardLogic();
   const { theme, setTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
   const [mounted, setMounted] = React.useState(false);
@@ -158,6 +161,13 @@ export default function Home() {
         onSuccess={handleSupportSuccess}
         initialCategory={supportInitialData.category}
         initialEmail={supportInitialData.email}
+      />
+
+      <OnboardingTutorial 
+        isOpen={isTutorialOpen} 
+        onClose={handleCloseTutorial} 
+        isSynced={!!logic.user}
+        onGoogleLogin={logic.handleGoogleLogin}
       />
 
       {/* Footer / Credits */}
