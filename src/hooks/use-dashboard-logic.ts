@@ -269,7 +269,7 @@ export function useDashboardLogic() {
 	const handleInitialBalanceCarryForward = async (spreadsheetId: string, currentMonth: string, token: string) => {
 		const prevMonthName = getPreviousMonthName(currentMonth);
 		try {
-			const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(prevMonthName)}!A:C`, { headers: { Authorization: `Bearer ${token}` } });
+			const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(prevMonthName)}!A:F`, { headers: { Authorization: `Bearer ${token}` } });
 			const data = await res.json();
 			
 			if (data.values && data.values.length > 1) {
