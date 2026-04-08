@@ -114,6 +114,10 @@ const dictionary: Dictionary = {
 		en: "Your account is now fully integrated with Google Sheets.",
 		id: "Akun Anda sekarang telah terintegrasi sepenuhnya dengan Google Sheets.",
 	},
+	integrationWaitDesc: {
+		en: "Please wait while we set up your personalized Expense Tracker in your Google Drive.",
+		id: "Mohon tunggu sementara kami menyiapkan Expense Tracker pribadi Anda di Google Drive Anda.",
+	},
 	disconnectWarningTitle: { en: "Disconnect Account?", id: "Putuskan Akun?" },
 	disconnectWarningDesc: {
 		en: "Your custom field settings (types and options) will be removed from this browser. However, your data and columns will remain safe in your Google Sheets.",

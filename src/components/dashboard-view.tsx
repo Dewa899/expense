@@ -9,6 +9,7 @@ import { StatusModal } from "./dashboard/status-modal";
 import { DisconnectModal } from "./dashboard/disconnect-modal";
 import { DeleteFieldModal } from "./dashboard/delete-field-modal";
 import { OnboardingTutorial } from "./dashboard/onboarding-tutorial";
+import { IntegrationLoading } from "./dashboard/integration-loading";
 import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/components/language-provider";
@@ -41,11 +42,21 @@ export function DashboardView({
 
 	return (
 		<div className="flex flex-col p-4 gap-6 w-full min-h-screen relative mx-auto transition-all duration-500">
+			<AnimatePresence>
+				{logic.isIntegrating && (
+					<IntegrationLoading 
+						isOpen={logic.isIntegrating} 
+						description={logic.statusModal.description} 
+					/>
+				)}
+			</AnimatePresence>
+
 			<AnimatePresence mode="wait">
 				{logic.view === "form" ? (
 					<div key="form-container" className="max-w-md mx-auto w-full space-y-6">
 						<FormView 
 							{...logic}
+							isIntegrating={logic.isIntegrating}
 							isManageFieldsOpen={logic.isManageFieldsOpen}
 							setIsManageFieldsOpen={logic.setIsManageFieldsOpen}
 							onViewDetail={() => logic.setView("analytics")}
