@@ -112,6 +112,21 @@ export default function PrivacyPolicy() {
           <section className="space-y-4">
             <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
               <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
+              Disclosure for Google API Services
+            </h2>
+            <div className="bg-emerald-500/10 p-6 rounded-2xl border border-emerald-500/20">
+              <p className="text-zinc-600 dark:text-zinc-300 font-bold leading-relaxed text-sm">
+                Expense by Genlord&#39;s use and transfer to any other app of information received from Google APIs will adhere to <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-emerald-500 underline underline-offset-4">Google API Services User Data Policy</a>, including the Limited Use requirements.
+              </p>
+              <p className="text-zinc-600 dark:text-zinc-400 mt-4 text-xs font-medium">
+                We explicitly declare that data accessed through your Google Account is used strictly for providing the Expense by Genlord service directly within your browser. No sensitive data is transferred to, stored on, or shared with any third-party servers.
+              </p>
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+              <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
               {t("securityTitle")}
             </h2>
             <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
@@ -137,10 +152,18 @@ export default function PrivacyPolicy() {
         </div>
       </main>
 
-      <footer className="p-12 text-center mt-auto border-t border-zinc-200 dark:border-zinc-800/50">
+      <footer className="p-12 text-center mt-auto border-t border-zinc-200 dark:border-zinc-800/50 flex flex-col items-center gap-4">
         <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
           EXPense by GENLORD &copy; 2026
         </p>
+        <div className="flex gap-4">
+          <Link href="/privacy" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-4">
+            Privacy Policy
+          </Link>
+          <Link href="/terms" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-4">
+            Terms of Service
+          </Link>
+        </div>
       </footer>
 
       <SupportModal 
