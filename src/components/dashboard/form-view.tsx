@@ -381,7 +381,7 @@ export function FormView(props: FormViewProps) {
 									) : isType ? (
 										<Select value={props.formData[header] || ""} disabled={isInteractionDisabled} onValueChange={(val) => props.onInputChange(header, val || "")}>
 											<SelectTrigger className="h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 cursor-pointer"><SelectValue placeholder={t("transactionType")} /></SelectTrigger>
-											<SelectContent className="rounded-xl"><SelectItem value={t("income")} className="cursor-pointer">{t("income")}</SelectItem><SelectItem value={t("expense")} className="cursor-pointer">{t("expense")}</SelectItem></SelectContent>
+											<SelectContent className="rounded-xl"><SelectItem value="Pemasukan / Income" className="cursor-pointer">{t("income")}</SelectItem><SelectItem value="Pengeluaran / Expense" className="cursor-pointer">{t("expense")}</SelectItem></SelectContent>
 										</Select>
 									) : (
 										<Input type={isAmount ? "number" : "text"} disabled={isInteractionDisabled} placeholder={`Enter ${props.translateHeader(header)}`} className="h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950" value={props.formData[header] || ""} onChange={(e) => props.onInputChange(header, e.target.value)} />

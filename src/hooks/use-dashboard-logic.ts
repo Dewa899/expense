@@ -9,6 +9,7 @@ let isGlobalIntegrating = false;
 let globalIntegrationToken = "";
 let globalIntegrationResult: "success" | "error" | null = null;
 let globalIntegrationError = "";
+let globalInitPromise: Promise<any> | null = null;
 
 export type CustomFieldDef = {
 	name: string;
@@ -69,13 +70,12 @@ export function useDashboardLogic() {
 		isOpen: false, type: null, title: "", description: "",
 	});
 
-	const DEFAULT_HEADERS = ["Nama Pengeluaran", "Jumlah", "Tipe", "Kategori", "Catatan"];
 	const CORE_FIELDS_COUNT = 6;
 	const CORE_HEADERS_DUAL = ["Date / Tanggal", "Name / Nama", "Amount / Jumlah", "Type / Tipe", "Category / Kategori", "Note / Catatan"];
 
 	const getCurrentMonthSheetName = () => {
-		const now = new Date();
-		return now.toLocaleString("id-ID", { month: "long", year: "numeric" });
+		// return new Date().toLocaleString("id-ID", { month: "long", year: "numeric" });
+		return "Mei 2026"; // MOCK WAKTU
 	};
 
 	const getPreviousMonthName = (currentMonthName: string) => {
@@ -156,13 +156,13 @@ export function useDashboardLogic() {
 				setCustomFields(discoveredFields);
 				localStorage.setItem("customFieldDefs", JSON.stringify(discoveredFields));
 			} else { 
-				setHeaders(DEFAULT_HEADERS); 
+				setHeaders([...CORE_HEADERS_DUAL, ...customFields.map(f => f.name)]);
 				setTotalAmount(0); 
 				setTransactions([]); 
 			}
 		} catch (error) { 
 			console.error("Fetch Error:", error);
-			setHeaders(DEFAULT_HEADERS); 
+			setHeaders([...CORE_HEADERS_DUAL, ...customFields.map(f => f.name)]);
 		} finally { 
 			setLoading(false); 
 		}
@@ -212,14 +212,7 @@ export function useDashboardLogic() {
 
 			const sheetName = getCurrentMonthSheetName();
 			setStatusModal(prev => ({ ...prev, description: `Setting up sheet: ${sheetName}...` }));
-			const isNewSheet = await checkIfSheetIsNew(spreadsheetId, sheetName, token);
 			const internalSheetId = await ensureAndGetSheetId(spreadsheetId, sheetName, token);
-			await initializeSheetFormatting(spreadsheetId, token, sheetName, internalSheetId);
-			
-			if (isNewSheet) {
-				console.log("New sheet detected, carrying forward balance...");
-				await handleInitialBalanceCarryForward(spreadsheetId, sheetName, token);
-			}
 
 			// PERSIST
 			localStorage.setItem("sheetId", spreadsheetId);
@@ -269,38 +262,34 @@ export function useDashboardLogic() {
 	const handleInitialBalanceCarryForward = async (spreadsheetId: string, currentMonth: string, token: string) => {
 		const prevMonthName = getPreviousMonthName(currentMonth);
 		try {
-			const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(prevMonthName)}!A:F`, { headers: { Authorization: `Bearer ${token}` } });
+			// Just verify if the previous month exists by fetching only A1
+			const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(prevMonthName)}!A1:B1`, { headers: { Authorization: `Bearer ${token}` } });
 			const data = await res.json();
 			
-			if (data.values && data.values.length > 1) {
-				const amountIdx = data.values[0].findIndex((h: string) => h.toLowerCase().includes("jumlah") || h.toLowerCase().includes("amount"));
-				const typeIdx = data.values[0].findIndex((h: string) => h.toLowerCase().includes("tipe") || h.toLowerCase().includes("type"));
-				
-				const balance = data.values.slice(1).reduce((sum: number, row: any) => {
-					const rawAmount = cleanNumber(row[amountIdx]);
-					const type = row[typeIdx] || "";
-					const isExpense = type.toLowerCase().includes("expense") || type.toLowerCase().includes("pengeluaran") || type.toLowerCase().includes("out");
-					return sum + (isExpense ? -rawAmount : rawAmount);
-				}, 0);
+			// If previous sheet exists (doesn't throw 400 error)
+			if (!data.error) {
+				const netFormula = `SUMIF('${prevMonthName}'!D:D, "Pemasukan / Income", '${prevMonthName}'!C:C) - SUMIF('${prevMonthName}'!D:D, "Pengeluaran / Expense", '${prevMonthName}'!C:C)`;
+				const amountFormula = `=ABS(${netFormula})`;
+				const typeFormula = `=IF((${netFormula}) >= 0, "Pemasukan / Income", "Pengeluaran / Expense")`;
 
-				if (balance !== 0) {
-					const values = [
-						new Date().toLocaleString(),
-						`${t("initialBalance")} (${prevMonthName})`,
-						Math.abs(balance).toString(),
-						balance >= 0 ? "Pemasukan / Income" : "Pengeluaran / Expense",
-						"Initial Balance",
-						t("fromPreviousMonth")
-					];
-					
-					await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(currentMonth)}!A1:append?valueInputOption=USER_ENTERED`, {
-						method: "POST",
-						headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-						body: JSON.stringify({ values: [values] }),
-					});
-				}
+				const values = [
+					new Date().toLocaleString(),
+					`${t("initialBalance")} (${prevMonthName})`,
+					amountFormula,
+					typeFormula,
+					"Initial Balance",
+					t("fromPreviousMonth")
+				];
+				
+				await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(currentMonth)}!A1:append?valueInputOption=USER_ENTERED`, {
+					method: "POST",
+					headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+					body: JSON.stringify({ values: [values] }),
+				});
 			}
-		} catch (e) {}
+		} catch (e) {
+			console.log("No previous month data found to carry forward.");
+		}
 	};
 
 	const ensureAndGetSheetId = async (spreadsheetId: string, sheetName: string, token: string): Promise<number> => {
@@ -317,7 +306,22 @@ export function useDashboardLogic() {
 				body: JSON.stringify({ requests: [{ addSheet: { properties: { title: sheetName } } }] }),
 			});
 			const createData = await createRes.json();
+			
+			if (!createRes.ok || createData.error) {
+				console.error("Failed to create Google Sheet:", createData.error);
+				// Attempt fallback if it actually exists due to a race condition
+				const fallbackRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`, { headers: { Authorization: `Bearer ${token}` } });
+				const fallbackMeta = await fallbackRes.json();
+				const actuallyExists = fallbackMeta.sheets?.find((s: any) => s.properties?.title === sheetName);
+				if (actuallyExists) return actuallyExists.properties.sheetId;
+				throw new Error("Unable to create sheet tab: " + (createData.error?.message || "Unknown error"));
+			}
+			
 			targetSheetId = createData.replies[0].addSheet.properties.sheetId;
+
+			// Format newly created sheet and carry forward balance implicitly
+			await initializeSheetFormatting(spreadsheetId, token, sheetName, targetSheetId);
+			await handleInitialBalanceCarryForward(spreadsheetId, sheetName, token);
 			
 			metadataRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`, { headers: { Authorization: `Bearer ${token}` } });
 			metadata = await metadataRes.json();
@@ -525,12 +529,35 @@ export function useDashboardLogic() {
 					setConfig({ sheetId: savedSheetId });
 					const current = getCurrentMonthSheetName();
 					setSelectedMonth(current);
-					fetchSheetData(savedSheetId, parsedUser.accessToken, current);
-					fetchAvailableMonths(savedSheetId, parsedUser.accessToken);
-				} else setHeaders(DEFAULT_HEADERS);
+					
+					// Proactively create sheet & carry forward balance if a new month just started
+					const doInit = async () => {
+						setLoading(true);
+						if (!globalInitPromise) {
+							globalInitPromise = ensureAndGetSheetId(savedSheetId, current, parsedUser.accessToken)
+								.then(async () => {
+									await fetchSheetData(savedSheetId, parsedUser.accessToken, current);
+									await fetchAvailableMonths(savedSheetId, parsedUser.accessToken);
+								})
+								.catch((e) => {
+									console.error("Proactive sheet creation failed:", e);
+									fetchSheetData(savedSheetId, parsedUser.accessToken, current);
+								})
+								.finally(() => {
+									globalInitPromise = null;
+								});
+						} else {
+							// Strict mode double-mount handler: Wait for mount 1, then fetch our own localized state
+							await globalInitPromise;
+							fetchSheetData(savedSheetId, parsedUser.accessToken, current);
+							fetchAvailableMonths(savedSheetId, parsedUser.accessToken);
+						}
+					};
+					doInit();
+				} else setHeaders([...CORE_HEADERS_DUAL, ...customFields.map(f => f.name)]);
 			} else {
 				console.log("No user found, showing default view.");
-				setHeaders(DEFAULT_HEADERS);
+				setHeaders([...CORE_HEADERS_DUAL, ...customFields.map(f => f.name)]);
 			}
 		};
 
