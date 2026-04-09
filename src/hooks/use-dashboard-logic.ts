@@ -74,8 +74,7 @@ export function useDashboardLogic() {
 	const CORE_HEADERS_DUAL = ["Date / Tanggal", "Name / Nama", "Amount / Jumlah", "Type / Tipe", "Category / Kategori", "Note / Catatan"];
 
 	const getCurrentMonthSheetName = () => {
-		// return new Date().toLocaleString("id-ID", { month: "long", year: "numeric" });
-		return "Mei 2026"; // MOCK WAKTU
+		return new Date().toLocaleString("id-ID", { month: "long", year: "numeric" });
 	};
 
 	const getPreviousMonthName = (currentMonthName: string) => {
