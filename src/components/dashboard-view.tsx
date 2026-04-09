@@ -113,6 +113,7 @@ export function DashboardView({
 			<StatusModal 
 				state={logic.statusModal} 
 				onClose={() => logic.setStatusModal(prev => ({ ...prev, isOpen: false }))} 
+				onGoogleLogin={logic.handleGoogleLogin}
 			/>
 
 			{/* External Status Modal (for Bug Report Success) */}
