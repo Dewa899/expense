@@ -113,6 +113,10 @@ export function useDashboardLogic() {
 			setLoading(true);
 			const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName)}!A:H`, { headers: { Authorization: `Bearer ${token}` } });
 			const data = await response.json();
+			if (response.status === 401 || data.error?.code === 401) {
+				handleAuthError();
+				return;
+			}
 			if (data.values && data.values.length > 0) {
 				const fetchedHeaders = data.values[0].slice(0, 8);
 				setHeaders(fetchedHeaders);
@@ -294,6 +298,10 @@ export function useDashboardLogic() {
 	const ensureAndGetSheetId = async (spreadsheetId: string, sheetName: string, token: string): Promise<number> => {
 		let metadataRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`, { headers: { Authorization: `Bearer ${token}` } });
 		let metadata = await metadataRes.json();
+		if (metadataRes.status === 401 || metadata.error?.code === 401) {
+			handleAuthError();
+			throw new Error("UNAUTHORIZED");
+		}
 		
 		let existingSheet = metadata.sheets?.find((s: any) => s.properties?.title === sheetName);
 		let targetSheetId: number;
@@ -372,10 +380,25 @@ export function useDashboardLogic() {
 		} catch (e) {}
 	};
 
+	const handleAuthError = () => {
+		localStorage.removeItem("googleUser");
+		setUser(null);
+		setStatusModal({
+			isOpen: true,
+			type: "error",
+			title: "Session Expired",
+			description: "Token autentikasi Google Anda telah kadaluarsa (expired). Silakan lakukan Sync ulang."
+		});
+	};
+
 	const fetchAvailableMonths = async (spreadsheetId: string, token: string) => {
 		try {
 			const metadataRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties.title`, { headers: { Authorization: `Bearer ${token}` } });
 			const metadata = await metadataRes.json();
+			if (metadataRes.status === 401 || metadata.error?.code === 401) {
+				handleAuthError();
+				return;
+			}
 			if (metadata.sheets) {
 				const months = metadata.sheets.map((s: any) => s.properties.title);
 				setAvailableMonths(months);
