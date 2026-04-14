@@ -98,7 +98,7 @@ export function DashboardView({
 							user={logic.user}
 							customFields={logic.customFields}
 							customChartConfigs={logic.customChartConfigs}
-							onBack={() => logic.setView("form")}
+							onBack={() => { logic.resetToCurrentMonth(); logic.setView("form"); }}
 							onMonthChange={logic.handleMonthChange}
 							onAddCustomChart={logic.handleAddCustomChart}
 							onDeleteCustomChart={logic.handleDeleteCustomChart}

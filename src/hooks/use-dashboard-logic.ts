@@ -429,6 +429,16 @@ export function useDashboardLogic() {
 		if (user?.accessToken) fetchSheetData(config.sheetId, user.accessToken, month);
 	};
 
+	const resetToCurrentMonth = () => {
+		const current = getCurrentMonthSheetName();
+		if (selectedMonth !== current) {
+			setSelectedMonth(current);
+			if (user?.accessToken && config.sheetId) {
+				fetchSheetData(config.sheetId, user.accessToken, current);
+			}
+		}
+	};
+
 	const handleSetInitialBalance = async (amount: number) => {
 		if (!user?.accessToken || !config.sheetId || !selectedMonth) return;
 		setLoading(true);
@@ -790,7 +800,7 @@ export function useDashboardLogic() {
 		handleAddField, handleUpdateField, handleDeleteField,
 		customChartConfigs, handleAddCustomChart, handleDeleteCustomChart,
 		handleSetInitialBalance,
-		handleGoogleLogin, handleMonthChange, handleSubmit,
+		handleGoogleLogin, handleMonthChange, resetToCurrentMonth, handleSubmit,
 		isIntegrating,
 		translateHeader: (header: string) => {
 			const h = header.toLowerCase();
