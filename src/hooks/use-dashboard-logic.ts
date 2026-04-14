@@ -146,6 +146,23 @@ export function useDashboardLogic() {
 				setTransactions(rowData);
 				setTotalAmount(rowData.reduce((sum: number, t: any) => sum + t.amount, 0));
 
+				// Auto-discover unique categories from the Google Sheet and sync them locally
+				const sheetCategories = Array.from(new Set(rowData.map((t: any) => t.category).filter(Boolean)));
+				setCategories(prev => {
+					const updated = [...prev];
+					let hasNew = false;
+					sheetCategories.forEach((cat: any) => {
+						if (!updated.includes(cat)) {
+							updated.push(cat);
+							hasNew = true;
+						}
+					});
+					if (hasNew) {
+						localStorage.setItem("customCategories", JSON.stringify(updated));
+					}
+					return updated;
+				});
+
 				const savedFieldsStr = localStorage.getItem("customFieldDefs");
 				const savedFields: CustomFieldDef[] = savedFieldsStr ? JSON.parse(savedFieldsStr) : [];
 				const discoveredFields: CustomFieldDef[] = [];
@@ -456,6 +473,21 @@ export function useDashboardLogic() {
 		const init = async () => {
 			console.log("Initializing App State...");
 			
+			// 1. Load Local UI Configs (Always loaded first)
+			const savedCats = localStorage.getItem("customCategories");
+			const savedFields = localStorage.getItem("customFieldDefs");
+			const savedCharts = localStorage.getItem("customChartConfigs");
+
+			if (savedCats) setCategories(JSON.parse(savedCats));
+			else {
+				const defaultCats = ["Gaji", "Makanan & Minuman", "Transportasi", "Kesehatan", "Belanja", "Tagihan", "Hiburan", "Pendidikan", "Lainnya"];
+				setCategories(defaultCats);
+				localStorage.setItem("customCategories", JSON.stringify(defaultCats));
+			}
+
+			if (savedFields) setCustomFields(JSON.parse(savedFields));
+			if (savedCharts) setCustomChartConfigs(JSON.parse(savedCharts));
+			
 			const hash = window.location.hash;
 			let token = "";
 			
@@ -527,22 +559,9 @@ export function useDashboardLogic() {
 				return; 
 			}
 
-			// 2. Fallback to localStorage
+			// 2. Fallback to localStorage for Google Sheet related
 			const savedSheetId = localStorage.getItem("sheetId") || "";
 			const savedUser = localStorage.getItem("googleUser");
-			const savedCats = localStorage.getItem("customCategories");
-			const savedFields = localStorage.getItem("customFieldDefs");
-			const savedCharts = localStorage.getItem("customChartConfigs");
-
-			if (savedCats) setCategories(JSON.parse(savedCats));
-			else {
-				const defaultCats = ["Gaji", "Makanan & Minuman", "Transportasi", "Kesehatan", "Belanja", "Tagihan", "Hiburan", "Pendidikan", "Lainnya"];
-				setCategories(defaultCats);
-				localStorage.setItem("customCategories", JSON.stringify(defaultCats));
-			}
-
-			if (savedFields) setCustomFields(JSON.parse(savedFields));
-			if (savedCharts) setCustomChartConfigs(JSON.parse(savedCharts));
 
 			if (savedUser) {
 				const parsedUser = JSON.parse(savedUser);

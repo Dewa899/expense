@@ -16,12 +16,14 @@ import { StatusModalState } from "@/hooks/use-dashboard-logic";
 interface StatusModalProps {
 	state: StatusModalState;
 	onClose: () => void;
+	onGoogleLogin?: () => void;
 }
 
-export function StatusModal({ state, onClose }: StatusModalProps) {
+export function StatusModal({ state, onClose, onGoogleLogin }: StatusModalProps) {
 	const { t } = useLanguage();
 	const isLoading = state.type === null && state.isOpen;
 	const isSyncSuccess = state.type === "success" && state.title === t("syncSuccessTitle");
+	const isAuthError = state.title === "Session Expired";
 
 	return (
 		<Dialog open={state.isOpen} onOpenChange={(open) => {
@@ -61,14 +63,28 @@ export function StatusModal({ state, onClose }: StatusModalProps) {
 					</div>
 					
 					{state.type !== null && (
-						<Button 
-							onClick={onClose} 
-							className={`w-full h-12 rounded-xl font-bold mt-2 ${
-								state.type === "success" ? "bg-emerald-500 hover:bg-emerald-600 text-black" : "bg-destructive hover:bg-destructive/90 text-white"
-							}`}
-						>
-							{t("close")}
-						</Button>
+						<div className="w-full flex flex-col gap-3 mt-2">
+							{isAuthError && onGoogleLogin && (
+								<Button
+									onClick={() => {
+										onClose();
+										onGoogleLogin();
+									}}
+									className="w-full h-12 rounded-xl font-bold bg-indigo-500 hover:bg-indigo-600 text-white"
+								>
+									Sync with Google
+								</Button>
+							)}
+							<Button 
+								onClick={onClose} 
+								variant={isAuthError ? "outline" : "default"}
+								className={`w-full h-12 rounded-xl font-bold ${
+									!isAuthError ? (state.type === "success" ? "bg-emerald-500 hover:bg-emerald-600 text-black" : "bg-destructive hover:bg-destructive/90 text-white") : ""
+								}`}
+							>
+								{t("close")}
+							</Button>
+						</div>
 					)}
 				</div>
 			</DialogContent>

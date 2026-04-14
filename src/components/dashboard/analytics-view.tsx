@@ -63,8 +63,9 @@ const CustomTooltip = ({ active, payload, label, formatCurrency }: any) => {
 			<div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-xl ring-1 ring-black/5">
 				<p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">{label}</p>
 				{payload.map((item: any, index: number) => (
-					<p key={index} className="text-sm font-black flex items-center gap-2" style={{ color: item.color || item.fill }}>
-						<span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color || item.fill }} />
+					<p key={index} className="text-sm font-black flex items-center gap-2" style={{ color: item.stroke || item.color || item.fill }}>
+						<span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.stroke || item.color || item.fill }} />
+						<span className="text-[10px] font-bold uppercase opacity-70">{item.name}:</span> 
 						{formatCurrency(Math.abs(item.value))}
 					</p>
 				))}
@@ -110,12 +111,17 @@ export function AnalyticsView({
 	const netBalance = startingBalance + incomeTotal - expenseTotal;
 
 	const getDailyData = () => {
-		const dailyMap: Record<string, number> = {};
+		const dailyMap: Record<string, { income: number, expense: number }> = {};
 		monthlyTransactions.forEach(t => {
 			const day = t.date.split(',')[0];
-			dailyMap[day] = (dailyMap[day] || 0) + Math.abs(t.amount);
+			if (!dailyMap[day]) dailyMap[day] = { income: 0, expense: 0 };
+			if (t.amount > 0) {
+				dailyMap[day].income += Math.abs(t.amount);
+			} else {
+				dailyMap[day].expense += Math.abs(t.amount);
+			}
 		});
-		return Object.entries(dailyMap).map(([name, amount]) => ({ name, amount })).slice(-7);
+		return Object.entries(dailyMap).map(([name, data]) => ({ name, income: data.income, expense: data.expense })).slice(-7);
 	};
 
 	const getGroupedCategoryData = (isExpense: boolean) => {
@@ -286,11 +292,21 @@ export function AnalyticsView({
 						<div className="h-[250px] w-full">
 							<ResponsiveContainer width="100%" height="100%">
 								<AreaChart data={getDailyData()}>
-									<defs><linearGradient id="colorAmount" x1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/><stop offset="95%" stopColor="#10b981" stopOpacity={0}/></linearGradient></defs>
+									<defs>
+										<linearGradient id="colorIncome" x1="0" x2="0" y2="1">
+											<stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+											<stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+										</linearGradient>
+										<linearGradient id="colorExpense" x1="0" x2="0" y2="1">
+											<stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+											<stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+										</linearGradient>
+									</defs>
 									<CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-									<XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
+									<XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#71717a', fontSize: 10, fontWeight: 'bold' }} />
 									<Tooltip content={<CustomTooltip formatCurrency={formatCurrency} />} />
-									<Area type="monotone" dataKey="amount" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorAmount)" />
+									<Area type="monotone" name="Income" dataKey="income" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
+									<Area type="monotone" name="Expense" dataKey="expense" stroke="#ef4444" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />
 								</AreaChart>
 							</ResponsiveContainer>
 						</div>
