@@ -379,10 +379,26 @@ export function FormView(props: FormViewProps) {
 											<SelectContent className="rounded-xl">{(isCoreCat ? props.categories : customField?.options || []).map((opt) => (<SelectItem key={opt} value={opt} className="cursor-pointer">{opt}</SelectItem>))}</SelectContent>
 										</Select>
 									) : isType ? (
-										<Select value={props.formData[header] || ""} disabled={isInteractionDisabled} onValueChange={(val) => props.onInputChange(header, val || "")}>
-											<SelectTrigger className="h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 cursor-pointer"><SelectValue placeholder={t("transactionType")} /></SelectTrigger>
-											<SelectContent className="rounded-xl"><SelectItem value="Pemasukan / Income" className="cursor-pointer">{t("income")}</SelectItem><SelectItem value="Pengeluaran / Expense" className="cursor-pointer">{t("expense")}</SelectItem></SelectContent>
-										</Select>
+										<div className="flex bg-zinc-100 dark:bg-zinc-800/50 p-1.5 rounded-xl gap-1 border border-zinc-200 dark:border-zinc-800">
+											<button
+												type="button"
+												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${props.formData[header] === "Pemasukan / Income" ? "bg-white dark:bg-zinc-900 text-emerald-600 shadow-sm border border-zinc-200/50 dark:border-zinc-800/50" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
+												onClick={(e) => { e.preventDefault(); e.stopPropagation(); props.onInputChange(header, "Pemasukan / Income"); }}
+												disabled={isInteractionDisabled}
+											>
+												<TrendingUp size={18} />
+												{t("income")}
+											</button>
+											<button
+												type="button"
+												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${props.formData[header] === "Pengeluaran / Expense" ? "bg-white dark:bg-zinc-900 text-red-600 shadow-sm border border-zinc-200/50 dark:border-zinc-800/50" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
+												onClick={(e) => { e.preventDefault(); e.stopPropagation(); props.onInputChange(header, "Pengeluaran / Expense"); }}
+												disabled={isInteractionDisabled}
+											>
+												<TrendingDown size={18} />
+												{t("expense")}
+											</button>
+										</div>
 									) : (
 										<Input type={isAmount ? "number" : "text"} disabled={isInteractionDisabled} placeholder={`Enter ${props.translateHeader(header)}`} className="h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950" value={props.formData[header] || ""} onChange={(e) => props.onInputChange(header, e.target.value)} />
 									)}
