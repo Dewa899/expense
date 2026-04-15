@@ -72,7 +72,7 @@ interface FormViewProps {
 	setNewFieldRequired: (val: boolean) => void;
 	setNewOptionInput: (val: string) => void;
 	translateHeader: (header: string) => string;
-	onGoogleLogin: () => void;
+	onGoogleLogin: (forceAccountSelection?: boolean) => void;
 	onDisconnect: () => void;
 	currentMonth: string;
 	isIntegrating?: boolean;
@@ -314,7 +314,7 @@ export function FormView(props: FormViewProps) {
 								<div className="flex flex-col items-center gap-2">
 									<Button 
 										className="w-full bg-white hover:bg-zinc-100 text-black border border-zinc-200 font-bold h-12 rounded-xl shadow-sm flex items-center justify-center gap-3 transition-all cursor-pointer" 
-										onClick={props.onGoogleLogin} 
+										onClick={() => props.onGoogleLogin(false)} 
 										disabled={props.loading || props.isIntegrating}
 									>
 										<svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -324,6 +324,9 @@ export function FormView(props: FormViewProps) {
 											<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
 										</svg>
 										{t("googleSyncBtn")}
+									</Button>
+									<Button variant="ghost" size="sm" className="text-[10px] uppercase font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 cursor-pointer w-full h-8" onClick={() => props.onGoogleLogin(true)} disabled={props.loading || props.isIntegrating}>
+										Use a different account
 									</Button>
 								</div>
 							</div>
