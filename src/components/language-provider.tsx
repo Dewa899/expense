@@ -114,6 +114,22 @@ const dictionary: Dictionary = {
 		en: "Your account is now fully integrated with Google Sheets.",
 		id: "Akun Anda sekarang telah terintegrasi sepenuhnya dengan Google Sheets.",
 	},
+	sessionExpiredTitle: {
+		en: "Session Expired",
+		id: "Sesi Berakhir",
+	},
+	sessionExpiredDesc: {
+		en: "Your Google authentication token has expired. Please sync again.",
+		id: "Token autentikasi Google Anda telah kadaluarsa. Silakan lakukan sinkronisasi ulang.",
+	},
+	syncWithGoogle: {
+		en: "Sync with Google",
+		id: "Sinkronisasi dengan Google",
+	},
+	chooseOtherAccount: {
+		en: "Choose another Google account",
+		id: "Pilih akun Google lain",
+	},
 	integrationWaitDesc: {
 		en: "Please wait while we set up your personalized Expense Tracker in your Google Drive.",
 		id: "Mohon tunggu sementara kami menyiapkan Expense Tracker pribadi Anda di Google Drive Anda.",

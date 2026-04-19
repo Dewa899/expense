@@ -16,14 +16,14 @@ import { StatusModalState } from "@/hooks/use-dashboard-logic";
 interface StatusModalProps {
 	state: StatusModalState;
 	onClose: () => void;
-	onGoogleLogin?: () => void;
+	onGoogleLogin?: (force?: boolean) => void;
 }
 
 export function StatusModal({ state, onClose, onGoogleLogin }: StatusModalProps) {
 	const { t } = useLanguage();
 	const isLoading = state.type === null && state.isOpen;
 	const isSyncSuccess = state.type === "success" && state.title === t("syncSuccessTitle");
-	const isAuthError = state.title === "Session Expired";
+	const isAuthError = state.title === t("sessionExpiredTitle");
 
 	return (
 		<Dialog open={state.isOpen} onOpenChange={(open) => {
@@ -64,26 +64,39 @@ export function StatusModal({ state, onClose, onGoogleLogin }: StatusModalProps)
 					
 					{state.type !== null && (
 						<div className="w-full flex flex-col gap-3 mt-2">
-							{isAuthError && onGoogleLogin && (
-								<Button
-									onClick={() => {
-										onClose();
-										onGoogleLogin();
-									}}
-									className="w-full h-12 rounded-xl font-bold bg-indigo-500 hover:bg-indigo-600 text-white"
+							{isAuthError && onGoogleLogin ? (
+								<>
+									<Button
+										onClick={() => {
+											onClose();
+											onGoogleLogin(false);
+										}}
+										className="w-full h-12 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-600 text-black"
+									>
+										{t("syncWithGoogle")}
+									</Button>
+									<Button
+										variant="ghost"
+										onClick={() => {
+											onClose();
+											onGoogleLogin(true);
+										}}
+										className="w-full h-10 rounded-xl font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 text-[10px] uppercase tracking-wider"
+									>
+										{t("chooseOtherAccount")}
+									</Button>
+								</>
+							) : (
+								<Button 
+									onClick={onClose} 
+									variant={isAuthError ? "outline" : "default"}
+									className={`w-full h-12 rounded-xl font-bold ${
+										!isAuthError ? (state.type === "success" ? "bg-emerald-500 hover:bg-emerald-600 text-black" : "bg-destructive hover:bg-destructive/90 text-white") : ""
+									}`}
 								>
-									Sync with Google
+									{t("close")}
 								</Button>
 							)}
-							<Button 
-								onClick={onClose} 
-								variant={isAuthError ? "outline" : "default"}
-								className={`w-full h-12 rounded-xl font-bold ${
-									!isAuthError ? (state.type === "success" ? "bg-emerald-500 hover:bg-emerald-600 text-black" : "bg-destructive hover:bg-destructive/90 text-white") : ""
-								}`}
-							>
-								{t("close")}
-							</Button>
 						</div>
 					)}
 				</div>

@@ -403,8 +403,8 @@ export function useDashboardLogic() {
 		setStatusModal({
 			isOpen: true,
 			type: "error",
-			title: "Session Expired",
-			description: "Token autentikasi Google Anda telah kadaluarsa (expired). Silakan lakukan Sync ulang."
+			title: t("sessionExpiredTitle"),
+			description: t("sessionExpiredDesc")
 		});
 	};
 
