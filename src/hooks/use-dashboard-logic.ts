@@ -282,21 +282,33 @@ export function useDashboardLogic() {
 	const handleInitialBalanceCarryForward = async (spreadsheetId: string, currentMonth: string, token: string) => {
 		const prevMonthName = getPreviousMonthName(currentMonth);
 		try {
-			// Just verify if the previous month exists by fetching only A1
-			const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(prevMonthName)}!A1:B1`, { headers: { Authorization: `Bearer ${token}` } });
+			// Fetch previous month's data to calculate the balance
+			const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(prevMonthName)}!A:H`, { headers: { Authorization: `Bearer ${token}` } });
 			const data = await res.json();
 			
-			// If previous sheet exists (doesn't throw 400 error)
-			if (!data.error) {
-				const netFormula = `SUMIF('${prevMonthName}'!D:D, "Pemasukan / Income", '${prevMonthName}'!C:C) - SUMIF('${prevMonthName}'!D:D, "Pengeluaran / Expense", '${prevMonthName}'!C:C)`;
-				const amountFormula = `=ABS(${netFormula})`;
-				const typeFormula = `=IF((${netFormula}) >= 0, "Pemasukan / Income", "Pengeluaran / Expense")`;
+			// If previous sheet exists and has data
+			if (!data.error && data.values && data.values.length > 0) {
+				const fetchedHeaders = data.values[0];
+				const amountIdx = fetchedHeaders.findIndex((h: string) => h.toLowerCase().includes("jumlah") || h.toLowerCase().includes("amount"));
+				const typeIdx = fetchedHeaders.findIndex((h: string) => h.toLowerCase().includes("tipe") || h.toLowerCase().includes("type"));
+				
+				let totalBalance = 0;
+				for (let i = 1; i < data.values.length; i++) {
+					const row = data.values[i];
+					const rawAmount = cleanNumber(row[amountIdx]);
+					const type = row[typeIdx] || "";
+					const isExpense = type.toLowerCase().includes("expense") || type.toLowerCase().includes("pengeluaran") || type.toLowerCase().includes("out");
+					totalBalance += isExpense ? -rawAmount : rawAmount;
+				}
+
+				const amountVal = Math.abs(totalBalance).toString();
+				const typeVal = totalBalance >= 0 ? "Pemasukan / Income" : "Pengeluaran / Expense";
 
 				const values = [
 					new Date().toLocaleString(),
 					`${t("initialBalance")} (${prevMonthName})`,
-					amountFormula,
-					typeFormula,
+					amountVal,
+					typeVal,
 					"Initial Balance",
 					t("fromPreviousMonth")
 				];
@@ -467,6 +479,60 @@ export function useDashboardLogic() {
 			});
 		} catch (error: any) {
 			setStatusModal({ isOpen: true, type: "error", title: "Setup Failed", description: error.message });
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleSyncPreviousBalance = async () => {
+		if (!user?.accessToken || !config.sheetId || !selectedMonth) return;
+		setLoading(true);
+		const prevMonthName = getPreviousMonthName(selectedMonth);
+		
+		try {
+			const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(prevMonthName)}!A:H`, { headers: { Authorization: `Bearer ${user.accessToken}` } });
+			const data = await res.json();
+			
+			if (data.error || !data.values || data.values.length <= 1) {
+				setStatusModal({ isOpen: true, type: "error", title: "Error", description: "Tidak ditemukan data transaksi di bulan sebelumnya." });
+				return;
+			}
+			
+			const fetchedHeaders = data.values[0];
+			const amountIdx = fetchedHeaders.findIndex((h: string) => h.toLowerCase().includes("jumlah") || h.toLowerCase().includes("amount"));
+			const typeIdx = fetchedHeaders.findIndex((h: string) => h.toLowerCase().includes("tipe") || h.toLowerCase().includes("type"));
+			
+			let totalBalance = 0;
+			for (let i = 1; i < data.values.length; i++) {
+				const row = data.values[i];
+				const rawAmount = cleanNumber(row[amountIdx]);
+				const type = row[typeIdx] || "";
+				const isExpense = type.toLowerCase().includes("expense") || type.toLowerCase().includes("pengeluaran") || type.toLowerCase().includes("out");
+				totalBalance += isExpense ? -rawAmount : rawAmount;
+			}
+			
+			const amountVal = Math.abs(totalBalance).toString();
+			const typeVal = totalBalance >= 0 ? "Pemasukan / Income" : "Pengeluaran / Expense";
+			
+			const values = [
+				new Date().toLocaleString(),
+				`${t("initialBalance")} (${prevMonthName})`,
+				amountVal,
+				typeVal,
+				"Initial Balance",
+				t("fromPreviousMonth")
+			];
+			
+			await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(selectedMonth)}!A1:append?valueInputOption=USER_ENTERED`, {
+				method: "POST",
+				headers: { Authorization: `Bearer ${user.accessToken}`, "Content-Type": "application/json" },
+				body: JSON.stringify({ values: [values] }),
+			});
+			
+			await fetchSheetData(config.sheetId, user.accessToken, selectedMonth);
+			setStatusModal({ isOpen: true, type: "success", title: "Berhasil", description: "Saldo dari bulan sebelumnya berhasil disinkronkan." });
+		} catch (error: any) {
+			setStatusModal({ isOpen: true, type: "error", title: "Gagal", description: error.message });
 		} finally {
 			setLoading(false);
 		}
@@ -800,7 +866,7 @@ export function useDashboardLogic() {
 		handleAddOptionToField, handleDeleteOptionFromField,
 		handleAddField, handleUpdateField, handleDeleteField,
 		customChartConfigs, handleAddCustomChart, handleDeleteCustomChart,
-		handleSetInitialBalance,
+		handleSetInitialBalance, handleSyncPreviousBalance,
 		handleGoogleLogin, handleMonthChange, resetToCurrentMonth, handleSubmit,
 		isIntegrating,
 		translateHeader: (header: string) => {

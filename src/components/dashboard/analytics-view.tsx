@@ -53,6 +53,7 @@ interface AnalyticsViewProps {
 	onAddCustomChart: (config: CustomChartConfig) => void;
 	onDeleteCustomChart: (idx: number) => void;
 	onSetInitialBalance: (amount: number) => void;
+	onSyncPreviousBalance: () => void;
 	onGoogleLogin: (forceAccountSelection?: boolean) => void;
 	formatCurrency: (val: number) => string;
 }
@@ -89,6 +90,7 @@ export function AnalyticsView({
 	onAddCustomChart,
 	onDeleteCustomChart,
 	onSetInitialBalance,
+	onSyncPreviousBalance,
 	onGoogleLogin,
 	formatCurrency
 }: AnalyticsViewProps) {
@@ -186,54 +188,75 @@ export function AnalyticsView({
 					
 					{/* Smart Setup Button: Only show if NO initial balance is found yet */}
 					{!initialBalanceEntry && (
-						<Dialog open={isSetupBalanceOpen} onOpenChange={(open) => {
-							if (open && !user) {
-								setIsSyncModalOpen(true);
-								return;
-							}
-							setIsSetupBalanceOpen(open);
-						}}>
-							<DialogTrigger render={
-								<Button 
-									variant="ghost" 
-									className="mt-4 h-auto p-0 flex items-center gap-2 text-emerald-600 hover:text-emerald-700 hover:bg-transparent justify-start cursor-pointer group"
-								>
-									<div className="w-7 h-7 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-										<Settings size={14} />
-									</div>
-									<span className="text-[10px] font-black uppercase tracking-tight">
-										{user ? t("setupInitialBalance") : "Sync Account to Set"}
-									</span>
-								</Button>
-							} />
-							<DialogContent className="sm:max-w-[400px] rounded-3xl">
-								<DialogHeader>
-									<DialogTitle>{t("setupInitialBalance")}</DialogTitle>
-									<DialogDescription>{t("initialBalanceDesc")}</DialogDescription>
-								</DialogHeader>
-								<div className="py-4 space-y-4">
-									<div className="space-y-2">
-										<Label className="text-xs">{t("amount")}</Label>
-										<Input 
-											type="number" 
-											placeholder="0" 
-											value={manualBalanceInput} 
-											onChange={(e) => setManualBalanceInput(e.target.value)}
-											className="h-12 rounded-xl"
-										/>
-									</div>
-									<Button 
-										className="w-full bg-emerald-500 text-black font-black h-12 rounded-xl cursor-pointer"
-										onClick={() => {
-											onSetInitialBalance(parseFloat(manualBalanceInput) || 0);
-											setIsSetupBalanceOpen(false);
-										}}
-									>
-										Save Balance
-									</Button>
+						<div className="flex flex-col gap-2 mt-4">
+							<Button 
+								variant="ghost" 
+								className="h-auto p-0 flex items-center gap-2 text-emerald-600 hover:text-emerald-700 hover:bg-transparent justify-start cursor-pointer group"
+								onClick={() => {
+									if (!user) {
+										setIsSyncModalOpen(true);
+										return;
+									}
+									onSyncPreviousBalance();
+								}}
+							>
+								<div className="w-7 h-7 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+									<ArrowRight size={14} />
 								</div>
-							</DialogContent>
-						</Dialog>
+								<span className="text-[10px] font-black uppercase tracking-tight">
+									{user ? "Tarik Saldo Bulan Sebelumnya" : "Sync Account to Pull"}
+								</span>
+							</Button>
+							
+							<Dialog open={isSetupBalanceOpen} onOpenChange={(open) => {
+								if (open && !user) {
+									setIsSyncModalOpen(true);
+									return;
+								}
+								setIsSetupBalanceOpen(open);
+							}}>
+								<DialogTrigger render={
+									<Button 
+										variant="ghost" 
+										className="h-auto p-0 flex items-center gap-2 text-zinc-500 hover:text-zinc-700 hover:bg-transparent justify-start cursor-pointer group"
+									>
+										<div className="w-7 h-7 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:scale-110 transition-transform">
+											<Settings size={14} />
+										</div>
+										<span className="text-[10px] font-black uppercase tracking-tight">
+											{user ? t("setupInitialBalance") : "Sync Account to Set"}
+										</span>
+									</Button>
+								} />
+								<DialogContent className="sm:max-w-[400px] rounded-3xl">
+									<DialogHeader>
+										<DialogTitle>{t("setupInitialBalance")}</DialogTitle>
+										<DialogDescription>{t("initialBalanceDesc")}</DialogDescription>
+									</DialogHeader>
+									<div className="py-4 space-y-4">
+										<div className="space-y-2">
+											<Label className="text-xs">{t("amount")}</Label>
+											<Input 
+												type="number" 
+												placeholder="0" 
+												value={manualBalanceInput} 
+												onChange={(e) => setManualBalanceInput(e.target.value)}
+												className="h-12 rounded-xl"
+											/>
+										</div>
+										<Button 
+											className="w-full bg-emerald-500 text-black font-black h-12 rounded-xl cursor-pointer"
+											onClick={() => {
+												onSetInitialBalance(parseFloat(manualBalanceInput) || 0);
+												setIsSetupBalanceOpen(false);
+											}}
+										>
+											Save Balance
+										</Button>
+									</div>
+								</DialogContent>
+							</Dialog>
+						</div>
 					)}
 				</div>
 				<div className="bg-emerald-500 dark:bg-emerald-600 p-6 rounded-[32px] text-black shadow-lg shadow-emerald-500/20 md:col-span-2 flex flex-col justify-between min-h-[140px]">

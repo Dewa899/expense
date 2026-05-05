@@ -103,6 +103,7 @@ export function DashboardView({
 							onAddCustomChart={logic.handleAddCustomChart}
 							onDeleteCustomChart={logic.handleDeleteCustomChart}
 							onSetInitialBalance={logic.handleSetInitialBalance}
+							onSyncPreviousBalance={logic.handleSyncPreviousBalance}
 							onGoogleLogin={logic.handleGoogleLogin}
 							formatCurrency={logic.formatCurrency}
 							/>					</div>
