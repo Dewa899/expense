@@ -410,14 +410,22 @@ export function useDashboardLogic() {
 	};
 
 	const handleAuthError = () => {
-		localStorage.removeItem("googleUser");
-		setUser(null);
-		setStatusModal({
-			isOpen: true,
-			type: "error",
-			title: t("sessionExpiredTitle"),
-			description: t("sessionExpiredDesc")
-		});
+		if (sessionStorage.getItem("isAutoSyncing")) {
+			sessionStorage.removeItem("isAutoSyncing");
+			localStorage.removeItem("googleUser");
+			setUser(null);
+			setStatusModal({
+				isOpen: true,
+				type: "error",
+				title: t("sessionExpiredTitle"),
+				description: t("sessionExpiredDesc")
+			});
+		} else {
+			sessionStorage.setItem("isAutoSyncing", "true");
+			const scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive.file"].join(" ");
+			const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${window.location.origin}&response_type=token&scope=${encodeURIComponent(scope)}&include_granted_scopes=true`;
+			window.location.href = authUrl;
+		}
 	};
 
 	const fetchAvailableMonths = async (spreadsheetId: string, token: string) => {
@@ -571,6 +579,7 @@ export function useDashboardLogic() {
 			// 1. Check for OAuth Hash first (SYNC ACTION)
 			if (hash && hash.includes("access_token")) {
 				console.log("OAuth Access Token detected in URL.");
+				sessionStorage.removeItem("isAutoSyncing");
 				const params = new URLSearchParams(hash.substring(1));
 				token = params.get("access_token") || "";
 				if (token) {
@@ -880,3 +889,5 @@ export function useDashboardLogic() {
 		}
 	};
 }
+
+
