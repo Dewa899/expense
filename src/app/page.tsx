@@ -16,6 +16,7 @@ import { useTheme } from "next-themes";
 import { useLanguage } from "@/components/language-provider";
 import { DashboardView } from "@/components/dashboard-view";
 import { LandingView } from "@/components/landing-view";
+import { LoginView } from "@/components/login-view";
 import { SupportModal } from "@/components/dashboard/bug-report-modal";
 import { OnboardingTutorial } from "@/components/dashboard/onboarding-tutorial";
 import { PatchNotesModal } from "@/components/dashboard/patch-notes-modal";
@@ -53,7 +54,7 @@ function AppInner() {
   const { theme, setTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
   const [mounted, setMounted] = React.useState(false);
-  const [view, setView] = React.useState<"dashboard" | "landing">("dashboard");
+  const [view, setView] = React.useState<"dashboard" | "landing" | "login">("dashboard");
   const [isTutorialOpen, setIsTutorialOpen] = React.useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = React.useState(false);
   const [isPatchNotesOpen, setIsPatchNotesOpen] = React.useState(false);
@@ -99,7 +100,7 @@ function AppInner() {
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 transition-colors duration-300 relative">
       {/* Navbar / Header */}
       <header className="px-4 py-3 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/50 backdrop-blur-sm sticky top-0 z-50 bg-white/80 dark:bg-zinc-950/80">
-        <Logo onClick={() => setView(view === "dashboard" ? "landing" : "dashboard")} />
+        <Logo onClick={() => setView(view === "landing" ? "dashboard" : "landing")} />
         
         <div className="flex items-center gap-1">
           {view === "landing" && (
@@ -153,10 +154,17 @@ function AppInner() {
               externalStatusModal={statusModal}
               onExternalStatusClose={() => setStatusModal(prev => ({ ...prev, isOpen: false }))}
             />
+          ) : view === "login" ? (
+            <LoginView
+              key="login"
+              onLoginSuccess={() => setView("dashboard")}
+              onBypassSheets={() => setView("dashboard")}
+              onBack={() => setView("landing")}
+            />
           ) : (
             <LandingView
               key="landing"
-              onGetStarted={() => setView("dashboard")}
+              onGetStarted={() => setView("login")}
               onTryDemo={handleTryDemo}
             />
           )}

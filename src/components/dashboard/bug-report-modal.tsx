@@ -93,7 +93,7 @@ export function SupportModal({
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[450px] rounded-[32px] p-0 overflow-hidden border-none max-h-[90vh] overflow-y-auto relative" showCloseButton={false}>
+			<DialogContent className="sm:max-w-[450px] rounded-[32px] p-0 overflow-hidden border-none max-h-[90vh] overflow-y-auto" showCloseButton={false}>
 				<button 
 					type="button"
 					onClick={() => onOpenChange(false)}

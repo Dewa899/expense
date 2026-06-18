@@ -31,18 +31,9 @@ export function StatusModal({ state, onClose, onGoogleLogin }: StatusModalProps)
 			if (!open) onClose();
 		}}>
 			<DialogContent 
-				className="sm:max-w-[400px] rounded-[32px] p-8 relative"
-				showCloseButton={false}
+				className="sm:max-w-[400px] p-8"
+				showCloseButton={!isLoading}
 			>
-				{!isLoading && (
-					<button 
-						type="button"
-						onClick={onClose}
-						className="absolute top-6 right-6 rounded-full w-10 h-10 p-0 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600 dark:hover:text-zinc-200 z-[110] transition-colors flex items-center justify-center cursor-pointer"
-					>
-						<X size={20} />
-					</button>
-				)}
 				<div className="flex flex-col items-center text-center gap-4">
 					<div className={`flex items-center justify-center ${
 						isSyncSuccess ? "w-full h-40" : 

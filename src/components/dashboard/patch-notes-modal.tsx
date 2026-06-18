@@ -153,7 +153,7 @@ export function PatchNotesModal({ isOpen, onOpenChange }: PatchNotesModalProps) 
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[550px] rounded-[36px] overflow-hidden p-0 max-h-[85vh] flex flex-col border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 relative" showCloseButton={false}>
+			<DialogContent className="sm:max-w-[550px] rounded-[36px] overflow-hidden p-0 max-h-[85vh] flex flex-col border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950" showCloseButton={false}>
 				{/* Top Close Button - Bulat ketika hover */}
 				<button 
 					type="button"
