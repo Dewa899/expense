@@ -8,7 +8,8 @@ import {
   Languages, 
   ArrowLeft,
   HelpCircle,
-  MessageSquare
+  MessageSquare,
+  Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
@@ -17,7 +18,9 @@ import { DashboardView } from "@/components/dashboard-view";
 import { LandingView } from "@/components/landing-view";
 import { SupportModal } from "@/components/dashboard/bug-report-modal";
 import { OnboardingTutorial } from "@/components/dashboard/onboarding-tutorial";
+import { PatchNotesModal } from "@/components/dashboard/patch-notes-modal";
 import { useDashboardLogic } from "@/hooks/use-dashboard-logic";
+import { DemoProvider, useDemo } from "@/components/demo-context";
 
 export function Logo({ 
   className = "", 
@@ -42,14 +45,18 @@ export function Logo({
   );
 }
 
-export default function Home() {
+// ─── Inner app separated so useDemo hook works inside DemoProvider ─────────────
+
+function AppInner() {
   const logic = useDashboardLogic();
+  const { enterDemo } = useDemo();
   const { theme, setTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
   const [mounted, setMounted] = React.useState(false);
   const [view, setView] = React.useState<"dashboard" | "landing">("dashboard");
   const [isTutorialOpen, setIsTutorialOpen] = React.useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = React.useState(false);
+  const [isPatchNotesOpen, setIsPatchNotesOpen] = React.useState(false);
   const [supportInitialData, setSupportInitialData] = React.useState({ category: "bug", email: "" });
   const [statusModal, setStatusModal] = React.useState<{ isOpen: boolean; title: string; desc: string }>({
     isOpen: false, title: "", desc: ""
@@ -57,7 +64,6 @@ export default function Home() {
 
   React.useEffect(() => {
     setMounted(true);
-    // Auto open tutorial for first time
     const tutorialDone = localStorage.getItem("onboarding_complete");
     if (!tutorialDone) {
       setIsTutorialOpen(true);
@@ -66,13 +72,8 @@ export default function Home() {
 
   if (!mounted) return null;
 
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
-
-  const toggleLanguage = () => {
-    setLanguage(language === "en" ? "id" : "en");
-  };
+  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
+  const toggleLanguage = () => setLanguage(language === "en" ? "id" : "en");
 
   const handleCloseTutorial = () => {
     setIsTutorialOpen(false);
@@ -88,6 +89,12 @@ export default function Home() {
     setIsSupportModalOpen(true);
   };
 
+  // Feature 4: Demo mode entry from landing page
+  const handleTryDemo = () => {
+    enterDemo();
+    setView("dashboard");
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 transition-colors duration-300 relative">
       {/* Navbar / Header */}
@@ -101,6 +108,17 @@ export default function Home() {
               App
             </Button>
           )}
+
+          {/* Feature 5: Patch Notes ℹ️ button */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setIsPatchNotesOpen(true)}
+            className="rounded-full h-8 w-8 text-zinc-600 dark:text-zinc-400 hover:text-emerald-500"
+            title="Patch Notes"
+          >
+            <Info size={16} />
+          </Button>
 
           <Button 
             variant="ghost" 
@@ -136,7 +154,11 @@ export default function Home() {
               onExternalStatusClose={() => setStatusModal(prev => ({ ...prev, isOpen: false }))}
             />
           ) : (
-            <LandingView key="landing" onGetStarted={() => setView("dashboard")} />
+            <LandingView
+              key="landing"
+              onGetStarted={() => setView("dashboard")}
+              onTryDemo={handleTryDemo}
+            />
           )}
         </AnimatePresence>
       </main>
@@ -170,6 +192,12 @@ export default function Home() {
         onGoogleLogin={logic.handleGoogleLogin}
       />
 
+      {/* Feature 5: Patch Notes Modal */}
+      <PatchNotesModal
+        isOpen={isPatchNotesOpen}
+        onOpenChange={setIsPatchNotesOpen}
+      />
+
       {/* Footer / Credits */}
       <footer className="p-8 text-center mt-auto border-t border-zinc-200 dark:border-zinc-800/50 flex flex-col items-center gap-2">
         <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
@@ -185,5 +213,15 @@ export default function Home() {
         </div>
       </footer>
     </div>
+  );
+}
+
+// ─── Root export wrapped with DemoProvider ────────────────────────────────────
+
+export default function Home() {
+  return (
+    <DemoProvider>
+      <AppInner />
+    </DemoProvider>
   );
 }

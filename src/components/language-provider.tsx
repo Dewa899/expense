@@ -326,6 +326,56 @@ const dictionary: Dictionary = {
 		id: "Jika Anda memiliki pertanyaan tentang Kebijakan Privasi ini, silakan hubungi kami melalui modal bantuan kami:",
 	},
 	openSupport: { en: "Get Support", id: "Dapatkan Bantuan" },
+
+	// Demo Mode
+	tryDemo: { en: "Try demo", id: "Coba demo" },
+	demoModeBanner: {
+		en: "Demo mode – data will not be saved.",
+		id: "Mode demo – data tidak akan disimpan.",
+	},
+	exitDemo: { en: "Exit Demo", id: "Keluar Demo" },
+
+	// Amount Field
+	amountPlaceholder: { en: "0", id: "0" },
+	amountLabel: { en: "Amount", id: "Nominal" },
+	done: { en: "Done", id: "Selesai" },
+
+	// Patch Notes Modal
+	patchNotesTitle: { en: "Patch Notes", id: "Catatan Pembaruan" },
+	patchNotesSubtitle: {
+		en: "Here's what's new in this release.",
+		id: "Inilah yang baru di pembaruan ini.",
+	},
+	patchFeature1Title: { en: "Silent Re-authentication", id: "Re-autentikasi Senyap" },
+	patchFeature1Desc: {
+		en: "The app now automatically re-connects your Google account on every load. No repeated sign-ins.",
+		id: "Aplikasi kini otomatis terhubung kembali ke akun Google saat dibuka. Tidak perlu login berulang.",
+	},
+	patchFeature2Title: { en: "Mobile Numeric Keyboard", id: "Keyboard Angka Mobile" },
+	patchFeature2Desc: {
+		en: "On mobile, a custom numeric pad slides up with Rupiah formatting and quick-add chips.",
+		id: "Di mobile, papan angka kustom muncul dengan format Rupiah dan chip tambah cepat.",
+	},
+	patchFeature3Title: { en: "Rupiah Amount Formatting", id: "Format Nominal Rupiah" },
+	patchFeature3Desc: {
+		en: "The amount field now shows 'Rp 0' placeholder and formats thousands live as you type.",
+		id: "Kolom nominal kini menampilkan placeholder 'Rp 0' dan memformat ribuan secara langsung.",
+	},
+	patchFeature4Title: { en: "Demo Mode", id: "Mode Demo" },
+	patchFeature4Desc: {
+		en: "Try the app without a Google account. Sample data is loaded in-memory and cleared on reload.",
+		id: "Coba aplikasi tanpa akun Google. Data contoh dimuat di memori dan dihapus saat refresh.",
+	},
+	patchFeature5Title: { en: "Patch Notes Modal", id: "Modal Catatan Pembaruan" },
+	patchFeature5Desc: {
+		en: "A changelog modal (this one!) now lives in the header so you never miss an update.",
+		id: "Modal perubahan versi (ini!) kini ada di header agar Anda tidak ketinggalan pembaruan.",
+	},
+	patchFeature6Title: { en: "Enter Key Shortcut", id: "Pintasan Tombol Enter" },
+	patchFeature6Desc: {
+		en: "Press Enter while filling the form to submit it instantly – no need to click the button.",
+		id: "Tekan Enter saat mengisi formulir untuk langsung menyimpan – tidak perlu klik tombol.",
+	},
 };
 
 type LanguageContextType = {

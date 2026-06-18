@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useDashboardLogic } from "@/hooks/use-dashboard-logic";
 import { FormView } from "./dashboard/form-view";
 import { AnalyticsView } from "./dashboard/analytics-view";
@@ -10,9 +10,10 @@ import { DisconnectModal } from "./dashboard/disconnect-modal";
 import { DeleteFieldModal } from "./dashboard/delete-field-modal";
 import { OnboardingTutorial } from "./dashboard/onboarding-tutorial";
 import { IntegrationLoading } from "./dashboard/integration-loading";
-import { Camera } from "lucide-react";
+import { Camera, FlaskConical, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/components/language-provider";
+import { useDemo } from "@/components/demo-context";
 
 interface DashboardViewProps {
 	isTutorialOpen?: boolean;
@@ -28,7 +29,20 @@ export function DashboardView({
 	onExternalStatusClose = () => {},
 }: DashboardViewProps) {
 	const { t } = useLanguage();
-	const logic = useDashboardLogic();
+	const { isDemoMode, demoTransactions, demoCategories, exitDemo, addDemoTransaction } = useDemo();
+	
+	const logic = useDashboardLogic(
+		isDemoMode
+			? { isDemoMode: true, demoTransactions, addDemoTransaction }
+			: {}
+	);
+	
+	// In demo mode, overlay the in-memory data on top of the hook's state
+	const transactions = isDemoMode ? demoTransactions : logic.transactions;
+	const categories = isDemoMode ? [...demoCategories, ...logic.categories.filter(c => !demoCategories.includes(c))] : logic.categories;
+	const totalAmount = isDemoMode
+		? demoTransactions.reduce((sum, t) => sum + t.amount, 0)
+		: logic.totalAmount;
 	
 	// UI States for Modals
 	const [isDisconnectModalOpen, setIsDisconnectModalOpen] = React.useState(false);
@@ -42,6 +56,30 @@ export function DashboardView({
 
 	return (
 		<div className="flex flex-col p-4 gap-6 w-full min-h-screen relative mx-auto transition-all duration-500">
+			{/* Demo Mode Banner */}
+			<AnimatePresence>
+				{isDemoMode && (
+					<motion.div
+						initial={{ opacity: 0, y: -40 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: -40 }}
+						className="sticky top-0 z-40 -mx-4 -mt-4 px-4 py-2.5 bg-amber-400 dark:bg-amber-500 text-black flex items-center justify-between gap-3 shadow-md"
+					>
+						<div className="flex items-center gap-2 text-xs font-bold">
+							<FlaskConical size={14} />
+							<span>{t("demoModeBanner")}</span>
+						</div>
+						<button
+							onClick={exitDemo}
+							className="text-[10px] font-black uppercase tracking-wider bg-black/15 hover:bg-black/25 px-3 py-1 rounded-full flex items-center gap-1 transition-colors cursor-pointer"
+						>
+							<X size={10} />
+							{t("exitDemo")}
+						</button>
+					</motion.div>
+				)}
+			</AnimatePresence>
+
 			<AnimatePresence>
 				{logic.isIntegrating && (
 					<IntegrationLoading 
@@ -56,6 +94,9 @@ export function DashboardView({
 					<div key="form-container" className="max-w-md mx-auto w-full space-y-6">
 						<FormView 
 							{...logic}
+							transactions={transactions}
+							categories={categories}
+							totalAmount={totalAmount}
 							isIntegrating={logic.isIntegrating}
 							isManageFieldsOpen={logic.isManageFieldsOpen}
 							setIsManageFieldsOpen={logic.setIsManageFieldsOpen}
@@ -72,6 +113,7 @@ export function DashboardView({
 							onGoogleLogin={logic.handleGoogleLogin}
 							currentMonth={logic.selectedMonth || "..."}
 							onDisconnect={() => setIsDisconnectModalOpen(true)}
+							isDemoMode={isDemoMode}
 						/>
 
 						{/* OCR Placeholder Section moved inside the same width container */}
@@ -91,7 +133,7 @@ export function DashboardView({
 					<div key="analytics-container" className="max-w-5xl mx-auto w-full">
 						<AnalyticsView 
 							headers={logic.headers}
-							transactions={logic.transactions}
+							transactions={transactions}
 							availableMonths={logic.availableMonths}
 							selectedMonth={logic.selectedMonth}
 							loading={logic.loading}

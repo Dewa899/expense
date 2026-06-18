@@ -24,7 +24,7 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode, titl
   );
 }
 
-export function LandingView({ onGetStarted }: { onGetStarted: () => void }) {
+export function LandingView({ onGetStarted, onTryDemo }: { onGetStarted: () => void; onTryDemo: () => void }) {
   const { language, t } = useLanguage();
 
   return (
@@ -73,7 +73,7 @@ export function LandingView({ onGetStarted }: { onGetStarted: () => void }) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex flex-col sm:flex-row gap-4"
+          className="flex flex-col sm:flex-row gap-4 items-center"
         >
           <Button 
             onClick={onGetStarted}
@@ -82,6 +82,12 @@ export function LandingView({ onGetStarted }: { onGetStarted: () => void }) {
             {t("getStarted")}
             <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
           </Button>
+          <button
+            onClick={onTryDemo}
+            className="text-sm font-bold text-zinc-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors underline underline-offset-4 cursor-pointer"
+          >
+            {t("tryDemo")}
+          </button>
         </motion.div>
       </section>
 

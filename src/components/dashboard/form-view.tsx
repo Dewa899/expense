@@ -38,6 +38,9 @@ import {
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/components/language-provider";
 import { CustomFieldDef } from "@/hooks/use-dashboard-logic";
+import { NumericKeyboard, formatRupiah, stripRupiah } from "@/components/dashboard/numeric-keyboard";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useDemo } from "@/components/demo-context";
 
 interface FormViewProps {
 	totalAmount: number;
@@ -76,10 +79,14 @@ interface FormViewProps {
 	onDisconnect: () => void;
 	currentMonth: string;
 	isIntegrating?: boolean;
+	isDemoMode?: boolean;
 }
 
 export function FormView(props: FormViewProps) {
-	const { t } = useLanguage();
+	const { t, language } = useLanguage();
+	const isMobile = useIsMobile();
+	const { enterDemo } = useDemo();
+
 	const [editingOptionsIdx, setEditingOptionsIdx] = React.useState<number>(-1);
 	const [renamingIdx, setRenamingIdx] = React.useState<number>(-1);
 	const [renamingInput, setRenamingInput] = React.useState("");
@@ -90,13 +97,48 @@ export function FormView(props: FormViewProps) {
 	const [isPrivate, setIsPrivate] = React.useState(false);
 	const [isCompact, setIsCompact] = React.useState(false);
 
-	const isInteractionDisabled = props.loading || props.isIntegrating || !props.user;
+	// Mobile keyboard focus state – which amount header is focused
+	const [mobileKbHeader, setMobileKbHeader] = React.useState<string | null>(null);
+
+	// Ref to amount field container for scroll-into-view
+	const amountFieldRef = React.useRef<HTMLDivElement>(null);
+
+	// Auto-scroll focused amount field into view when the mobile keyboard slides up
+	React.useEffect(() => {
+		if (isMobile && mobileKbHeader && amountFieldRef.current) {
+			const timer = setTimeout(() => {
+				amountFieldRef.current?.scrollIntoView({
+					behavior: "smooth",
+					block: "center",
+				});
+			}, 300); // 300ms is standard for keyboard animation transition
+			return () => clearTimeout(timer);
+		}
+	}, [mobileKbHeader, isMobile]);
+
+	const isInteractionDisabled = props.loading || props.isIntegrating || (!props.user && !props.isDemoMode);
 	const isSyncing = props.loading || props.isIntegrating;
 
 	React.useEffect(() => {
 		setIsPrivate(localStorage.getItem("privacy_mode") === "true");
 		setIsCompact(localStorage.getItem("compact_mode") === "true");
 	}, []);
+
+	// ─── Feature 6: Enter Key shortcut ──────────────────────────────────────────
+	React.useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key !== "Enter") return;
+			const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+			// Don't intercept if in textarea, select, or when disabled
+			if (tag === "textarea" || isInteractionDisabled) return;
+			// Don't intercept if a dialog/modal is open
+			if (document.querySelector("[data-state='open'][role='dialog']")) return;
+			e.preventDefault();
+			props.onSubmit();
+		};
+		document.addEventListener("keydown", handleKeyDown);
+		return () => document.removeEventListener("keydown", handleKeyDown);
+	}, [isInteractionDisabled, props.onSubmit]);
 
 	const togglePrivacy = () => {
 		const newVal = !isPrivate;
@@ -128,7 +170,18 @@ export function FormView(props: FormViewProps) {
 		setIsSyncModalOpen(true);
 	};
 
+	// ─── Feature 3: Amount formatting helpers ────────────────────────────────────
+	const handleAmountChange = (header: string, raw: string) => {
+		// Strip any existing formatting then re-format
+		const digits = stripRupiah(raw);
+		const formatted = digits ? formatRupiah(digits) : "";
+		props.onInputChange(header, formatted);
+	};
+
 	const displayHeaders = props.headers.length > 0 ? props.headers : ["Nama Pengeluaran", "Jumlah", "Tipe", "Kategori", "Catatan"];
+
+	// Determine if previously logged in (for silent re-auth hint)
+	const hasPreviousLogin = typeof window !== "undefined" && !!localStorage.getItem("googleUser");
 
 	return (
 		<motion.div 
@@ -270,9 +323,11 @@ export function FormView(props: FormViewProps) {
 												</DialogContent>
 											</Dialog>
 
-											<Button size="sm" variant="secondary" onClick={handleGeneralSyncClick} disabled={isSyncing} className="bg-black/10 hover:bg-black/20 text-black border-none rounded-full font-bold px-3 cursor-pointer">
-												<LinkIcon size={14} className="mr-1" /> {props.user ? "Sync" : t("integration")}
-											</Button>
+											{!props.isDemoMode && (
+												<Button size="sm" variant="secondary" onClick={handleGeneralSyncClick} disabled={isSyncing} className="bg-black/10 hover:bg-black/20 text-black border-none rounded-full font-bold px-3 cursor-pointer">
+													<LinkIcon size={14} className="mr-1" /> {props.user ? "Sync" : t("integration")}
+												</Button>
+											)}
 										</div>
 									</div>
 								</motion.div>
@@ -312,6 +367,7 @@ export function FormView(props: FormViewProps) {
 									{syncTriggerSource === "fields" ? t("syncFieldsPrompt") : t("syncGeneralPrompt")}
 								</p>
 								<div className="flex flex-col items-center gap-2">
+									{/* Feature 1: Smart Sync button – re-uses stored token if available */}
 									<Button 
 										className="w-full bg-white hover:bg-zinc-100 text-black border border-zinc-200 font-bold h-12 rounded-xl shadow-sm flex items-center justify-center gap-3 transition-all cursor-pointer" 
 										onClick={() => props.onGoogleLogin(false)} 
@@ -323,11 +379,16 @@ export function FormView(props: FormViewProps) {
 											<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
 											<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
 										</svg>
-										{t("googleSyncBtn")}
+										{hasPreviousLogin ? t("syncWithGoogle") : t("googleSyncBtn")}
 									</Button>
-									<Button variant="ghost" size="sm" className="text-[10px] uppercase font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 cursor-pointer w-full h-8" onClick={() => props.onGoogleLogin(true)} disabled={props.loading || props.isIntegrating}>
-										Use a different account
-									</Button>
+									{/* Feature 1: "Use different account" link */}
+									<button
+										onClick={() => props.onGoogleLogin(true)}
+										disabled={props.loading || props.isIntegrating}
+										className="text-[11px] font-semibold text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-2 cursor-pointer mt-1 disabled:opacity-50"
+									>
+										{t("chooseOtherAccount")}
+									</button>
 								</div>
 							</div>
 						)}
@@ -349,14 +410,14 @@ export function FormView(props: FormViewProps) {
 							const isAmount = hL.includes("jumlah") || hL.includes("amount");
 							const customFieldIdx = props.customFields.findIndex(f => f.name.toLowerCase() === hL);
 							const customField = customFieldIdx !== -1 ? props.customFields[customFieldIdx] : null;
-
 							const isNote = hL.includes("catatan") || hL.includes("note");
 
 							return (
-								<div key={header} className="space-y-2">
+								<div key={header} ref={isAmount ? amountFieldRef : undefined} className="space-y-2">
 									<div className="flex items-center justify-between ml-1">
 										<Label className="text-xs text-zinc-500 dark:text-zinc-400">
-											{props.translateHeader(header)} 
+											{/* Feature 3: Amount label shows "Nominal (Rp)" */}
+											{isAmount ? t("amountLabel") : props.translateHeader(header)} 
 											{customField?.required && <span className="text-red-500 ml-1">*</span>}
 											{isNote && <span className="text-[10px] opacity-60 font-normal ml-1">({t("optionalLabel")})</span>}
 										</Label>
@@ -402,15 +463,47 @@ export function FormView(props: FormViewProps) {
 												{t("expense")}
 											</button>
 										</div>
+									) : isAmount ? (
+										// ─── Feature 2 & 3: Amount field with Rupiah formatting ──────────
+										<>
+											<div className="relative flex items-center w-full">
+												<span className="absolute left-4 text-[10px] font-black text-zinc-400 dark:text-zinc-500 select-none pointer-events-none">
+													Rp
+												</span>
+												<Input
+													type="text"
+													inputMode={isMobile ? "none" : "numeric"}
+													readOnly={isMobile}
+													disabled={isInteractionDisabled}
+													placeholder={t("amountPlaceholder")}
+													className="h-12 w-full pl-9 pr-4 rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-medium text-base"
+													value={props.formData[header] || ""}
+													onChange={(e) => handleAmountChange(header, e.target.value)}
+													onFocus={() => isMobile && setMobileKbHeader(header)}
+												/>
+											</div>
+											{/* Feature 2: Mobile keyboard – shows when this field is focused on mobile */}
+											{isMobile && mobileKbHeader === header && (
+												<NumericKeyboard
+													value={props.formData[header] || ""}
+													onChange={(val) => props.onInputChange(header, val)}
+													onSubmit={() => {
+														setMobileKbHeader(null);
+														props.onSubmit();
+													}}
+													disabled={isInteractionDisabled}
+												/>
+											)}
+										</>
 									) : (
-										<Input type={isAmount ? "number" : "text"} disabled={isInteractionDisabled} placeholder={`Enter ${props.translateHeader(header)}`} className="h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950" value={props.formData[header] || ""} onChange={(e) => props.onInputChange(header, e.target.value)} />
+										<Input type="text" disabled={isInteractionDisabled} placeholder={`${props.translateHeader(header)}...`} className="h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950" value={props.formData[header] || ""} onChange={(e) => props.onInputChange(header, e.target.value)} />
 									)}
 								</div>
 							);
 						})
 					)}
 					
-					{props.user ? (
+					{(props.user || props.isDemoMode) ? (
 						<Button disabled={isInteractionDisabled} onClick={props.onSubmit} className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-black font-black text-lg rounded-2xl mt-4 shadow-lg cursor-pointer">
 							{props.loading ? "..." : t("addExpense")}
 						</Button>
@@ -419,10 +512,31 @@ export function FormView(props: FormViewProps) {
 							<Button onClick={handleGeneralSyncClick} disabled={isSyncing} className="w-full h-14 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-black text-lg rounded-2xl mt-4 shadow-sm cursor-pointer">
 								{t("signIn")}
 							</Button>
+							<button
+								type="button"
+								onClick={enterDemo}
+								disabled={isSyncing}
+								className="text-xs font-semibold text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-2 cursor-pointer mt-2 disabled:opacity-50"
+							>
+								{t("tryDemo")}
+							</button>
 						</div>
 					)}
 				</div>
 			</section>
+
+			{/* Close mobile keyboard when tapping outside */}
+			{isMobile && mobileKbHeader && (
+				<div
+					className="fixed inset-0 z-40 bg-transparent"
+					onClick={() => setMobileKbHeader(null)}
+				/>
+			)}
+
+			{/* Extra bottom spacing when mobile keyboard is open so the user can scroll the input field above the keyboard */}
+			{isMobile && mobileKbHeader && (
+				<div className="h-[310px] w-full pointer-events-none" />
+			)}
 		</motion.div>
 	);
 }

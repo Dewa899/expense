@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useLanguage } from "@/components/language-provider";
+import { stripRupiah } from "@/components/dashboard/numeric-keyboard";
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
@@ -40,7 +41,14 @@ export type StatusModalState = {
 	description: string;
 };
 
-export function useDashboardLogic() {
+interface DashboardLogicOptions {
+	isDemoMode?: boolean;
+	demoTransactions?: Transaction[];
+	addDemoTransaction?: (tx: Transaction) => void;
+}
+
+export function useDashboardLogic(options: DashboardLogicOptions = {}) {
+	const { isDemoMode = false, demoTransactions = [], addDemoTransaction } = options;
 	const { t } = useLanguage();
 	const [view, setView] = React.useState<"form" | "analytics">("form");
 	const [headers, setHeaders] = React.useState<string[]>([]);
@@ -102,7 +110,12 @@ export function useDashboardLogic() {
 	const cleanNumber = (val: any): number => {
 		if (typeof val === "number") return Math.abs(val);
 		if (!val) return 0;
-		const cleaned = val.toString().replace(/Rp/g, "").replace(/\s/g, "").replace(/\./g, "").replace(/,/g, ".");
+		// Strip Rupiah formatting: "Rp", spaces, thousand dots, then parse
+		const cleaned = val.toString()
+			.replace(/Rp/g, "")
+			.replace(/\s/g, "")
+			.replace(/\./g, "")		// Remove thousand separators (id-ID style)
+			.replace(/,/g, ".");		// Convert decimal comma to dot
 		return Math.abs(parseFloat(cleaned)) || 0;
 	};
 
@@ -696,6 +709,47 @@ export function useDashboardLogic() {
 	};
 
 	const handleSubmit = async () => {
+		// ─── Demo Mode Short-circuit ──────────────────────────────────────────
+		if (isDemoMode && addDemoTransaction) {
+			const currentMonth = getCurrentMonthSheetName();
+			const missingFields = headers.filter(h => {
+				const hL = h.toLowerCase();
+				if (hL.includes("tanggal") || hL.includes("date") || hL.includes("catatan") || hL.includes("note")) return false;
+				const customField = customFields.find(f => f.name.toLowerCase() === hL);
+				if (customField && !customField.required) return false;
+				return !formData[h];
+			});
+			if (missingFields.length > 0) {
+				setStatusModal({ isOpen: true, type: "error", title: t("validationError"), description: t("validationDesc") });
+				return;
+			}
+			const getAmountRaw = (h: string) => {
+				const raw = formData[h] || "0";
+				return cleanNumber(stripRupiah(raw));
+			};
+			const amountHeader = headers.find(h => h.toLowerCase().includes("jumlah") || h.toLowerCase().includes("amount")) || "";
+			const typeHeader = headers.find(h => h.toLowerCase().includes("tipe") || h.toLowerCase().includes("type")) || "";
+			const nameHeader = headers.find(h => h.toLowerCase().includes("nama") || h.toLowerCase().includes("name")) || "";
+			const catHeader = headers.find(h => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category")) || "";
+			const noteHeader = headers.find(h => h.toLowerCase().includes("catatan") || h.toLowerCase().includes("note")) || "";
+			const typeVal = formData[typeHeader] || "";
+			const isExpense = typeVal.toLowerCase().includes("expense") || typeVal.toLowerCase().includes("pengeluaran");
+			const rawAmt = getAmountRaw(amountHeader);
+			addDemoTransaction({
+				date: new Date().toLocaleString(),
+				name: formData[nameHeader] || "",
+				amount: isExpense ? -rawAmt : rawAmt,
+				type: typeVal,
+				category: formData[catHeader] || "",
+				note: formData[noteHeader] || "",
+				raw: [],
+			});
+			setFormData({});
+			setStatusModal({ isOpen: true, type: "success", title: t("successTitle"), description: t("successDesc") });
+			return;
+		}
+
+		// ─── Normal Google Sheets Path ────────────────────────────────────────
 		const activeSheetId = config.sheetId || localStorage.getItem("sheetId");
 		const activeToken = user?.accessToken || JSON.parse(localStorage.getItem("googleUser") || "{}").accessToken;
 
@@ -726,7 +780,10 @@ export function useDashboardLogic() {
 				const hL = h.toLowerCase();
 				if (hL.includes("tanggal") || hL.includes("date")) return new Date().toLocaleString();
 				let val = formData[h] || "";
-				if (hL.includes("jumlah") || hL.includes("amount")) val = Math.abs(parseFloat(val)).toString();
+				// Strip Rupiah formatting before persisting raw number
+				if (hL.includes("jumlah") || hL.includes("amount")) {
+					val = Math.abs(cleanNumber(stripRupiah(val))).toString();
+				}
 				return val;
 			});
 
