@@ -64,6 +64,52 @@ export function NumericKeyboard({
 		onChange(newRaw ? formatRupiah(newRaw) : "");
 	};
 
+	// Ref to track the latest value prop and avoid closure stale state in setInterval
+	const valueRef = React.useRef(value);
+	React.useEffect(() => {
+		valueRef.current = value;
+	}, [value]);
+
+	// ─── Click-and-Hold (Hold to Delete) continuous deletion ───────────
+	const deleteTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+	const deleteIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+
+	const startContinuousDelete = (e: React.MouseEvent | React.TouchEvent) => {
+		e.preventDefault();
+		if (disabled) return;
+
+		// Perform initial single deletion
+		handleBackspace();
+
+		// Set a delay of 400ms before starting continuous delete
+		deleteTimerRef.current = setTimeout(() => {
+			deleteIntervalRef.current = setInterval(() => {
+				const currentRaw = stripRupiah(valueRef.current || "");
+				const newRaw = currentRaw.slice(0, -1);
+				onChange(newRaw ? formatRupiah(newRaw) : "");
+			}, 80); // delete a digit every 80ms
+		}, 400);
+	};
+
+	const stopContinuousDelete = () => {
+		if (deleteTimerRef.current) {
+			clearTimeout(deleteTimerRef.current);
+			deleteTimerRef.current = null;
+		}
+		if (deleteIntervalRef.current) {
+			clearInterval(deleteIntervalRef.current);
+			deleteIntervalRef.current = null;
+		}
+	};
+
+	// Clean up timers on unmount
+	React.useEffect(() => {
+		return () => {
+			if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
+			if (deleteIntervalRef.current) clearInterval(deleteIntervalRef.current);
+		};
+	}, []);
+
 	const handleQuickAdd = (addValue: number) => {
 		if (disabled) return;
 		const newTotal = rawNumber + addValue;
@@ -108,7 +154,16 @@ export function NumericKeyboard({
 					<button type="button" onClick={() => handleDigit("1")} disabled={disabled} className={normalKeyClass}>1</button>
 					<button type="button" onClick={() => handleDigit("2")} disabled={disabled} className={normalKeyClass}>2</button>
 					<button type="button" onClick={() => handleDigit("3")} disabled={disabled} className={normalKeyClass}>3</button>
-					<button type="button" onClick={handleBackspace} disabled={disabled} className={specialKeyClass}>
+					<button
+						type="button"
+						onMouseDown={startContinuousDelete}
+						onMouseUp={stopContinuousDelete}
+						onMouseLeave={stopContinuousDelete}
+						onTouchStart={startContinuousDelete}
+						onTouchEnd={stopContinuousDelete}
+						disabled={disabled}
+						className={specialKeyClass}
+					>
 						<Delete size={20} />
 					</button>
 

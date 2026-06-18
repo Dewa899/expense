@@ -489,7 +489,6 @@ export function FormView(props: FormViewProps) {
 													onChange={(val) => props.onInputChange(header, val)}
 													onSubmit={() => {
 														setMobileKbHeader(null);
-														props.onSubmit();
 													}}
 													disabled={isInteractionDisabled}
 												/>

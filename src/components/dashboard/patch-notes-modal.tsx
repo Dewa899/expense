@@ -4,101 +4,230 @@ import * as React from "react";
 import {
 	Dialog,
 	DialogContent,
-	DialogHeader,
-	DialogTitle,
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/components/language-provider";
-import { Sparkles, RefreshCw, Keyboard, Smartphone, Banknote, PlayCircle, ScrollText } from "lucide-react";
+import { Sparkles, Bug, ArrowUpRight, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface PatchNotesModalProps {
 	isOpen: boolean;
 	onOpenChange: (open: boolean) => void;
 }
 
-const VERSION = "v1.0";
-
-interface FeatureEntry {
-	icon: React.ReactNode;
-	titleKey: string;
-	descKey: string;
+interface UpdateDetail {
+	type: "feature" | "bugfix" | "improvement";
+	title: { en: string; id: string };
+	desc: { en: string; id: string };
 }
 
-const FEATURES: FeatureEntry[] = [
+interface UpdateItem {
+	version: string;
+	type: "major" | "minor" | "bugfix";
+	date: { en: string; id: string };
+	time: string;
+	title: { en: string; id: string };
+	description: { en: string; id: string };
+	details: UpdateDetail[];
+}
+
+const UPDATES: UpdateItem[] = [
 	{
-		icon: <RefreshCw size={16} className="text-emerald-500" />,
-		titleKey: "patchFeature1Title",
-		descKey: "patchFeature1Desc",
+		version: "v1.0.1",
+		type: "minor",
+		date: { en: "Thu, June 18, 2026", id: "Kamis, 18 Juni 2026" },
+		time: "10:30",
+		title: {
+			en: "Keyboard & Backdrop Polish",
+			id: "Penyempurnaan Keyboard & Latar Belakang"
+		},
+		description: {
+			en: "Polished the mobile numeric keyboard, backdrop click behavior, and aligned all modal styles.",
+			id: "Menyempurnakan keyboard angka mobile, perilaku klik latar belakang, dan menyelaraskan gaya modal."
+		},
+		details: [
+			{
+				type: "improvement",
+				title: { en: "Dismiss Keyboard with Done", id: "Tutup Keyboard dengan Selesai" },
+				desc: { en: "Done/Selesai button now closes the mobile keyboard instead of submitting the form directly.", id: "Tombol Selesai kini hanya menutup keyboard mobile, bukan langsung mengirim formulir." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Continuous Deletion on Hold", id: "Hapus Terus-menerus Saat Ditahan" },
+				desc: { en: "Holding the Backspace button now deletes digits continuously.", id: "Menahan tombol Backspace kini akan menghapus nominal satu per satu secara kontinu." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Auto-Scroll Focused Field", id: "Scroll Otomatis Bidang Fokus" },
+				desc: { en: "Amount input now scrolls smoothly into view when keyboard opens so it never gets covered.", id: "Input nominal kini otomatis ter-scroll ke tengah layar saat keyboard dibuka agar tidak tertutup." }
+			},
+			{
+				type: "bugfix",
+				title: { en: "Transparent Keyboard Backdrop", id: "Latar Belakang Keyboard Transparan" },
+				desc: { en: "Removed dimming and blur when keyboard is active to keep fields clearly visible.", id: "Menghapus efek gelap dan blur saat keyboard aktif agar input terlihat jelas." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Consistent Modal Close Buttons", id: "Tombol Tutup Modal Konsisten" },
+				desc: { en: "All modals now feature clean circular close buttons matching onboarding tutorial styles.", id: "Semua modal kini dilengkapi tombol tutup bulat yang bersih sesuai dengan panduan awal." }
+			}
+		]
 	},
 	{
-		icon: <Smartphone size={16} className="text-emerald-500" />,
-		titleKey: "patchFeature2Title",
-		descKey: "patchFeature2Desc",
-	},
-	{
-		icon: <Banknote size={16} className="text-emerald-500" />,
-		titleKey: "patchFeature3Title",
-		descKey: "patchFeature3Desc",
-	},
-	{
-		icon: <PlayCircle size={16} className="text-emerald-500" />,
-		titleKey: "patchFeature4Title",
-		descKey: "patchFeature4Desc",
-	},
-	{
-		icon: <ScrollText size={16} className="text-emerald-500" />,
-		titleKey: "patchFeature5Title",
-		descKey: "patchFeature5Desc",
-	},
-	{
-		icon: <Keyboard size={16} className="text-emerald-500" />,
-		titleKey: "patchFeature6Title",
-		descKey: "patchFeature6Desc",
-	},
+		version: "v1.0.0",
+		type: "major",
+		date: { en: "Thu, June 18, 2026", id: "Kamis, 18 Juni 2026" },
+		time: "10:00",
+		title: {
+			en: "Silent Sync & Custom Numeric Keyboard",
+			id: "Sinkronisasi Senyap & Keyboard Kustom"
+		},
+		description: {
+			en: "Our initial release introducing silent Google authentication, native numeric keyboard, and dynamic amount formatting.",
+			id: "Rilis awal yang memperkenalkan autentikasi Google senyap, keyboard angka kustom, dan format nominal dinamis."
+		},
+		details: [
+			{
+				type: "feature",
+				title: { en: "Silent Re-authentication", id: "Re-autentikasi Senyap" },
+				desc: { en: "Automatically refreshes Google Sheets authentication tokens on load.", id: "Otomatis memperbarui token autentikasi Google Sheets saat aplikasi dibuka." }
+			},
+			{
+				type: "feature",
+				title: { en: "Mobile Numeric Keyboard", id: "Keyboard Angka Mobile" },
+				desc: { en: "Slides up custom keyboard with Indonesian Rupiah layout on mobile viewports.", id: "Memunculkan keyboard kustom dengan susunan Rupiah pada tampilan perangkat seluler." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Indonesian Rupiah Formatting", id: "Format Rupiah Indonesia" },
+				desc: { en: "Amount input dynamically formats thousands separator as you type.", id: "Input nominal secara dinamis memformat pemisah ribuan saat Anda mengetik." }
+			},
+			{
+				type: "feature",
+				title: { en: "In-Memory Demo Mode", id: "Mode Demo dalam Memori" },
+				desc: { en: "Try all tracking features instantly without requiring a Google Account.", id: "Coba seluruh fitur pencatatan secara instan tanpa membutuhkan Akun Google." }
+			},
+			{
+				type: "feature",
+				title: { en: "Patch Notes Modal", id: "Modal Catatan Pembaruan" },
+				desc: { en: "A changelog screen accessible from the header to keep track of updates.", id: "Layar catatan pembaruan yang dapat diakses di bagian header." }
+			}
+		]
+	}
 ];
 
 export function PatchNotesModal({ isOpen, onOpenChange }: PatchNotesModalProps) {
-	const { t } = useLanguage();
+	const { t, language } = useLanguage();
+
+	const getTypeStyles = (type: "major" | "minor" | "bugfix") => {
+		switch (type) {
+			case "major":
+				return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25";
+			case "bugfix":
+				return "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/25";
+			default:
+				return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/25";
+		}
+	};
+
+	const getDetailIcon = (type: "feature" | "bugfix" | "improvement") => {
+		switch (type) {
+			case "feature":
+				return <Sparkles size={12} className="text-emerald-500 dark:text-emerald-400" />;
+			case "bugfix":
+				return <Bug size={12} className="text-red-500 dark:text-red-400" />;
+			default:
+				return <ArrowUpRight size={12} className="text-blue-500 dark:text-blue-400" />;
+		}
+	};
+
+	const getDetailIconBg = (type: "feature" | "bugfix" | "improvement") => {
+		switch (type) {
+			case "feature":
+				return "bg-emerald-500/10";
+			case "bugfix":
+				return "bg-red-500/10";
+			default:
+				return "bg-blue-500/10";
+		}
+	};
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[440px] rounded-3xl overflow-hidden p-0">
-				{/* Header */}
-				<div className="bg-emerald-500 dark:bg-emerald-600 px-6 pt-6 pb-5 text-black">
-					<DialogHeader>
-						<DialogTitle className="flex items-center gap-2 text-black">
-							<Sparkles size={18} />
-							<span>{t("patchNotesTitle")}</span>
-							<span className="ml-auto text-xs font-black bg-black/15 px-2 py-0.5 rounded-full">
-								{VERSION}
-							</span>
-						</DialogTitle>
-					</DialogHeader>
-					<p className="text-xs font-medium text-black/70 mt-1">
+			<DialogContent className="sm:max-w-[550px] rounded-[36px] overflow-hidden p-0 max-h-[85vh] flex flex-col border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 relative" showCloseButton={false}>
+				{/* Top Close Button - Bulat ketika hover */}
+				<button 
+					type="button"
+					onClick={() => onOpenChange(false)}
+					className="absolute top-6 right-6 rounded-full w-10 h-10 p-0 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600 dark:hover:text-zinc-200 z-[110] transition-colors flex items-center justify-center cursor-pointer"
+				>
+					<X size={20} />
+				</button>
+
+				{/* Fixed Modal Header */}
+				<div className="px-8 pt-8 pb-4 border-b border-zinc-100 dark:border-zinc-900/50 flex flex-col gap-1 bg-white dark:bg-zinc-950">
+					<h2 className="text-2xl font-black tracking-tight">{t("patchNotesTitle")}</h2>
+					<p className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-bold">
 						{t("patchNotesSubtitle")}
 					</p>
 				</div>
 
-				{/* Feature list */}
-				<div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
-					{FEATURES.map((feat, i) => (
-						<div key={i} className="flex gap-3">
-							<div className="flex-shrink-0 w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center mt-0.5">
-								{feat.icon}
+				{/* Scrollable Version List Container */}
+				<div className="flex-1 p-8 space-y-6 overflow-y-auto no-scrollbar max-h-[60vh] bg-zinc-50/50 dark:bg-zinc-950">
+					{UPDATES.map((update, idx) => (
+						<div 
+							key={idx} 
+							className="bg-white dark:bg-zinc-900/60 rounded-[28px] p-6 border border-zinc-200/60 dark:border-zinc-800/40 shadow-sm flex flex-col gap-4 relative overflow-hidden"
+						>
+							{/* Release Tag, Date, Time & Version */}
+							<div className="flex items-center gap-2 flex-wrap text-[10px] font-bold uppercase tracking-wider">
+								<span className={`px-2 py-0.5 rounded-md text-[9px] font-black ${getTypeStyles(update.type)}`}>
+									{update.type} update
+								</span>
+								<span className="text-zinc-300 dark:text-zinc-700">·</span>
+								<span className="text-zinc-400 dark:text-zinc-500">
+									POSTED {update.date[language]} · {update.time}
+								</span>
+								<span className="ml-auto text-[10px] font-black bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-2.5 py-0.5 rounded-full border border-zinc-200/20 dark:border-zinc-700/30">
+									{update.version}
+								</span>
 							</div>
-							<div>
-								<p className="text-sm font-bold">{t(feat.titleKey as any)}</p>
-								<p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed mt-0.5">
-									{t(feat.descKey as any)}
+
+							{/* Title & Desc */}
+							<div className="space-y-1">
+								<h3 className="text-lg font-black tracking-tight text-zinc-950 dark:text-white">
+									{update.title[language]}
+								</h3>
+								<p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+									{update.description[language]}
 								</p>
+							</div>
+
+							{/* Detailed List */}
+							<div className="space-y-4 pt-2 border-t border-zinc-100 dark:border-zinc-800/60">
+								{update.details.map((detail, dIdx) => (
+									<div key={dIdx} className="flex gap-3 text-left">
+										<div className={`flex-shrink-0 w-6 h-6 rounded-lg ${getDetailIconBg(detail.type)} flex items-center justify-center mt-0.5`}>
+											{getDetailIcon(detail.type)}
+										</div>
+										<div>
+											<p className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+												{detail.title[language]}
+											</p>
+											<p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed mt-0.5">
+												{detail.desc[language]}
+											</p>
+										</div>
+									</div>
+								))}
 							</div>
 						</div>
 					))}
 				</div>
 
 				{/* Footer */}
-				<div className="px-6 pb-5">
-					<p className="text-[10px] text-center text-zinc-400 uppercase tracking-widest font-bold">
-						EXPense by GENLORD · {VERSION}
+				<div className="px-8 py-4 bg-zinc-50 dark:bg-zinc-900/30 border-t border-zinc-100 dark:border-zinc-900/50 flex justify-center">
+					<p className="text-[9px] text-zinc-400 uppercase tracking-widest font-bold">
+						EXPense by GENLORD · Latest Version {UPDATES[0].version}
 					</p>
 				</div>
 			</DialogContent>

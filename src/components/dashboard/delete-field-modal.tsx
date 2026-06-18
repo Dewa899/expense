@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -23,7 +23,14 @@ export function DeleteFieldModal({ isOpen, fieldName, onOpenChange, onConfirm }:
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[400px] rounded-[32px] p-8">
+			<DialogContent className="sm:max-w-[400px] rounded-[32px] p-8 relative" showCloseButton={false}>
+				<button 
+					type="button"
+					onClick={() => onOpenChange(false)}
+					className="absolute top-6 right-6 rounded-full w-10 h-10 p-0 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600 dark:hover:text-zinc-200 z-[110] transition-colors flex items-center justify-center cursor-pointer"
+				>
+					<X size={20} />
+				</button>
 				<div className="flex flex-col items-center text-center gap-4">
 					<div className="w-20 h-20 rounded-full bg-destructive/10 text-destructive flex items-center justify-center">
 						<Trash2 size={48} />

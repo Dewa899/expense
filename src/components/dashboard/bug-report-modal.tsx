@@ -93,7 +93,14 @@ export function SupportModal({
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[450px] rounded-[32px] p-0 overflow-hidden border-none max-h-[90vh] overflow-y-auto">
+			<DialogContent className="sm:max-w-[450px] rounded-[32px] p-0 overflow-hidden border-none max-h-[90vh] overflow-y-auto relative" showCloseButton={false}>
+				<button 
+					type="button"
+					onClick={() => onOpenChange(false)}
+					className="absolute top-6 right-6 rounded-full w-10 h-10 p-0 text-black/60 hover:bg-black/10 hover:text-black z-[110] transition-colors flex items-center justify-center cursor-pointer"
+				>
+					<X size={20} />
+				</button>
 				<div className="bg-emerald-500 p-8 text-black flex flex-col items-center gap-2 relative">
 					<div className="w-16 h-16 rounded-full bg-black/10 flex items-center justify-center mb-2">
 						{getIcon()}
