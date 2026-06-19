@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/components/language-provider";
 import { CustomFieldDef } from "@/hooks/use-dashboard-logic";
-import { NumericKeyboard, formatRupiah, stripRupiah } from "@/components/dashboard/numeric-keyboard";
+import { NumericKeyboard, formatRupiah, stripRupiah, evaluateExpression } from "@/components/dashboard/numeric-keyboard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDemo } from "@/components/demo-context";
 
@@ -527,8 +527,16 @@ export function FormView(props: FormViewProps) {
 			{/* Close mobile keyboard when tapping outside */}
 			{isMobile && mobileKbHeader && (
 				<div
-					className="fixed inset-0 z-40 bg-transparent"
-					onClick={() => setMobileKbHeader(null)}
+					className="fixed inset-0 z-[68] bg-transparent"
+					onClick={() => {
+						const val = props.formData[mobileKbHeader] || "";
+						const cleaned = val.replace(/\./g, "").replace(/,/g, "").replace(/\s/g, "");
+						if (cleaned) {
+							const result = evaluateExpression(cleaned);
+							props.onInputChange(mobileKbHeader, formatRupiah(result.toString()));
+						}
+						setMobileKbHeader(null);
+					}}
 				/>
 			)}
 

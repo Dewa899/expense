@@ -32,6 +32,42 @@ interface UpdateItem {
 
 const UPDATES: UpdateItem[] = [
 	{
+		version: "v1.1.0",
+		type: "minor",
+		date: { en: "Fri, June 19, 2026", id: "Jumat, 19 Juni 2026" },
+		time: "16:40",
+		title: {
+			en: "Keyboard Math & Account Memory",
+			id: "Operasi Matematika Keyboard & Memori Akun"
+		},
+		description: {
+			en: "Added basic addition/subtraction support to the numeric keyboard and bypassed Google Account selection for returning users.",
+			id: "Menambahkan dukungan tambah/kurang pada keyboard angka dan melewati pilihan akun Google untuk pengguna lama."
+		},
+		details: [
+			{
+				type: "feature",
+				title: { en: "Arithmetic Keypad (+ and -)", id: "Tombol Aritmatika (+ dan -)" },
+				desc: { en: "Perform addition and subtraction directly on the custom mobile keyboard. Tap Selesai to compute the final result.", id: "Melakukan penjumlahan dan pengurangan langsung di keyboard kustom mobile. Ketuk Selesai untuk melihat hasil akhir." }
+			},
+			{
+				type: "feature",
+				title: { en: "Google Account Chooser Bypass", id: "Pintasan Pemilihan Akun Google" },
+				desc: { en: "Automatically remembers your Google account email and bypasses the account selection chooser screen during silent re-auth.", id: "Otomatis mengingat email akun Google Anda dan melewati layar pilihan akun saat re-autentikasi senyap." }
+			},
+			{
+				type: "bugfix",
+				title: { en: "Resolved Backspace Double-Delete", id: "Perbaikan Hapus Ganda Backspace" },
+				desc: { en: "Fixed a touch event conflict on hybrid screens where tapping backspace deleted two characters instead of one.", id: "Memperbaiki konflik event sentuh pada layar hybrid di mana mengetuk hapus menghapus dua digit sekaligus." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Raised Keyboard Layer Stack", id: "Peningkatan Lapisan Keyboard" },
+				desc: { en: "Elevated keyboard layout and backdrop above the floating report button to prevent tap blocking.", id: "Menaikkan posisi keyboard dan latar belakang di atas tombol laporan melayang agar tidak menghalangi input." }
+			}
+		]
+	},
+	{
 		version: "v1.0.1",
 		type: "minor",
 		date: { en: "Thu, June 18, 2026", id: "Kamis, 18 Juni 2026" },

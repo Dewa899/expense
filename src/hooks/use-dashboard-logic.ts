@@ -110,13 +110,31 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	const cleanNumber = (val: any): number => {
 		if (typeof val === "number") return Math.abs(val);
 		if (!val) return 0;
-		// Strip Rupiah formatting: "Rp", spaces, thousand dots, then parse
 		const cleaned = val.toString()
 			.replace(/Rp/g, "")
 			.replace(/\s/g, "")
-			.replace(/\./g, "")		// Remove thousand separators (id-ID style)
-			.replace(/,/g, ".");		// Convert decimal comma to dot
-		return Math.abs(parseFloat(cleaned)) || 0;
+			.replace(/\./g, "")
+			.replace(/,/g, ".");
+		
+		const tokens = cleaned.match(/(\d+(?:\.\d+)?|[+-])/g);
+		if (!tokens) return 0;
+
+		let result = 0;
+		let currentOp = "+";
+
+		for (const token of tokens) {
+			if (token === "+" || token === "-") {
+				currentOp = token;
+			} else {
+				const num = parseFloat(token) || 0;
+				if (currentOp === "+") {
+					result += num;
+				} else if (currentOp === "-") {
+					result -= num;
+				}
+			}
+		}
+		return Math.abs(result);
 	};
 
 	const fetchSheetData = async (sheetId: string, token: string, sheetName: string) => {
@@ -247,9 +265,27 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			setStatusModal(prev => ({ ...prev, description: `Setting up sheet: ${sheetName}...` }));
 			const internalSheetId = await ensureAndGetSheetId(spreadsheetId, sheetName, token);
 
+			// Fetch user info from Google Drive API about endpoint
+			let userName = "Google User";
+			let userEmail = "";
+			try {
+				const aboutRes = await fetch("https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress)", {
+					headers: { Authorization: `Bearer ${token}` }
+				});
+				if (aboutRes.ok) {
+					const aboutData = await aboutRes.json();
+					if (aboutData.user) {
+						userName = aboutData.user.displayName || "Google User";
+						userEmail = aboutData.user.emailAddress || "";
+					}
+				}
+			} catch (err) {
+				console.error("Error fetching user profile:", err);
+			}
+
 			// PERSIST
 			localStorage.setItem("sheetId", spreadsheetId);
-			const newUser = { name: "Google User", accessToken: token };
+			const newUser = { name: userName, email: userEmail, accessToken: token };
 			localStorage.setItem("googleUser", JSON.stringify(newUser));
 			
 			// UPDATE STATE
@@ -436,7 +472,19 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		} else {
 			sessionStorage.setItem("isAutoSyncing", "true");
 			const scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive.file"].join(" ");
-			const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${window.location.origin}&response_type=token&scope=${encodeURIComponent(scope)}&include_granted_scopes=true`;
+			
+			let loginHintParam = "";
+			const savedUser = localStorage.getItem("googleUser");
+			if (savedUser) {
+				try {
+					const parsed = JSON.parse(savedUser);
+					if (parsed.email) {
+						loginHintParam = `&login_hint=${encodeURIComponent(parsed.email)}`;
+					}
+				} catch (e) {}
+			}
+
+			const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${window.location.origin}&response_type=token&scope=${encodeURIComponent(scope)}&include_granted_scopes=true${loginHintParam}`;
 			window.location.href = authUrl;
 		}
 	};
@@ -562,7 +610,21 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	const handleGoogleLogin = (forceAccountSelection = false) => {
 		const scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive.file"].join(" ");
 		const promptParam = forceAccountSelection ? "&prompt=select_account" : "";
-		const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${window.location.origin}&response_type=token&scope=${encodeURIComponent(scope)}&include_granted_scopes=true${promptParam}`;
+		
+		let loginHintParam = "";
+		if (!forceAccountSelection) {
+			const savedUser = localStorage.getItem("googleUser");
+			if (savedUser) {
+				try {
+					const parsed = JSON.parse(savedUser);
+					if (parsed.email) {
+						loginHintParam = `&login_hint=${encodeURIComponent(parsed.email)}`;
+					}
+				} catch (e) {}
+			}
+		}
+
+		const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${window.location.origin}&response_type=token&scope=${encodeURIComponent(scope)}&include_granted_scopes=true${promptParam}${loginHintParam}`;
 		window.location.href = authUrl;
 	};
 
