@@ -266,6 +266,9 @@ function AppInner() {
           handleCloseTutorial();
           setView("login");
         }}
+        isInstallable={logic.isInstallable}
+        triggerInstall={logic.triggerInstall}
+        isStandaloneMode={logic.isStandaloneMode}
       />
 
       {/* Feature 5: Patch Notes Modal */}

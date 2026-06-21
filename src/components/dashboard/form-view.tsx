@@ -17,7 +17,12 @@ import {
 	Eye, 
 	EyeOff, 
 	ChevronDown, 
-	ChevronUp 
+	ChevronUp,
+	Download,
+	Home,
+	Smartphone,
+	Monitor,
+	User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,6 +92,13 @@ interface FormViewProps {
 	exportToCSV?: () => void;
 	exportToGoogleSheets?: () => void;
 	onLoginClick?: () => void;
+	
+	// PWA Props
+	isAddToHomeOpen: boolean;
+	setIsAddToHomeOpen: (open: boolean) => void;
+	isInstallable: boolean;
+	triggerInstall: () => void;
+	isStandaloneMode: boolean;
 }
 
 export function FormView(props: FormViewProps) {
@@ -95,10 +107,19 @@ export function FormView(props: FormViewProps) {
 	const { enterDemo } = useDemo();
 
 	const [editingOptionsIdx, setEditingOptionsIdx] = React.useState<number>(-1);
+	const [showManualInstruction, setShowManualInstruction] = React.useState(false);
 	const [renamingIdx, setRenamingIdx] = React.useState<number>(-1);
 	const [renamingInput, setRenamingInput] = React.useState("");
 	const [renamingType, setRenamingType] = React.useState<"text" | "dropdown">("text");
 	const [renamingRequired, setRenamingRequired] = React.useState(true);
+
+	const os = React.useMemo(() => {
+		if (typeof window === "undefined") return "desktop";
+		const ua = window.navigator.userAgent.toLowerCase();
+		if (/iphone|ipad|ipod/.test(ua)) return "ios";
+		if (/android/.test(ua)) return "android";
+		return "desktop";
+	}, []);
 	
 	// Clean Coder: Privacy & Compact States
 	const [isPrivate, setIsPrivate] = React.useState(false);
@@ -256,71 +277,63 @@ export function FormView(props: FormViewProps) {
 									{/* Actions Row */}
 									<div className="flex justify-end items-center mt-4">
 										<div className="flex gap-2">
-											<Dialog open={props.isManageFieldsOpen} onOpenChange={(open) => {
-												if (open && !props.user && !props.supabaseUser && !props.isDemoMode) {
-													props.onLoginClick?.();
-													return;
-												}
-												props.setIsManageFieldsOpen(open);
-											}}>
-												<DialogTrigger render={<Button size="sm" variant="secondary" onClick={handleManageFieldsClick} disabled={isSyncing} className="bg-black/10 hover:bg-black/20 text-black border-none rounded-full font-bold px-3 cursor-pointer" />}>
-													<Settings2 size={14} className="mr-1" /> {t("manageFields")}
-												</DialogTrigger>
-												<DialogContent className="sm:max-w-[400px] rounded-3xl overflow-hidden">
-													<DialogHeader className="px-6 pt-6">
-														<DialogTitle className="flex items-center gap-2">
-															{(editingOptionsIdx !== -1 || renamingIdx !== -1) && <Button variant="ghost" size="sm" onClick={() => { setEditingOptionsIdx(-1); setRenamingIdx(-1); }} className="h-8 w-8 p-0 rounded-full"><ChevronLeft size={20} /></Button>}
-															{editingOptionsIdx === -1 && renamingIdx === -1 ? t("manageFields") : editingOptionsIdx !== -1 ? `${t("manageOptions")}: ${props.customFields[editingOptionsIdx].name}` : t("editField")}
-														</DialogTitle>
-													</DialogHeader>
-													<div className="space-y-4 p-6 pt-2">
-														{editingOptionsIdx === -1 && renamingIdx === -1 ? (
-															<>
-																<div className="flex flex-col gap-3">
-																	<Input placeholder="Field Name" value={props.newFieldName} onChange={(e) => props.setNewFieldName(e.target.value)} disabled={props.customFields.length >= 2 || isInteractionDisabled} />
-																	<div className="flex flex-col gap-2">
-																		<div className="flex gap-2">
-																			<Select value={props.newFieldType} onValueChange={(v: any) => props.setNewFieldType(v || "text")} disabled={props.customFields.length >= 2 || isInteractionDisabled}><SelectTrigger className="flex-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="text">{t("text")}</SelectItem><SelectItem value="dropdown">{t("dropdown")}</SelectItem></SelectContent></Select>
-																			<Button onClick={props.onAddField} disabled={props.customFields.length >= 2 || isInteractionDisabled || !props.newFieldName.trim()} className="bg-emerald-500 text-black font-bold px-6 cursor-pointer">{t("add")}</Button>
-																		</div>
-																		<div className="flex items-center gap-2 px-1"><input type="checkbox" id="newFieldReq" checked={props.newFieldRequired} onChange={(e) => props.setNewFieldRequired(e.target.checked)} disabled={isInteractionDisabled} className="w-4 h-4 rounded cursor-pointer" /><Label htmlFor="newFieldReq" className="text-xs font-medium cursor-pointer">{t("isRequired")}</Label></div>
-																	</div>
-																</div>
-																<div className="space-y-2 mt-4">
-																	{props.customFields.map((field, idx) => (
-																		<div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800">
-																			<div className="flex-1">
-																				<div className="flex items-center gap-2">
-																					<p className="text-sm font-bold">{field.name}</p>
-																					<span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${field.required ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{field.required ? t("requiredLabel") : t("optionalLabel")}</span>
-																				</div>
-																				<p className="text-[10px] opacity-60 uppercase">{field.type}</p>
-																			</div>
-																			<div className="flex gap-1">
-																				<Button variant="ghost" size="sm" className="cursor-pointer" disabled={isInteractionDisabled} onClick={() => { setRenamingIdx(idx); setRenamingInput(field.name); setRenamingType(field.type); setRenamingRequired(field.required); }}><Pencil size={16} /></Button>
-																				{field.type === "dropdown" && (<Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => setEditingOptionsIdx(idx)} className="text-emerald-600 cursor-pointer"><ListTree size={16} /></Button>)}
-																				<Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => props.onDeleteField(idx, field.name)} className="text-destructive cursor-pointer"><Trash2 size={16} /></Button>
-																			</div>
-																		</div>
+											{!props.isStandaloneMode && (
+												<Dialog open={props.isAddToHomeOpen} onOpenChange={(open) => {
+													props.setIsAddToHomeOpen(open);
+													if (!open) setShowManualInstruction(false);
+												}}>
+													<DialogTrigger render={
+														<Button 
+															size="sm" 
+															variant="secondary" 
+															disabled={isSyncing} 
+															className="bg-black/10 hover:bg-black/20 text-black border-none rounded-full font-bold px-3 cursor-pointer flex items-center gap-1.5"
+														>
+															<Download size={12} />
+															{t("addToHomepage")}
+														</Button>
+													} />
+													<DialogContent className="sm:max-w-[420px] rounded-3xl overflow-hidden p-6">
+														<DialogHeader>
+															<DialogTitle className="flex items-center gap-2">
+																<Home size={20} className="text-emerald-500" />
+																{t("addToHomeTitle")}
+															</DialogTitle>
+														</DialogHeader>
+														<div className="space-y-4 pt-2">
+															<p className="text-xs text-zinc-550 dark:text-zinc-400 leading-relaxed font-semibold">
+																{t("addToHomeDesc")}
+															</p>
+															
+															<Button 
+																onClick={() => {
+																	if (props.isInstallable) {
+																		props.triggerInstall();
+																	} else {
+																		setShowManualInstruction(true);
+																	}
+																}}
+																className="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-black h-12 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
+															>
+																<Download size={18} />
+																{props.isInstallable ? t("installApp") : t("addToHomepage")}
+															</Button>
+
+															{showManualInstruction && (
+																<motion.div 
+																	initial={{ opacity: 0, height: 0 }}
+																	animate={{ opacity: 1, height: "auto" }}
+																	className="bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-400 p-4 rounded-2xl text-xs font-semibold leading-relaxed space-y-1.5"
+																>
+																	{(os === "ios" ? t("iosShortInstruction") : os === "android" ? t("chromeInstructions") : t("desktopInstructions")).split("\n").map((line, idx) => (
+																		<p key={idx}>{line}</p>
 																	))}
-																</div>
-															</>
-														) : renamingIdx !== -1 ? (
-															<div className="space-y-4">
-																<div className="space-y-2"><Label className="text-xs">{t("name")}</Label><Input value={renamingInput} onChange={(e) => setRenamingInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-xl" /></div>
-																<div className="space-y-2"><Label className="text-xs">{t("fieldType")}</Label><Select value={renamingType} onValueChange={(v: any) => setRenamingType(v || "text")} disabled={isInteractionDisabled}><SelectTrigger className="rounded-xl cursor-pointer"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="text" className="cursor-pointer">{t("text")}</SelectItem><SelectItem value="dropdown" className="cursor-pointer">{t("dropdown")}</SelectItem></SelectContent></Select></div>
-																<div className="flex items-center gap-2 px-1 py-1"><input type="checkbox" id="renameFieldReq" checked={renamingRequired} onChange={(e) => setRenamingRequired(e.target.checked)} disabled={isInteractionDisabled} className="cursor-pointer" /><Label htmlFor="renameFieldReq" className="text-xs font-medium cursor-pointer">{t("isRequired")}</Label></div>
-																<Button onClick={() => { props.onRenameField(renamingIdx, renamingInput, renamingType, renamingRequired); setRenamingIdx(-1); }} disabled={isInteractionDisabled} className="w-full bg-emerald-500 text-black font-bold h-12 rounded-xl mt-2 cursor-pointer">{t("editField")}</Button>
-															</div>
-																												) : (
-															<div className="space-y-4">
-																<div className="flex gap-2"><Input placeholder={t("newOption")} value={props.newOptionInput} onChange={(e) => props.setNewOptionInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-xl" /><Button onClick={() => props.onAddOption(editingOptionsIdx, props.newOptionInput)} disabled={isInteractionDisabled} className="bg-emerald-500 text-black font-bold rounded-xl cursor-pointer">{t("add")}</Button></div>
-																<div className="max-h-[200px] overflow-y-auto space-y-2">{(props.customFields[editingOptionsIdx].options || []).map((opt) => (<div key={opt} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800"><span className="text-sm font-medium">{opt}</span><Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => props.onDeleteOption(editingOptionsIdx, opt)} className="cursor-pointer"><Trash2 size={14} /></Button></div>))}</div>
-															</div>
-														)}
-													</div>
-												</DialogContent>
-											</Dialog>
+																</motion.div>
+															)}
+														</div>
+													</DialogContent>
+												</Dialog>
+											)}
 
 											{!props.isDemoMode && (
 												props.supabaseUser || props.user ? (
@@ -329,8 +342,9 @@ export function FormView(props: FormViewProps) {
 														variant="secondary" 
 														onClick={() => setIsProfileModalOpen(true)} 
 														disabled={isSyncing} 
-														className="bg-black/10 hover:bg-black/20 text-black border-none rounded-full font-bold px-4 h-8 cursor-pointer text-xs"
+														className="bg-black/10 hover:bg-black/20 text-black border-none rounded-full font-bold px-4 h-8 cursor-pointer text-xs flex items-center gap-1.5"
 													>
+														<User size={12} />
 														Profile
 													</Button>
 												) : (
@@ -339,8 +353,9 @@ export function FormView(props: FormViewProps) {
 														variant="secondary" 
 														onClick={props.onLoginClick} 
 														disabled={isSyncing} 
-														className="bg-black/10 hover:bg-black/20 text-black border-none rounded-full font-bold px-4 h-8 cursor-pointer text-xs"
+														className="bg-black/10 hover:bg-black/20 text-black border-none rounded-full font-bold px-4 h-8 cursor-pointer text-xs flex items-center gap-1.5"
 													>
+														<User size={12} />
 														Login
 													</Button>
 												)
@@ -358,12 +373,27 @@ export function FormView(props: FormViewProps) {
 			<Dialog open={isProfileModalOpen} onOpenChange={setIsProfileModalOpen}>
 				<DialogContent className="sm:max-w-[425px] rounded-3xl">
 					<DialogHeader>
-						<DialogTitle>Profile & Akun</DialogTitle>
+						<DialogTitle>{t("profileAndAccount")}</DialogTitle>
 					</DialogHeader>
 					<div className="py-6 flex flex-col items-center text-center gap-4">
-						<div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
-							<Wallet className="text-emerald-600 dark:text-emerald-400" size={32} />
-						</div>
+						{props.supabaseUser && (props.supabaseUser.user_metadata?.avatar_url || props.supabaseUser.user_metadata?.picture) ? (
+							<img 
+								src={props.supabaseUser.user_metadata.avatar_url || props.supabaseUser.user_metadata.picture} 
+								className="w-16 h-16 rounded-full object-cover border-2 border-emerald-500 shadow-md mb-2" 
+								alt="Profile Photo" 
+							/>
+						) : props.user && props.user.photo ? (
+							<img 
+								src={props.user.photo} 
+								className="w-16 h-16 rounded-full object-cover border-2 border-emerald-500 shadow-md mb-2" 
+								referrerPolicy="no-referrer"
+								alt="Profile Photo" 
+							/>
+						) : (
+							<div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
+								<User className="text-emerald-600 dark:text-emerald-400" size={32} />
+							</div>
+						)}
 						
 						{props.supabaseUser ? (
 							<div className="space-y-4 w-full px-4">
@@ -420,7 +450,84 @@ export function FormView(props: FormViewProps) {
 			</Dialog>
 
 			<section className="rounded-3xl p-6 glass-card">
-				<h3 className="text-lg font-bold mb-6 flex items-center gap-2"><Plus className="text-emerald-500" size={20} />{t("quickAdd")}</h3>
+				<div className="flex items-center justify-between mb-6">
+					<h3 className="text-lg font-bold flex items-center gap-2"><Plus className="text-emerald-500" size={20} />{t("quickAdd")}</h3>
+					
+					{/* Manage Fields Dialog */}
+					<Dialog open={props.isManageFieldsOpen} onOpenChange={(open) => {
+						if (open && !props.user && !props.supabaseUser && !props.isDemoMode) {
+							props.onLoginClick?.();
+							return;
+						}
+						props.setIsManageFieldsOpen(open);
+					}}>
+						<DialogTrigger render={
+							<Button 
+								size="sm" 
+								variant="ghost" 
+								disabled={isSyncing} 
+								className="h-8 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 px-2 rounded-lg cursor-pointer flex items-center gap-1.5"
+								onClick={handleManageFieldsClick}
+							>
+								<Settings2 size={14} /> {t("manageFields")}
+							</Button>
+						} />
+						<DialogContent className="sm:max-w-[400px] rounded-3xl overflow-hidden">
+							<DialogHeader className="px-6 pt-6">
+								<DialogTitle className="flex items-center gap-2">
+									{(editingOptionsIdx !== -1 || renamingIdx !== -1) && <Button variant="ghost" size="sm" onClick={() => { setEditingOptionsIdx(-1); setRenamingIdx(-1); }} className="h-8 w-8 p-0 rounded-full"><ChevronLeft size={20} /></Button>}
+									{editingOptionsIdx === -1 && renamingIdx === -1 ? t("manageFields") : editingOptionsIdx !== -1 ? `${t("manageOptions")}: ${props.customFields[editingOptionsIdx].name}` : t("editField")}
+								</DialogTitle>
+							</DialogHeader>
+							<div className="space-y-4 p-6 pt-2">
+								{editingOptionsIdx === -1 && renamingIdx === -1 ? (
+									<>
+										<div className="flex flex-col gap-3">
+											<Input placeholder="Field Name" value={props.newFieldName} onChange={(e) => props.setNewFieldName(e.target.value)} disabled={props.customFields.length >= 2 || isInteractionDisabled} />
+											<div className="flex flex-col gap-2">
+												<div className="flex gap-2">
+													<Select value={props.newFieldType} onValueChange={(v: any) => props.setNewFieldType(v || "text")} disabled={props.customFields.length >= 2 || isInteractionDisabled}><SelectTrigger className="flex-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="text">{t("text")}</SelectItem><SelectItem value="dropdown">{t("dropdown")}</SelectItem></SelectContent></Select>
+													<Button onClick={props.onAddField} disabled={props.customFields.length >= 2 || isInteractionDisabled || !props.newFieldName.trim()} className="bg-emerald-500 text-black font-bold px-6 cursor-pointer">{t("add")}</Button>
+												</div>
+												<div className="flex items-center gap-2 px-1"><input type="checkbox" id="newFieldReq" checked={props.newFieldRequired} onChange={(e) => props.setNewFieldRequired(e.target.checked)} disabled={isInteractionDisabled} className="w-4 h-4 rounded cursor-pointer" /><Label htmlFor="newFieldReq" className="text-xs font-medium cursor-pointer">{t("isRequired")}</Label></div>
+											</div>
+										</div>
+										<div className="space-y-2 mt-4">
+											{props.customFields.map((field, idx) => (
+												<div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800">
+													<div className="flex-1">
+														<div className="flex items-center gap-2">
+															<p className="text-sm font-bold">{field.name}</p>
+															<span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${field.required ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{field.required ? t("requiredLabel") : t("optionalLabel")}</span>
+														</div>
+														<p className="text-[10px] opacity-60 uppercase">{field.type}</p>
+													</div>
+													<div className="flex gap-1">
+														<Button variant="ghost" size="sm" className="cursor-pointer" disabled={isInteractionDisabled} onClick={() => { setRenamingIdx(idx); setRenamingInput(field.name); setRenamingType(field.type); setRenamingRequired(field.required); }}><Pencil size={16} /></Button>
+														{field.type === "dropdown" && (<Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => setEditingOptionsIdx(idx)} className="text-emerald-600 cursor-pointer"><ListTree size={16} /></Button>)}
+														<Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => props.onDeleteField(idx, field.name)} className="text-destructive cursor-pointer"><Trash2 size={16} /></Button>
+													</div>
+												</div>
+											))}
+										</div>
+									</>
+								) : renamingIdx !== -1 ? (
+									<div className="space-y-4">
+										<div className="space-y-2"><Label className="text-xs">{t("name")}</Label><Input value={renamingInput} onChange={(e) => setRenamingInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-xl" /></div>
+										<div className="space-y-2"><Label className="text-xs">{t("fieldType")}</Label><Select value={renamingType} onValueChange={(v: any) => setRenamingType(v || "text")} disabled={isInteractionDisabled}><SelectTrigger className="rounded-xl cursor-pointer"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="text" className="cursor-pointer">{t("text")}</SelectItem><SelectItem value="dropdown" className="cursor-pointer">{t("dropdown")}</SelectItem></SelectContent></Select></div>
+										<div className="flex items-center gap-2 px-1 py-1"><input type="checkbox" id="renameFieldReq" checked={renamingRequired} onChange={(e) => setRenamingRequired(e.target.checked)} disabled={isInteractionDisabled} className="cursor-pointer" /><Label htmlFor="renameFieldReq" className="text-xs font-medium cursor-pointer">{t("isRequired")}</Label></div>
+										<Button onClick={() => { props.onRenameField(renamingIdx, renamingInput, renamingType, renamingRequired); setRenamingIdx(-1); }} disabled={isInteractionDisabled} className="w-full bg-emerald-500 text-black font-bold h-12 rounded-xl mt-2 cursor-pointer">{t("editField")}</Button>
+									</div>
+								) : (
+									<div className="space-y-4">
+										<div className="flex gap-2"><Input placeholder={t("newOption")} value={props.newOptionInput} onChange={(e) => props.setNewOptionInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-xl" /><Button onClick={() => props.onAddOption(editingOptionsIdx, props.newOptionInput)} disabled={isInteractionDisabled} className="bg-emerald-500 text-black font-bold rounded-xl cursor-pointer">{t("add")}</Button></div>
+										<div className="max-h-[200px] overflow-y-auto space-y-2">{(props.customFields[editingOptionsIdx].options || []).map((opt) => (<div key={opt} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800"><span className="text-sm font-medium">{opt}</span><Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => props.onDeleteOption(editingOptionsIdx, opt)} className="cursor-pointer"><Trash2 size={14} /></Button></div>))}</div>
+									</div>
+								)}
+							</div>
+						</DialogContent>
+					</Dialog>
+				</div>
 				<div className="space-y-5">
 					{props.loading && props.headers.length === 0 ? (
 						<div className="py-10 text-center text-zinc-500 font-medium">Connecting...</div>

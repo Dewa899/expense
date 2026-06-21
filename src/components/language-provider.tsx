@@ -376,6 +376,54 @@ const dictionary: Dictionary = {
 		en: "Press Enter while filling the form to submit it instantly – no need to click the button.",
 		id: "Tekan Enter saat mengisi formulir untuk langsung menyimpan – tidak perlu klik tombol.",
 	},
+	profileAndAccount: {
+		en: "Profile & Account",
+		id: "Profil & Akun",
+	},
+	addToHomepage: {
+		en: "Add to Homepage",
+		id: "Tambah ke Layar Utama",
+	},
+	addToHomeDesc: {
+		en: "Add this app to your home screen for faster and easier access.",
+		id: "Tambahkan aplikasi ini ke layar utama Anda untuk akses yang lebih cepat dan mudah.",
+	},
+	safariInstructions: {
+		en: "iOS (Safari):\n1. Tap the Share button at the bottom.\n2. Scroll down and choose 'Add to Home Screen'.",
+		id: "iOS (Safari):\n1. Ketuk tombol Bagikan (ikon Share) di bagian bawah.\n2. Gulir ke bawah lalu pilih 'Tambah ke Layar Utama'.",
+	},
+	chromeInstructions: {
+		en: "Android (Chrome):\n1. Tap the Menu button (3 dots) in the top-right.\n2. Choose 'Add to Home screen' or 'Install app'.",
+		id: "Android (Chrome):\n1. Ketuk tombol Menu (titik 3) di kanan atas.\n2. Pilih 'Tambahkan ke Layar utama' atau 'Instal aplikasi'.",
+	},
+	desktopInstructions: {
+		en: "Desktop (Chrome / Edge):\n1. Click the Install icon in the browser address bar (right side), or\n2. Open browser menu and select 'Save and share' -> 'Install page as app'.",
+		id: "Desktop (Chrome / Edge):\n1. Klik ikon Instal di bilah alamat browser (sisi kanan), atau\n2. Buka menu browser lalu pilih 'Simpan dan bagikan' -> 'Instal halaman sebagai aplikasi'.",
+	},
+	installApp: {
+		en: "Install Standalone App",
+		id: "Instal Aplikasi Mandiri",
+	},
+	addToHomeTitle: {
+		en: "Install / Add to Home Screen",
+		id: "Instal / Tambah ke Layar Utama",
+	},
+	stepAddToHomeTitle: {
+		en: "Access From Home Screen",
+		id: "Akses Dari Layar Utama",
+	},
+	stepAddToHomeDesc: {
+		en: "Add Expense to your home screen for faster and easier access.",
+		id: "Tambahkan Expense ke layar utama Anda untuk akses yang lebih cepat dan mudah.",
+	},
+	iosShortInstruction: {
+		en: "For iOS devices, please tap the Share button (sharing icon) in Safari, then select 'Add to Home Screen'.",
+		id: "Untuk perangkat iOS, silakan ketuk tombol Bagikan (ikon Share) di Safari, lalu pilih 'Tambah ke Layar Utama'.",
+	},
+	installSuccess: {
+		en: "App installation launched!",
+		id: "Instalasi aplikasi dimulai!",
+	},
 };
 
 type LanguageContextType = {

@@ -14,7 +14,10 @@ import {
 	Settings2,
 	UserPlus,
 	Send,
-	Loader2
+	Loader2,
+	Smartphone,
+	Download,
+	Home
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +29,9 @@ interface OnboardingTutorialProps {
 	isSynced: boolean;
 	onGoogleLogin: (forceAccountSelection?: boolean) => void;
 	onLoginClick: () => void;
+	isInstallable?: boolean;
+	triggerInstall?: () => void;
+	isStandaloneMode?: boolean;
 }
 
 export function OnboardingTutorial({ 
@@ -33,11 +39,23 @@ export function OnboardingTutorial({
 	onClose, 
 	isSynced, 
 	onGoogleLogin,
-	onLoginClick
+	onLoginClick,
+	isInstallable = false,
+	triggerInstall = () => {},
+	isStandaloneMode = false
 }: OnboardingTutorialProps) {
 	const { t, language, setLanguage } = useLanguage();
 	const [step, setStep] = React.useState(0);
 	const [isReopen, setIsReopen] = React.useState(false);
+	const [showManualInstruction, setShowManualInstruction] = React.useState(false);
+
+	const os = React.useMemo(() => {
+		if (typeof window === "undefined") return "desktop";
+		const ua = window.navigator.userAgent.toLowerCase();
+		if (/iphone|ipad|ipod/.test(ua)) return "ios";
+		if (/android/.test(ua)) return "android";
+		return "desktop";
+	}, []);
 
 	// Clean Coder: Reset tutorial states whenever it's opened
 	React.useEffect(() => {
@@ -45,8 +63,13 @@ export function OnboardingTutorial({
 			const completed = localStorage.getItem("onboarding_complete") === "true";
 			setIsReopen(completed);
 			setStep(completed ? 1 : 0);
+			setShowManualInstruction(false);
 		}
 	}, [isOpen]);
+
+	React.useEffect(() => {
+		setShowManualInstruction(false);
+	}, [step]);
 
 	const LogoComponent = (
 		<div className="flex flex-col items-center text-left leading-none scale-150 mb-4">
@@ -67,7 +90,7 @@ export function OnboardingTutorial({
 		</div>
 	);
 
-	const steps = [
+	const allSteps = [
 		{
 			title: t("chooseLanguage"),
 			desc: "Choose your preferred language to start the tutorial.",
@@ -155,8 +178,43 @@ export function OnboardingTutorial({
 					</Button>
 				</div>
 			) : null
+		},
+		{
+			title: t("stepAddToHomeTitle"),
+			desc: t("stepAddToHomeDesc"),
+			icon: <Smartphone className="text-emerald-500" size={48} />,
+			content: (
+				<div className="w-full flex flex-col items-center gap-3 mt-2">
+					<Button 
+						onClick={() => {
+							if (isInstallable) {
+								triggerInstall();
+							} else {
+								setShowManualInstruction(true);
+							}
+						}}
+						className="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-black h-12 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
+					>
+						<Download size={18} />
+						{isInstallable ? t("installApp") : t("addToHomepage")}
+					</Button>
+
+					{showManualInstruction && (
+						<motion.div 
+							initial={{ opacity: 0, height: 0 }}
+							animate={{ opacity: 1, height: "auto" }}
+							className="bg-amber-500/10 border border-amber-500/20 text-amber-850 dark:text-amber-400 p-4 rounded-2xl text-[11px] font-semibold leading-relaxed text-left space-y-1 w-full max-h-[140px] overflow-y-auto"
+						>
+							{(os === "ios" ? t("iosShortInstruction") : os === "android" ? t("chromeInstructions") : t("desktopInstructions")).split("\n").map((line, idx) => (
+								<p key={idx}>{line}</p>
+							))}
+						</motion.div>
+					)}
+				</div>
+			)
 		}
 	];
+	const steps = isStandaloneMode ? allSteps.slice(0, 6) : allSteps;
 
 	if (!isOpen) return null;
 
