@@ -41,6 +41,7 @@ import { CustomFieldDef } from "@/hooks/use-dashboard-logic";
 import { NumericKeyboard, formatRupiah, stripRupiah, evaluateExpression } from "@/components/dashboard/numeric-keyboard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDemo } from "@/components/demo-context";
+import { supabase } from "@/lib/supabase-client";
 
 interface FormViewProps {
 	totalAmount: number;
@@ -80,6 +81,12 @@ interface FormViewProps {
 	currentMonth: string;
 	isIntegrating?: boolean;
 	isDemoMode?: boolean;
+	supabaseUser?: any;
+	isGoogleConnected?: boolean;
+	googleEmail?: string;
+	exportToCSV?: () => void;
+	exportToGoogleSheets?: () => void;
+	onLoginClick?: () => void;
 }
 
 export function FormView(props: FormViewProps) {
@@ -116,7 +123,7 @@ export function FormView(props: FormViewProps) {
 		}
 	}, [mobileKbHeader, isMobile]);
 
-	const isInteractionDisabled = props.loading || props.isIntegrating || (!props.user && !props.isDemoMode);
+	const isInteractionDisabled = props.loading || props.isIntegrating || (!props.supabaseUser && !props.user && !props.isDemoMode);
 	const isSyncing = props.loading || props.isIntegrating;
 
 	React.useEffect(() => {
@@ -154,20 +161,13 @@ export function FormView(props: FormViewProps) {
 
 	const maskValue = (val: string) => isPrivate ? "******" : val;
 
-	const [isSyncModalOpen, setIsSyncModalOpen] = React.useState(false);
-	const [syncTriggerSource, setSyncTriggerSource] = React.useState<"general" | "fields">("general");
+	const [isProfileModalOpen, setIsProfileModalOpen] = React.useState(false);
 
 	const handleManageFieldsClick = (e: React.MouseEvent) => {
-		if (!props.user) {
+		if (!props.user && !props.supabaseUser && !props.isDemoMode) {
 			e.preventDefault();
-			setSyncTriggerSource("fields");
-			setIsSyncModalOpen(true);
+			props.onLoginClick?.();
 		}
-	};
-
-	const handleGeneralSyncClick = () => {
-		setSyncTriggerSource("general");
-		setIsSyncModalOpen(true);
 	};
 
 	// ─── Feature 3: Amount formatting helpers ────────────────────────────────────
@@ -189,7 +189,7 @@ export function FormView(props: FormViewProps) {
 			className="space-y-6"
 		>
 			<section className="mt-2">
-				<div className="bg-emerald-500 dark:bg-emerald-600 rounded-3xl p-6 text-black shadow-lg shadow-emerald-500/20 relative overflow-hidden group">
+				<div className="bg-gradient-to-br from-emerald-500 to-teal-500 rounded-3xl p-6 text-black shadow-lg shadow-emerald-500/25 relative overflow-hidden group">
 					<div className="absolute -right-4 -top-4 w-24 h-24 bg-black/5 rounded-full blur-2xl" />
 					<div className="relative z-10">
 						<div className="flex justify-between items-start">
@@ -257,9 +257,8 @@ export function FormView(props: FormViewProps) {
 									<div className="flex justify-end items-center mt-4">
 										<div className="flex gap-2">
 											<Dialog open={props.isManageFieldsOpen} onOpenChange={(open) => {
-												if (open && !props.user) {
-													setSyncTriggerSource("fields");
-													setIsSyncModalOpen(true);
+												if (open && !props.user && !props.supabaseUser && !props.isDemoMode) {
+													props.onLoginClick?.();
 													return;
 												}
 												props.setIsManageFieldsOpen(open);
@@ -313,7 +312,7 @@ export function FormView(props: FormViewProps) {
 																<div className="flex items-center gap-2 px-1 py-1"><input type="checkbox" id="renameFieldReq" checked={renamingRequired} onChange={(e) => setRenamingRequired(e.target.checked)} disabled={isInteractionDisabled} className="cursor-pointer" /><Label htmlFor="renameFieldReq" className="text-xs font-medium cursor-pointer">{t("isRequired")}</Label></div>
 																<Button onClick={() => { props.onRenameField(renamingIdx, renamingInput, renamingType, renamingRequired); setRenamingIdx(-1); }} disabled={isInteractionDisabled} className="w-full bg-emerald-500 text-black font-bold h-12 rounded-xl mt-2 cursor-pointer">{t("editField")}</Button>
 															</div>
-														) : (
+																												) : (
 															<div className="space-y-4">
 																<div className="flex gap-2"><Input placeholder={t("newOption")} value={props.newOptionInput} onChange={(e) => props.setNewOptionInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-xl" /><Button onClick={() => props.onAddOption(editingOptionsIdx, props.newOptionInput)} disabled={isInteractionDisabled} className="bg-emerald-500 text-black font-bold rounded-xl cursor-pointer">{t("add")}</Button></div>
 																<div className="max-h-[200px] overflow-y-auto space-y-2">{(props.customFields[editingOptionsIdx].options || []).map((opt) => (<div key={opt} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800"><span className="text-sm font-medium">{opt}</span><Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => props.onDeleteOption(editingOptionsIdx, opt)} className="cursor-pointer"><Trash2 size={14} /></Button></div>))}</div>
@@ -324,9 +323,27 @@ export function FormView(props: FormViewProps) {
 											</Dialog>
 
 											{!props.isDemoMode && (
-												<Button size="sm" variant="secondary" onClick={handleGeneralSyncClick} disabled={isSyncing} className="bg-black/10 hover:bg-black/20 text-black border-none rounded-full font-bold px-3 cursor-pointer">
-													<LinkIcon size={14} className="mr-1" /> {props.user ? "Sync" : t("integration")}
-												</Button>
+												props.supabaseUser || props.user ? (
+													<Button 
+														size="sm" 
+														variant="secondary" 
+														onClick={() => setIsProfileModalOpen(true)} 
+														disabled={isSyncing} 
+														className="bg-black/10 hover:bg-black/20 text-black border-none rounded-full font-bold px-4 h-8 cursor-pointer text-xs"
+													>
+														Profile
+													</Button>
+												) : (
+													<Button 
+														size="sm" 
+														variant="secondary" 
+														onClick={props.onLoginClick} 
+														disabled={isSyncing} 
+														className="bg-black/10 hover:bg-black/20 text-black border-none rounded-full font-bold px-4 h-8 cursor-pointer text-xs"
+													>
+														Login
+													</Button>
+												)
 											)}
 										</div>
 									</div>
@@ -337,66 +354,72 @@ export function FormView(props: FormViewProps) {
 				</div>
 			</section>
 
-			{/* Integration/Sync Modal - Always in DOM but controlled by state */}
-			<Dialog open={isSyncModalOpen} onOpenChange={setIsSyncModalOpen}>
+			{/* Profile Modal */}
+			<Dialog open={isProfileModalOpen} onOpenChange={setIsProfileModalOpen}>
 				<DialogContent className="sm:max-w-[425px] rounded-3xl">
-					<DialogHeader><DialogTitle>{t("integrationTitle")}</DialogTitle></DialogHeader>
+					<DialogHeader>
+						<DialogTitle>Profile & Akun</DialogTitle>
+					</DialogHeader>
 					<div className="py-6 flex flex-col items-center text-center gap-4">
-						<div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2"><Wallet className="text-emerald-600 dark:text-emerald-400" size={32} /></div>
-						{props.user ? (
-							<div className="space-y-3 w-full">
-								<p className="font-bold text-sm text-emerald-600">{t("googleSyncActive")}</p>
-								<div className="flex flex-col gap-2">
-									<p className="text-[10px] text-zinc-500 italic">Current: {props.currentMonth}</p>
+						<div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
+							<Wallet className="text-emerald-600 dark:text-emerald-400" size={32} />
+						</div>
+						
+						{props.supabaseUser ? (
+							<div className="space-y-4 w-full px-4">
+								<div className="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 text-left space-y-1">
+									<p className="text-[10px] uppercase font-bold text-zinc-400">Account Profile</p>
+									<p className="text-sm font-bold text-zinc-800 dark:text-zinc-200 truncate">{props.supabaseUser.email}</p>
+								</div>
+								
+								<div className="border-t border-zinc-100 dark:border-zinc-800/60 pt-4 w-full flex flex-col items-center">
+									<button
+										onClick={async () => {
+											await supabase.auth.signOut();
+											localStorage.removeItem("googleUser");
+											localStorage.removeItem("sheetId");
+											window.location.reload();
+										}}
+										className="text-xs font-bold text-destructive hover:underline cursor-pointer"
+									>
+										Log Out Account
+									</button>
+								</div>
+							</div>
+						) : props.user ? (
+							<div className="space-y-4 w-full px-4">
+								<div className="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 text-left space-y-1">
+									<p className="text-[10px] uppercase font-bold text-zinc-400">Sync Status</p>
+									<p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{t("googleSyncActive")}</p>
+									<p className="text-[10px] text-zinc-500 truncate mt-0.5">Account: {props.user.name}</p>
+								</div>
+								
+								<div className="flex flex-col gap-2 w-full">
 									{props.headers.length > 0 && (
 										<Button 
 											variant="outline" 
-											className="w-full h-10 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border-zinc-200 dark:border-zinc-800 cursor-pointer"
+											className="w-full h-11 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border-zinc-200 dark:border-zinc-800 cursor-pointer"
 											onClick={() => window.open(`https://docs.google.com/spreadsheets/d/${localStorage.getItem("sheetId")}/edit`, "_blank")}
 										>
 											<LinkIcon size={14} />
 											Open Spreadsheet
 										</Button>
 									)}
-								</div>
-								<Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 font-bold text-[10px] mt-2 cursor-pointer" onClick={props.onDisconnect}>{t("googleSyncDisconnect")}</Button>
-							</div>
-						) : (
-							<div className="space-y-4 w-full px-4">
-								<p className="text-sm font-medium text-zinc-500 leading-relaxed">
-									{syncTriggerSource === "fields" ? t("syncFieldsPrompt") : t("syncGeneralPrompt")}
-								</p>
-								<div className="flex flex-col items-center gap-2">
-									{/* Feature 1: Smart Sync button – re-uses stored token if available */}
 									<Button 
-										className="w-full bg-white hover:bg-zinc-100 text-black border border-zinc-200 font-bold h-12 rounded-xl shadow-sm flex items-center justify-center gap-3 transition-all cursor-pointer" 
-										onClick={() => props.onGoogleLogin(false)} 
-										disabled={props.loading || props.isIntegrating}
+										variant="ghost" 
+										className="w-full h-11 text-destructive hover:bg-destructive/10 font-bold text-xs rounded-xl cursor-pointer" 
+										onClick={props.onDisconnect}
 									>
-										<svg className="w-5 h-5" viewBox="0 0 24 24">
-											<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-											<path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-											<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-											<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-										</svg>
-										{hasPreviousLogin ? t("syncWithGoogle") : t("googleSyncBtn")}
+										{t("googleSyncDisconnect")}
 									</Button>
-									{/* Feature 1: "Use different account" link */}
-									<button
-										onClick={() => props.onGoogleLogin(true)}
-										disabled={props.loading || props.isIntegrating}
-										className="text-[11px] font-semibold text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-2 cursor-pointer mt-1 disabled:opacity-50"
-									>
-										{t("chooseOtherAccount")}
-									</button>
 								</div>
 							</div>
-						)}
+						) : null}
 					</div>
 				</DialogContent>
 			</Dialog>
 
-			<section className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+			<section className="rounded-3xl p-6 glass-card">
 				<h3 className="text-lg font-bold mb-6 flex items-center gap-2"><Plus className="text-emerald-500" size={20} />{t("quickAdd")}</h3>
 				<div className="space-y-5">
 					{props.loading && props.headers.length === 0 ? (
@@ -439,14 +462,14 @@ export function FormView(props: FormViewProps) {
 									</div>
 									{(isCoreCat || (customField?.type === "dropdown")) ? (
 										<Select value={props.formData[header] || ""} disabled={isInteractionDisabled} onValueChange={(val) => props.onInputChange(header, val || "")}>
-											<SelectTrigger className="h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 cursor-pointer"><SelectValue placeholder={t("selectCategory")} /></SelectTrigger>
+											<SelectTrigger className="h-12 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 cursor-pointer transition-colors"><SelectValue placeholder={t("selectCategory")} /></SelectTrigger>
 											<SelectContent className="rounded-xl">{(isCoreCat ? props.categories : customField?.options || []).map((opt) => (<SelectItem key={opt} value={opt} className="cursor-pointer">{opt}</SelectItem>))}</SelectContent>
 										</Select>
 									) : isType ? (
-										<div className="flex bg-zinc-100 dark:bg-zinc-800/50 p-1.5 rounded-xl gap-1 border border-zinc-200 dark:border-zinc-800">
+										<div className="flex bg-white/30 dark:bg-zinc-950/20 p-1.5 rounded-xl gap-1 border border-zinc-250 dark:border-zinc-850">
 											<button
 												type="button"
-												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${props.formData[header] === "Pemasukan / Income" ? "bg-white dark:bg-zinc-900 text-emerald-600 shadow-sm border border-zinc-200/50 dark:border-zinc-800/50" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
+												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${props.formData[header] === "Pemasukan / Income" ? "bg-white/80 dark:bg-zinc-900/60 text-emerald-600 shadow-sm border border-white/40 dark:border-white/5" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
 												onClick={(e) => { e.preventDefault(); e.stopPropagation(); props.onInputChange(header, "Pemasukan / Income"); }}
 												disabled={isInteractionDisabled}
 											>
@@ -455,7 +478,7 @@ export function FormView(props: FormViewProps) {
 											</button>
 											<button
 												type="button"
-												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${props.formData[header] === "Pengeluaran / Expense" ? "bg-white dark:bg-zinc-900 text-red-600 shadow-sm border border-zinc-200/50 dark:border-zinc-800/50" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
+												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${props.formData[header] === "Pengeluaran / Expense" ? "bg-white/80 dark:bg-zinc-900/60 text-red-600 shadow-sm border border-white/40 dark:border-white/5" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
 												onClick={(e) => { e.preventDefault(); e.stopPropagation(); props.onInputChange(header, "Pengeluaran / Expense"); }}
 												disabled={isInteractionDisabled}
 											>
@@ -473,10 +496,9 @@ export function FormView(props: FormViewProps) {
 												<Input
 													type="text"
 													inputMode={isMobile ? "none" : "numeric"}
-													readOnly={isMobile}
 													disabled={isInteractionDisabled}
 													placeholder={t("amountPlaceholder")}
-													className="h-12 w-full pl-9 pr-4 rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-medium text-base"
+													className="h-12 w-full pl-9 pr-4 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium text-base transition-colors"
 													value={props.formData[header] || ""}
 													onChange={(e) => handleAmountChange(header, e.target.value)}
 													onFocus={() => isMobile && setMobileKbHeader(header)}
@@ -495,20 +517,20 @@ export function FormView(props: FormViewProps) {
 											)}
 										</>
 									) : (
-										<Input type="text" disabled={isInteractionDisabled} placeholder={`${props.translateHeader(header)}...`} className="h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950" value={props.formData[header] || ""} onChange={(e) => props.onInputChange(header, e.target.value)} />
+										<Input type="text" disabled={isInteractionDisabled} placeholder={`${props.translateHeader(header)}...`} className="h-12 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium transition-colors" value={props.formData[header] || ""} onChange={(e) => props.onInputChange(header, e.target.value)} />
 									)}
 								</div>
 							);
 						})
 					)}
 					
-					{(props.user || props.isDemoMode) ? (
-						<Button disabled={isInteractionDisabled} onClick={props.onSubmit} className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-black font-black text-lg rounded-2xl mt-4 shadow-lg cursor-pointer">
+					{(props.supabaseUser || props.user || props.isDemoMode) ? (
+						<Button disabled={isInteractionDisabled} onClick={props.onSubmit} className="w-full h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black text-lg rounded-2xl mt-4 shadow-lg shadow-emerald-500/20 cursor-pointer border-none transition-all active:scale-[0.98]">
 							{props.loading ? "..." : t("addExpense")}
 						</Button>
 					) : (
 						<div className="flex flex-col items-center gap-2">
-							<Button onClick={handleGeneralSyncClick} disabled={isSyncing} className="w-full h-14 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-black text-lg rounded-2xl mt-4 shadow-sm cursor-pointer">
+							<Button onClick={props.onLoginClick} disabled={isSyncing} className="w-full h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black text-lg rounded-2xl mt-4 shadow-lg shadow-emerald-500/20 cursor-pointer border-none transition-all active:scale-[0.98]">
 								{t("signIn")}
 							</Button>
 							<button

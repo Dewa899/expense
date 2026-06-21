@@ -14,7 +14,7 @@ import { useLanguage } from "@/components/language-provider";
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
   return (
-    <div className="flex flex-col gap-4 p-8 rounded-2xl bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 hover:border-emerald-500/30 transition-colors shadow-sm dark:shadow-none">
+    <div className="flex flex-col gap-4 p-8 rounded-3xl glass-card glass-card-hover">
       <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
         {icon}
       </div>
@@ -77,7 +77,7 @@ export function LandingView({ onGetStarted, onTryDemo }: { onGetStarted: () => v
         >
           <Button 
             onClick={onGetStarted}
-            className="bg-emerald-500 hover:bg-emerald-600 text-black font-bold h-14 px-8 rounded-xl text-lg group"
+            className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black h-14 px-8 rounded-2xl text-lg group shadow-lg shadow-emerald-500/20 active:scale-98 transition-all cursor-pointer border-none"
           >
             {t("getStarted")}
             <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />

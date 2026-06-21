@@ -14,12 +14,14 @@ import { Camera, FlaskConical, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/components/language-provider";
 import { useDemo } from "@/components/demo-context";
+import { supabase } from "@/lib/supabase-client";
 
 interface DashboardViewProps {
 	isTutorialOpen?: boolean;
 	onTutorialClose?: () => void;
 	externalStatusModal?: { isOpen: boolean; title: string; desc: string };
 	onExternalStatusClose?: () => void;
+	onLoginClick?: () => void;
 }
 
 export function DashboardView({ 
@@ -27,6 +29,7 @@ export function DashboardView({
 	onTutorialClose = () => {},
 	externalStatusModal = { isOpen: false, title: "", desc: "" },
 	onExternalStatusClose = () => {},
+	onLoginClick = () => {},
 }: DashboardViewProps) {
 	const { t } = useLanguage();
 	const { isDemoMode, demoTransactions, demoCategories, exitDemo, addDemoTransaction } = useDemo();
@@ -55,7 +58,7 @@ export function DashboardView({
 	};
 
 	return (
-		<div className="flex flex-col p-4 gap-6 w-full min-h-screen relative mx-auto transition-all duration-500">
+		<div className="flex flex-col p-4 gap-6 w-full min-h-screen relative mx-auto transition-all duration-500 bg-gradient-to-br from-zinc-50/10 via-emerald-500/5 to-teal-500/5 dark:from-zinc-950/10 dark:via-emerald-950/10 dark:to-zinc-950/10">
 			{/* Demo Mode Banner */}
 			<AnimatePresence>
 				{isDemoMode && (
@@ -114,6 +117,7 @@ export function DashboardView({
 							currentMonth={logic.selectedMonth || "..."}
 							onDisconnect={() => setIsDisconnectModalOpen(true)}
 							isDemoMode={isDemoMode}
+							onLoginClick={onLoginClick}
 						/>
 
 						{/* OCR Placeholder Section moved inside the same width container */}
@@ -138,6 +142,7 @@ export function DashboardView({
 							selectedMonth={logic.selectedMonth}
 							loading={logic.loading}
 							user={logic.user}
+							supabaseUser={logic.supabaseUser}
 							customFields={logic.customFields}
 							customChartConfigs={logic.customChartConfigs}
 							onBack={() => { logic.resetToCurrentMonth(); logic.setView("form"); }}
@@ -148,7 +153,10 @@ export function DashboardView({
 							onSyncPreviousBalance={logic.handleSyncPreviousBalance}
 							onGoogleLogin={logic.handleGoogleLogin}
 							formatCurrency={logic.formatCurrency}
-							/>					</div>
+							exportToCSV={logic.exportToCSV}
+							exportToGoogleSheets={logic.exportToGoogleSheets}
+						/>
+					</div>
 				)}
 			</AnimatePresence>
 
@@ -173,7 +181,15 @@ export function DashboardView({
 			<DisconnectModal 
 				isOpen={isDisconnectModalOpen}
 				onOpenChange={setIsDisconnectModalOpen}
-				onConfirm={() => {
+				onConfirm={async () => {
+					try {
+						const { data: { session } } = await supabase.auth.getSession();
+						if (session) {
+							await supabase.from("google_connections").delete().eq("user_id", session.user.id);
+						}
+					} catch (e) {
+						console.error("Error deleting connection from Supabase:", e);
+					}
 					// Clean Coder: Selective clear to keep onboarding & lang settings
 					localStorage.removeItem("googleUser");
 					localStorage.removeItem("sheetId");

@@ -12,6 +12,7 @@ import {
   Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/components/language-provider";
 import { DashboardView } from "@/components/dashboard-view";
@@ -22,6 +23,7 @@ import { OnboardingTutorial } from "@/components/dashboard/onboarding-tutorial";
 import { PatchNotesModal } from "@/components/dashboard/patch-notes-modal";
 import { useDashboardLogic } from "@/hooks/use-dashboard-logic";
 import { DemoProvider, useDemo } from "@/components/demo-context";
+import { supabase } from "@/lib/supabase-client";
 
 export function Logo({ 
   className = "", 
@@ -54,10 +56,11 @@ function AppInner() {
   const { theme, setTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
   const [mounted, setMounted] = React.useState(false);
-  const [view, setView] = React.useState<"dashboard" | "landing" | "login">("dashboard");
+  const [view, setView] = React.useState<"dashboard" | "landing" | "login">("landing");
   const [isTutorialOpen, setIsTutorialOpen] = React.useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = React.useState(false);
   const [isPatchNotesOpen, setIsPatchNotesOpen] = React.useState(false);
+  const [isDemoConfirmOpen, setIsDemoConfirmOpen] = React.useState(false);
   const [supportInitialData, setSupportInitialData] = React.useState({ category: "bug", email: "" });
   const [statusModal, setStatusModal] = React.useState<{ isOpen: boolean; title: string; desc: string }>({
     isOpen: false, title: "", desc: ""
@@ -65,11 +68,53 @@ function AppInner() {
 
   React.useEffect(() => {
     setMounted(true);
+    
+    // Check active Supabase session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setView("dashboard");
+      } else {
+        // If not logged in, check if in direct Google Sheets mode or returning from OAuth
+        const savedSheetId = localStorage.getItem("sheetId");
+        const savedUser = localStorage.getItem("googleUser");
+        const hash = typeof window !== "undefined" ? window.location.hash : "";
+        const savedToken = typeof window !== "undefined" ? sessionStorage.getItem("google_oauth_token") : "";
+        if (savedSheetId || savedUser || (hash && hash.includes("access_token")) || savedToken) {
+          setView("dashboard");
+        } else {
+          setView("landing");
+        }
+      }
+    });
+
+    // Listen to auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        setView("dashboard");
+      } else if (event === "SIGNED_OUT") {
+        setView("landing");
+      }
+    });
+
     const tutorialDone = localStorage.getItem("onboarding_complete");
     if (!tutorialDone) {
       setIsTutorialOpen(true);
     }
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+  // Redirect to dashboard if logged in but tries to access login page
+  React.useEffect(() => {
+    if (view === "login") {
+      const isLogged = !!logic.supabaseUser || !!logic.user;
+      if (isLogged) {
+        setView("dashboard");
+      }
+    }
+  }, [view, logic.supabaseUser, logic.user]);
 
   if (!mounted) return null;
 
@@ -90,16 +135,25 @@ function AppInner() {
     setIsSupportModalOpen(true);
   };
 
-  // Feature 4: Demo mode entry from landing page
+  // Feature 4: Demo mode entry from landing page with warning if logged in
   const handleTryDemo = () => {
-    enterDemo();
-    setView("dashboard");
+    const isLogged = !!logic.supabaseUser || !!logic.user;
+    if (isLogged) {
+      setIsDemoConfirmOpen(true);
+    } else {
+      enterDemo();
+      setView("dashboard");
+    }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 transition-colors duration-300 relative">
+    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950 bg-grid-pattern text-zinc-900 dark:text-zinc-50 transition-colors duration-300 relative overflow-x-hidden">
+      {/* Background Ambient Glow Orbs */}
+      <div className="fixed top-0 right-0 w-[350px] h-[350px] md:w-[700px] md:h-[700px] rounded-full bg-emerald-500/20 dark:bg-emerald-500/10 blur-[120px] pointer-events-none select-none z-0" />
+      <div className="fixed bottom-0 left-0 w-[300px] h-[300px] md:w-[600px] md:h-[600px] rounded-full bg-teal-500/20 dark:bg-teal-500/8 blur-[120px] pointer-events-none select-none z-0" />
+      <div className="fixed top-1/3 left-1/2 -translate-x-1/2 w-[280px] h-[280px] md:w-[500px] md:h-[500px] rounded-full bg-emerald-500/10 dark:bg-emerald-950/15 blur-[120px] pointer-events-none select-none z-0" />
       {/* Navbar / Header */}
-      <header className="px-4 py-3 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/50 backdrop-blur-sm sticky top-0 z-50 bg-white/80 dark:bg-zinc-950/80">
+      <header className="px-4 py-3 flex items-center justify-between sticky top-0 z-50 glass-header">
         <Logo onClick={() => setView(view === "landing" ? "dashboard" : "landing")} />
         
         <div className="flex items-center gap-1">
@@ -153,18 +207,28 @@ function AppInner() {
               onTutorialClose={handleCloseTutorial}
               externalStatusModal={statusModal}
               onExternalStatusClose={() => setStatusModal(prev => ({ ...prev, isOpen: false }))}
+              onLoginClick={() => setView("login")}
             />
           ) : view === "login" ? (
             <LoginView
               key="login"
               onLoginSuccess={() => setView("dashboard")}
-              onBypassSheets={() => setView("dashboard")}
+              onBypassSheets={() => {
+                logic.handleGoogleLogin(false);
+              }}
               onBack={() => setView("landing")}
             />
           ) : (
             <LandingView
               key="landing"
-              onGetStarted={() => setView("login")}
+              onGetStarted={() => {
+                const isLogged = !!logic.supabaseUser || !!logic.user;
+                if (isLogged) {
+                  setView("dashboard");
+                } else {
+                  setView("login");
+                }
+              }}
               onTryDemo={handleTryDemo}
             />
           )}
@@ -198,6 +262,10 @@ function AppInner() {
         onClose={handleCloseTutorial} 
         isSynced={!!logic.user}
         onGoogleLogin={logic.handleGoogleLogin}
+        onLoginClick={() => {
+          handleCloseTutorial();
+          setView("login");
+        }}
       />
 
       {/* Feature 5: Patch Notes Modal */}
@@ -205,6 +273,56 @@ function AppInner() {
         isOpen={isPatchNotesOpen}
         onOpenChange={setIsPatchNotesOpen}
       />
+
+      {/* Demo Mode Confirmation Warning Modal */}
+      <Dialog open={isDemoConfirmOpen} onOpenChange={setIsDemoConfirmOpen}>
+        <DialogContent className="sm:max-w-[400px] rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-amber-500 flex items-center gap-2">
+              {language === "en" ? "⚠️ Enter Demo Mode?" : "⚠️ Masuk Mode Demo?"}
+            </DialogTitle>
+            <DialogDescription className="mt-2 text-zinc-650 dark:text-zinc-350 text-sm leading-relaxed text-left">
+              {language === "en" ? (
+                <>
+                  Entering demo mode will <strong>log out your current active account</strong>.
+                  <br /><br />
+                  Are you sure you want to continue and enter demo mode?
+                </>
+              ) : (
+                <>
+                  Masuk ke mode demo akan <strong>mengeluarkan (log out) akun aktif Anda</strong> saat ini.
+                  <br /><br />
+                  Apakah Anda yakin ingin melanjutkan dan masuk ke mode demo?
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsDemoConfirmOpen(false)}
+              className="flex-1 h-12 rounded-xl font-bold cursor-pointer"
+            >
+              {language === "en" ? "Cancel" : "Batal"}
+            </Button>
+            <Button
+              onClick={async () => {
+                if (logic.supabaseUser) {
+                  await supabase.auth.signOut();
+                }
+                localStorage.removeItem("googleUser");
+                localStorage.removeItem("sheetId");
+                setIsDemoConfirmOpen(false);
+                enterDemo();
+                setView("dashboard");
+              }}
+              className="flex-1 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-black cursor-pointer"
+            >
+              {language === "en" ? "Yes, Enter Demo" : "Ya, Masuk Demo"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer / Credits */}
       <footer className="p-8 text-center mt-auto border-t border-zinc-200 dark:border-zinc-800/50 flex flex-col items-center gap-2">

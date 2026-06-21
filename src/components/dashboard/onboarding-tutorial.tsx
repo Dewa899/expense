@@ -25,13 +25,15 @@ interface OnboardingTutorialProps {
 	onClose: () => void;
 	isSynced: boolean;
 	onGoogleLogin: (forceAccountSelection?: boolean) => void;
+	onLoginClick: () => void;
 }
 
 export function OnboardingTutorial({ 
 	isOpen, 
 	onClose, 
 	isSynced, 
-	onGoogleLogin
+	onGoogleLogin,
+	onLoginClick
 }: OnboardingTutorialProps) {
 	const { t, language, setLanguage } = useLanguage();
 	const [step, setStep] = React.useState(0);
@@ -111,11 +113,34 @@ export function OnboardingTutorial({
 			icon: <BarChart3 className="text-pink-500" size={48} />
 		},
 		{
-			title: isSynced ? "You're ready to go!" : t("step2Title"),
-			desc: isSynced ? "Your account is already connected and ready to track your expenses." : t("step2Desc"),
+			title: isSynced 
+				? (language === "en" ? "You're ready to go!" : "Anda siap memulai!") 
+				: (language === "en" ? "Choose Database & Sync" : "Pilih Database & Sinkronisasi"),
+			desc: isSynced 
+				? (language === "en" ? "Your account is already connected and ready to track your expenses." : "Akun Anda sudah terhubung dan siap untuk melacak pengeluaran Anda.") 
+				: (language === "en" 
+					? "Choose how you want to use the app: Log In/Sign Up to secure your database in the cloud, or directly link Google Sheets to your Google Drive without an account." 
+					: "Pilih cara penggunaan aplikasi: Login/Daftar untuk menyimpan database dengan aman di cloud, atau langsung hubungkan Google Sheets ke Google Drive Anda tanpa membuat akun."),
 			icon: isSynced ? <CheckCircle2 className="text-emerald-500" size={48} /> : <Cloud className="text-emerald-500" size={48} />,
 			content: !isSynced ? (
-				<div className="flex flex-col items-center gap-2 w-full mt-4">
+				<div className="flex flex-col items-center gap-2.5 w-full mt-4">
+					<Button 
+						onClick={onLoginClick}
+						className="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-black h-12 rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+					>
+						<UserPlus size={18} />
+						{language === "en" ? "Sign In / Sign Up Account" : "Masuk / Daftar Akun"}
+					</Button>
+					
+					<div className="relative flex items-center justify-center w-full my-1">
+						<div className="absolute inset-0 flex items-center">
+							<div className="w-full border-t border-zinc-200 dark:border-zinc-800"></div>
+						</div>
+						<span className="relative px-3 text-[10px] font-bold text-zinc-400 bg-white dark:bg-zinc-900 uppercase tracking-widest">
+							{language === "en" ? "or use sheets directly" : "atau gunakan sheets langsung"}
+						</span>
+					</div>
+
 					<Button 
 						onClick={() => onGoogleLogin(false)}
 						className="w-full bg-white hover:bg-zinc-100 text-black border border-zinc-200 font-bold h-12 rounded-xl shadow-sm flex items-center justify-center gap-3 transition-all cursor-pointer"
@@ -126,14 +151,7 @@ export function OnboardingTutorial({
 							<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
 							<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
 						</svg>
-						Continue with Google
-					</Button>
-					<Button 
-						variant="ghost" 
-						className="text-[10px] uppercase font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 mt-1 w-full h-8 cursor-pointer"
-						onClick={() => onGoogleLogin(true)}
-					>
-						Use a different account
+						{language === "en" ? "Use Google Sheets Directly" : "Gunakan Google Sheets Langsung"}
 					</Button>
 				</div>
 			) : null

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/components/language-provider";
+import { supabase } from "@/lib/supabase-client";
 
 interface LoginViewProps {
 	onLoginSuccess: () => void;
@@ -27,22 +28,52 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewP
 		if (!email || !password || (isSignUp && !name)) return;
 
 		setLoading(true);
-		
-		// Supabase integration placeholder
-		setTimeout(() => {
+		try {
+			if (isSignUp) {
+				const { data, error } = await supabase.auth.signUp({
+					email,
+					password,
+					options: {
+						data: {
+							full_name: name,
+						}
+					}
+				});
+				if (error) throw error;
+				if (data.session) {
+					onLoginSuccess();
+				} else {
+					alert(language === "en" ? "Registration successful! Please check your email for confirmation." : "Pendaftaran berhasil! Silakan periksa email Anda untuk konfirmasi.");
+				}
+			} else {
+				const { error } = await supabase.auth.signInWithPassword({
+					email,
+					password,
+				});
+				if (error) throw error;
+				onLoginSuccess();
+			}
+		} catch (error: any) {
+			alert(error.message || "Authentication failed");
+		} finally {
 			setLoading(false);
-			// Simulate successful auth and go to dashboard
-			onLoginSuccess();
-		}, 1000);
+		}
 	};
 
-	const handleGoogleLogin = () => {
+	const handleGoogleLogin = async () => {
 		setLoading(true);
-		// Google OAuth Supabase integration placeholder
-		setTimeout(() => {
+		try {
+			const { error } = await supabase.auth.signInWithOAuth({
+				provider: 'google',
+				options: {
+					redirectTo: window.location.origin,
+				}
+			});
+			if (error) throw error;
+		} catch (error: any) {
+			alert(error.message || "Failed to log in with Google");
 			setLoading(false);
-			onLoginSuccess();
-		}, 1000);
+		}
 	};
 
 	return (
@@ -54,9 +85,9 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewP
 			transition={{ duration: 0.4 }}
 			className="flex-grow flex items-center justify-center p-4 max-w-md mx-auto w-full"
 		>
-			<div className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[32px] shadow-xl overflow-hidden relative flex flex-col">
+			<div className="w-full glass-card rounded-[32px] overflow-hidden relative flex flex-col">
 				{/* Top Header Card with App Brand */}
-				<div className="bg-emerald-500 dark:bg-emerald-600 p-8 text-black flex flex-col items-center gap-2 relative">
+				<div className="bg-gradient-to-br from-emerald-500 to-teal-500 p-8 text-black flex flex-col items-center gap-2 relative">
 					<button
 						onClick={onBack}
 						className="absolute top-6 left-6 rounded-full w-8 h-8 flex items-center justify-center bg-black/10 hover:bg-black/20 text-black transition-colors cursor-pointer"
@@ -78,7 +109,7 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewP
 				</div>
 
 				{/* Form Body */}
-				<form onSubmit={handleAuthSubmit} className="p-8 space-y-5 bg-white dark:bg-zinc-900 flex-1">
+				<form onSubmit={handleAuthSubmit} className="p-8 space-y-5 bg-transparent flex-1">
 					<AnimatePresence mode="wait">
 						{isSignUp && (
 							<motion.div
@@ -99,7 +130,7 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewP
 										placeholder={language === "en" ? "Your Name" : "Nama Anda"}
 										value={name}
 										onChange={(e) => setName(e.target.value)}
-										className="h-12 w-full pl-11 pr-4 rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-medium text-sm"
+										className="h-12 w-full pl-11 pr-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium text-sm transition-colors"
 									/>
 								</div>
 							</motion.div>
@@ -120,7 +151,7 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewP
 								placeholder="name@example.com"
 								value={email}
 								onChange={(e) => setEmail(e.target.value)}
-								className="h-12 w-full pl-11 pr-4 rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-medium text-sm"
+								className="h-12 w-full pl-11 pr-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium text-sm transition-colors"
 							/>
 						</div>
 					</div>
@@ -139,7 +170,7 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewP
 								placeholder="••••••••"
 								value={password}
 								onChange={(e) => setPassword(e.target.value)}
-								className="h-12 w-full pl-11 pr-4 rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-medium text-sm"
+								className="h-12 w-full pl-11 pr-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium text-sm transition-colors"
 							/>
 						</div>
 					</div>
@@ -147,7 +178,7 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewP
 					<Button
 						type="submit"
 						disabled={loading}
-						className="w-full h-12 bg-emerald-500 hover:bg-emerald-600 text-black font-black text-base rounded-xl shadow-md mt-2 cursor-pointer"
+						className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black text-base rounded-xl shadow-lg shadow-emerald-500/20 mt-2 cursor-pointer border-none transition-all active:scale-[0.98]"
 					>
 						{loading ? "..." : isSignUp 
 							? (language === "en" ? "Create Account" : "Daftar Akun") 
@@ -159,7 +190,7 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewP
 						<div className="absolute inset-0 flex items-center">
 							<div className="w-full border-t border-zinc-200 dark:border-zinc-800"></div>
 						</div>
-						<span className="relative px-3 text-[10px] font-bold text-zinc-400 bg-white dark:bg-zinc-900 uppercase tracking-widest">
+						<span className="relative px-3 text-[10px] font-bold text-zinc-400 bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-sm rounded-md uppercase tracking-widest">
 							{language === "en" ? "or continue with" : "atau lanjutkan dengan"}
 						</span>
 					</div>
@@ -170,7 +201,7 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewP
 						onClick={handleGoogleLogin}
 						disabled={loading}
 						variant="outline"
-						className="w-full h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 flex items-center justify-center gap-3 transition-all cursor-pointer font-bold text-sm text-zinc-800 dark:text-zinc-200"
+						className="w-full h-12 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-950/30 hover:bg-white/70 dark:hover:bg-zinc-950/60 flex items-center justify-center gap-3 transition-all cursor-pointer font-bold text-sm text-zinc-850 dark:text-zinc-200"
 					>
 						<svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
 							<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

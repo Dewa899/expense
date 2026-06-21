@@ -32,6 +32,62 @@ interface UpdateItem {
 
 const UPDATES: UpdateItem[] = [
 	{
+		version: "v2.0.0",
+		type: "major",
+		date: { en: "Sun, June 22, 2026", id: "Minggu, 22 Juni 2026" },
+		time: "00:00",
+		title: {
+			en: "Account Mode, Sheets Direct & Visual Overhaul",
+			id: "Mode Akun, Sheets Langsung & Pembaruan Visual"
+		},
+		description: {
+			en: "Introducing full account sign-in, direct Google Sheets sync without login, export features, and a premium glassmorphic UI redesign.",
+			id: "Memperkenalkan login akun penuh, sinkronisasi Google Sheets langsung tanpa login, fitur ekspor, dan desain ulang UI glassmorphic premium."
+		},
+		details: [
+			{
+				type: "feature",
+				title: { en: "Account Mode (Email & Google OAuth)", id: "Mode Akun (Email & Google OAuth)" },
+				desc: { en: "Sign up or log in with email/password or Google account. Data is securely stored in the cloud database.", id: "Daftar atau masuk dengan email/kata sandi atau akun Google. Data tersimpan aman di database cloud." }
+			},
+			{
+				type: "feature",
+				title: { en: "Direct Google Sheets Mode (No Account)", id: "Mode Google Sheets Langsung (Tanpa Akun)" },
+				desc: { en: "Connect directly to your personal Google Drive & Sheets as the database — no registration required. Your data stays 100% in your own Google account.", id: "Hubungkan langsung ke Google Drive & Sheets pribadi Anda sebagai database — tanpa registrasi. Data Anda 100% tersimpan di akun Google Anda sendiri." }
+			},
+			{
+				type: "feature",
+				title: { en: "Export to CSV & Google Sheets (Account Mode)", id: "Ekspor ke CSV & Google Sheets (Mode Akun)" },
+				desc: { en: "Export your transaction history from the Detail Transaction view as a CSV or sync it to a Google Sheets file.", id: "Ekspor riwayat transaksi dari tampilan Detail Transaksi sebagai CSV atau sinkronkan ke file Google Sheets." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Glassmorphic UI & Ambient Glow", id: "UI Glassmorphic & Cahaya Ambient" },
+				desc: { en: "Cards now use a frosted-glass look (backdrop blur + semi-transparent). Background orbs emit a soft emerald-teal glow for visual depth.", id: "Kartu kini menggunakan tampilan kaca buram (backdrop blur + semi-transparan). Orbs latar belakang memancarkan cahaya emerald-teal halus untuk kedalaman visual." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Gradient CTA Buttons", id: "Tombol CTA Gradasi" },
+				desc: { en: "Primary action buttons (Get Started, Add Expense, Sign In) now use an emerald-to-teal gradient with a subtle glow shadow.", id: "Tombol aksi utama (Mulai, Tambah Pengeluaran, Masuk) kini menggunakan gradasi emerald ke teal dengan bayangan glow halus." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Full Bilingual UI (EN / ID)", id: "UI Dwibahasa Penuh (EN / ID)" },
+				desc: { en: "All alert modals, balance dialogs, tutorial pages, and patch notes are now fully translated between English and Indonesian.", id: "Semua modal peringatan, dialog saldo, halaman tutorial, dan patch notes kini sepenuhnya diterjemahkan antara Bahasa Inggris dan Indonesia." }
+			},
+			{
+				type: "bugfix",
+				title: { en: "Login Page Access Guard", id: "Penjaga Akses Halaman Login" },
+				desc: { en: "Users who are already logged in are now automatically redirected to the dashboard instead of being shown the login page.", id: "Pengguna yang sudah login kini otomatis diarahkan ke dashboard, bukan halaman login." }
+			},
+			{
+				type: "bugfix",
+				title: { en: "OAuth Token Race Condition Fix", id: "Perbaikan Race Condition Token OAuth" },
+				desc: { en: "Fixed a React Strict Mode double-mount issue where Google OAuth tokens were lost on page reload, causing silent auth failures.", id: "Memperbaiki masalah double-mount React Strict Mode di mana token Google OAuth hilang saat halaman dimuat ulang, menyebabkan kegagalan autentikasi senyap." }
+			}
+		]
+	},
+	{
 		version: "v1.1.0",
 		type: "minor",
 		date: { en: "Fri, June 19, 2026", id: "Jumat, 19 Juni 2026" },

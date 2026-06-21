@@ -70,6 +70,10 @@ interface NumericKeyboardProps {
 	onChange: (value: string) => void;
 	onSubmit: () => void;
 	disabled?: boolean;
+	showPreview?: boolean;
+	previewPlaceholder?: string;
+	onActionClick?: () => void;
+	actionLabel?: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -79,6 +83,10 @@ export function NumericKeyboard({
 	onChange,
 	onSubmit,
 	disabled = false,
+	showPreview = false,
+	previewPlaceholder,
+	onActionClick,
+	actionLabel,
 }: NumericKeyboardProps) {
 	const { t } = useLanguage();
 
@@ -226,6 +234,32 @@ export function NumericKeyboard({
 				transition={{ type: "spring", damping: 28, stiffness: 300 }}
 				className="fixed bottom-0 left-0 right-0 z-[70] bg-[#e3e4e6] dark:bg-zinc-950 border-t border-zinc-300 dark:border-zinc-800 pb-safe shadow-2xl"
 			>
+				{showPreview && (
+					<div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 py-2.5 flex items-center justify-between gap-3 shadow-inner">
+						<div className="flex flex-col text-left">
+							<span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+								{previewPlaceholder || "Nominal"}
+							</span>
+							<div className="flex items-center gap-1 text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+								<span className="text-xs opacity-70">Rp</span>
+								<span>{value || "0"}</span>
+							</div>
+						</div>
+						{onActionClick && actionLabel && (
+							<button
+								type="button"
+								disabled={disabled || !value}
+								onClick={(e) => {
+									e.preventDefault();
+									onActionClick();
+								}}
+								className="h-9 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black font-black text-xs uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none cursor-pointer flex items-center justify-center"
+							>
+								{actionLabel}
+							</button>
+						)}
+					</div>
+				)}
 				{/* Key Grid: 4 columns structure matching reference layout */}
 				<div className="grid grid-cols-4 gap-[6px] p-[6px]">
 					{/* Row 1 */}
