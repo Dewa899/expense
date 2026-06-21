@@ -464,9 +464,9 @@ export function FormView(props: FormViewProps) {
 						<DialogTrigger render={
 							<Button 
 								size="sm" 
-								variant="ghost" 
+								variant="outline" 
 								disabled={isSyncing} 
-								className="h-8 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 px-2 rounded-lg cursor-pointer flex items-center gap-1.5"
+								className="h-8 text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/35 hover:bg-emerald-500/15 hover:text-emerald-700 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300 dark:border-emerald-500/25 px-2.5 rounded-xl cursor-pointer flex items-center gap-1.5 transition-all shadow-sm"
 								onClick={handleManageFieldsClick}
 							>
 								<Settings2 size={14} /> {t("manageFields")}

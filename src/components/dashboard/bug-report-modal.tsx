@@ -18,6 +18,8 @@ interface SupportModalProps {
 	onSuccess: (title: string, desc: string) => void;
 	initialCategory?: string;
 	initialEmail?: string;
+	initialTitle?: string;
+	initialMessage?: string;
 }
 
 export function SupportModal({ 
@@ -25,27 +27,30 @@ export function SupportModal({
 	onOpenChange, 
 	onSuccess, 
 	initialCategory = "bug",
-	initialEmail = ""
+	initialEmail = "",
+	initialTitle = "",
+	initialMessage = ""
 }: SupportModalProps) {
 	const { t } = useLanguage();
 	const [loading, setLoading] = React.useState(false);
 	const [formData, setFormData] = React.useState({
-		title: "",
-		email: "",
+		title: initialTitle,
+		email: initialEmail,
 		category: initialCategory,
-		message: ""
+		message: initialMessage
 	});
 
 	// Clean Coder: Sync form data with initial props when modal opens
 	React.useEffect(() => {
 		if (isOpen) {
-			setFormData(prev => ({
-				...prev,
+			setFormData({
 				category: initialCategory,
-				email: initialEmail || prev.email,
-			}));
+				email: initialEmail || "",
+				title: initialTitle || "",
+				message: initialMessage || ""
+			});
 		}
-	}, [isOpen, initialCategory, initialEmail]);
+	}, [isOpen, initialCategory, initialEmail, initialTitle, initialMessage]);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();

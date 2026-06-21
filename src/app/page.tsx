@@ -61,7 +61,7 @@ function AppInner() {
   const [isSupportModalOpen, setIsSupportModalOpen] = React.useState(false);
   const [isPatchNotesOpen, setIsPatchNotesOpen] = React.useState(false);
   const [isDemoConfirmOpen, setIsDemoConfirmOpen] = React.useState(false);
-  const [supportInitialData, setSupportInitialData] = React.useState({ category: "bug", email: "" });
+  const [supportInitialData, setSupportInitialData] = React.useState({ category: "bug", email: "", title: "", message: "" });
   const [statusModal, setStatusModal] = React.useState<{ isOpen: boolean; title: string; desc: string }>({
     isOpen: false, title: "", desc: ""
   });
@@ -130,8 +130,8 @@ function AppInner() {
     setStatusModal({ isOpen: true, title, desc });
   };
 
-  const openSupportModal = (category = "bug", email = "") => {
-    setSupportInitialData({ category, email });
+  const openSupportModal = (category = "bug", email = "", title = "", message = "") => {
+    setSupportInitialData({ category, email, title, message });
     setIsSupportModalOpen(true);
   };
 
@@ -208,6 +208,7 @@ function AppInner() {
               externalStatusModal={statusModal}
               onExternalStatusClose={() => setStatusModal(prev => ({ ...prev, isOpen: false }))}
               onLoginClick={() => setView("login")}
+              onReportBug={(title, desc) => openSupportModal("bug", "", title, desc)}
             />
           ) : view === "login" ? (
             <LoginView
@@ -255,6 +256,8 @@ function AppInner() {
         onSuccess={handleSupportSuccess}
         initialCategory={supportInitialData.category}
         initialEmail={supportInitialData.email}
+        initialTitle={supportInitialData.title}
+        initialMessage={supportInitialData.message}
       />
 
       <OnboardingTutorial 

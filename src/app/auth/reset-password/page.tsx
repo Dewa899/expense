@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase-client";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LanguageProvider, useLanguage } from "@/components/language-provider";
+import { StatusModal } from "@/components/dashboard/status-modal";
+import { SupportModal } from "@/components/dashboard/bug-report-modal";
 
 function ResetPasswordInner() {
 	const { t, language } = useLanguage();
@@ -18,24 +20,52 @@ function ResetPasswordInner() {
 	const [confirmPassword, setConfirmPassword] = React.useState("");
 	const [loading, setLoading] = React.useState(false);
 	const [success, setSuccess] = React.useState(false);
-	const [errorMsg, setErrorMsg] = React.useState("");
+
+	const [statusModal, setStatusModal] = React.useState<{
+		isOpen: boolean;
+		type: "success" | "error" | null;
+		title: string;
+		description: string;
+	}>({
+		isOpen: false,
+		type: null,
+		title: "",
+		description: ""
+	});
+
+	const [isSupportOpen, setIsSupportOpen] = React.useState(false);
+	const [supportData, setSupportData] = React.useState({
+		category: "bug",
+		email: "",
+		title: "",
+		message: ""
+	});
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!password || !confirmPassword) return;
 
 		if (password !== confirmPassword) {
-			setErrorMsg(language === "en" ? "Passwords do not match" : "Kata sandi tidak cocok");
+			setStatusModal({
+				isOpen: true,
+				type: "error",
+				title: language === "en" ? "Passwords Don't Match" : "Kata Sandi Tidak Cocok",
+				description: language === "en" ? "Please make sure both passwords are identical." : "Pastikan kedua kata sandi identik."
+			});
 			return;
 		}
 
 		if (password.length < 6) {
-			setErrorMsg(language === "en" ? "Password must be at least 6 characters" : "Kata sandi minimal 6 karakter");
+			setStatusModal({
+				isOpen: true,
+				type: "error",
+				title: language === "en" ? "Password Too Short" : "Kata Sandi Terlalu Pendek",
+				description: language === "en" ? "Password must be at least 6 characters long." : "Kata sandi minimal 6 karakter."
+			});
 			return;
 		}
 
 		setLoading(true);
-		setErrorMsg("");
 
 		try {
 			const { error } = await supabase.auth.updateUser({ password });
@@ -46,7 +76,12 @@ function ResetPasswordInner() {
 				router.push("/");
 			}, 3000);
 		} catch (err: any) {
-			setErrorMsg(err.message || "Failed to update password");
+			setStatusModal({
+				isOpen: true,
+				type: "error",
+				title: language === "en" ? "Password Update Failed" : "Gagal Memperbarui Kata Sandi",
+				description: err.message || "Failed to update password"
+			});
 		} finally {
 			setLoading(false);
 		}
@@ -152,12 +187,6 @@ function ResetPasswordInner() {
 									</div>
 								</div>
 
-								{errorMsg && (
-									<p className="text-xs text-red-500 font-bold ml-1">
-										{errorMsg}
-									</p>
-								)}
-
 								<Button
 									type="submit"
 									disabled={loading}
@@ -170,6 +199,40 @@ function ResetPasswordInner() {
 					</AnimatePresence>
 				</motion.div>
 			</main>
+
+			{/* Status Modal for success/error feedback */}
+			<StatusModal 
+				state={statusModal}
+				onClose={() => setStatusModal(prev => ({ ...prev, isOpen: false }))}
+				onReportBug={(title, desc) => {
+					setSupportData({
+						category: "bug",
+						email: "",
+						title: `[BUG] ${title}`,
+						message: `User encountered error on the password reset page:\n\nError Title: ${title}\nError Message: ${desc}`
+					});
+					setStatusModal(prev => ({ ...prev, isOpen: false }));
+					setIsSupportOpen(true);
+				}}
+			/>
+
+			{/* Support / Bug Report Modal */}
+			<SupportModal 
+				isOpen={isSupportOpen}
+				onOpenChange={setIsSupportOpen}
+				onSuccess={(title, desc) => {
+					setStatusModal({
+						isOpen: true,
+						type: "success",
+						title,
+						description: desc
+					});
+				}}
+				initialCategory={supportData.category}
+				initialEmail={supportData.email}
+				initialTitle={supportData.title}
+				initialMessage={supportData.message}
+			/>
 		</div>
 	);
 }

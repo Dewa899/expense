@@ -32,6 +32,47 @@ interface UpdateItem {
 
 const UPDATES: UpdateItem[] = [
 	{
+		version: "v2.0.1",
+		type: "minor",
+		date: { en: "Sun, June 22, 2026", id: "Minggu, 22 Juni 2026" },
+		time: "03:27",
+		title: {
+			en: "UI Polish, 404 Page & Smart Bug Reporting",
+			id: "Pemoles UI, Halaman 404 & Pelaporan Bug Cerdas"
+		},
+		description: {
+			en: "Visual improvements to form controls, a new dynamic 404 page with illustration, error modals now show the 404 artwork, and a direct one-click bug report flow from any error dialog.",
+			id: "Peningkatan visual pada kontrol formulir, halaman 404 dinamis baru dengan ilustrasi, modal error kini menampilkan ilustrasi 404, dan alur laporan bug langsung dengan satu klik dari dialog error mana pun."
+		},
+		details: [
+			{
+				type: "improvement",
+				title: { en: "Highlighted 'Manage Fields' Button", id: "Tombol 'Kelola Field' Lebih Mencolok" },
+				desc: { en: "The Manage Fields button now has a visible emerald border, subtle background tint, and bold font weight — making it clearly distinguishable as an interactive control.", id: "Tombol Kelola Field kini memiliki border emerald yang terlihat, latar belakang tipis, dan font tebal — menjadikannya jelas sebagai kontrol yang dapat diklik." }
+			},
+			{
+				type: "feature",
+				title: { en: "Dynamic 404 Not Found Page", id: "Halaman 404 Tidak Ditemukan Dinamis" },
+				desc: { en: "Navigating to a non-existent URL now shows a beautiful illustrated 404 page with full bilingual support (EN/ID) and a Back to Home button.", id: "Mengakses URL yang tidak ada kini menampilkan halaman 404 dengan ilustrasi indah, dukungan dwibahasa penuh (EN/ID), dan tombol Kembali ke Beranda." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Error Modal Now Shows 404 Illustration", id: "Modal Error Kini Menampilkan Ilustrasi 404" },
+				desc: { en: "When any operation fails and triggers an error modal, the dialog now displays the 404 illustration instead of a plain icon, making errors feel more intentional and less alarming.", id: "Saat operasi gagal dan memicu modal error, dialog kini menampilkan ilustrasi 404 alih-alih ikon biasa." }
+			},
+			{
+				type: "feature",
+				title: { en: "Direct Bug Report from Error Dialog", id: "Laporan Bug Langsung dari Dialog Error" },
+				desc: { en: "A 'Report Bug' button now appears inside every error modal. Clicking it instantly opens the Support form with the error title and message pre-filled — you just need to tap Send.", id: "Tombol 'Laporkan Bug' kini muncul di setiap modal error. Mengkliknya langsung membuka formulir Dukungan dengan judul dan pesan error sudah terisi — tinggal klik Kirim." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Premium Error Feedback on Login & Reset Password", id: "Umpan Balik Error Premium di Login & Reset Kata Sandi" },
+				desc: { en: "All native browser alert() dialogs on the Login and Reset Password screens have been replaced with the premium Status Modal system, including the new bug reporting flow.", id: "Semua dialog alert() bawaan browser di layar Login dan Reset Kata Sandi telah diganti dengan sistem Status Modal premium, termasuk alur pelaporan bug baru." }
+			}
+		]
+	},
+	{
 		version: "v2.0.0",
 		type: "major",
 		date: { en: "Sun, June 22, 2026", id: "Minggu, 22 Juni 2026" },

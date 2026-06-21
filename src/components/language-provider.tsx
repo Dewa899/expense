@@ -12,6 +12,22 @@ type Dictionary = {
 };
 
 const dictionary: Dictionary = {
+	notFoundTitle: {
+		en: "Page Not Found",
+		id: "Halaman Tidak Ditemukan",
+	},
+	notFoundDesc: {
+		en: "Oops! The page you are looking for does not exist or has been moved.",
+		id: "Ups! Halaman yang Anda cari tidak ada atau telah dipindahkan.",
+	},
+	backToHome: {
+		en: "Back to Home",
+		id: "Kembali ke Beranda",
+	},
+	reportBug: {
+		en: "Report Bug",
+		id: "Laporkan Bug",
+	},
 	// Vision
 	vision: {
 		en: "Your Expenses, Your Rules.",

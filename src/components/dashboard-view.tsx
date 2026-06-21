@@ -22,6 +22,7 @@ interface DashboardViewProps {
 	externalStatusModal?: { isOpen: boolean; title: string; desc: string };
 	onExternalStatusClose?: () => void;
 	onLoginClick?: () => void;
+	onReportBug?: (title: string, description: string) => void;
 }
 
 export function DashboardView({ 
@@ -30,6 +31,7 @@ export function DashboardView({
 	externalStatusModal = { isOpen: false, title: "", desc: "" },
 	onExternalStatusClose = () => {},
 	onLoginClick = () => {},
+	onReportBug,
 }: DashboardViewProps) {
 	const { t } = useLanguage();
 	const { isDemoMode, demoTransactions, demoCategories, exitDemo, addDemoTransaction } = useDemo();
@@ -165,6 +167,7 @@ export function DashboardView({
 				state={logic.statusModal} 
 				onClose={() => logic.setStatusModal(prev => ({ ...prev, isOpen: false }))} 
 				onGoogleLogin={logic.handleGoogleLogin}
+				onReportBug={onReportBug}
 			/>
 
 			{/* External Status Modal (for Bug Report Success) */}
@@ -176,6 +179,7 @@ export function DashboardView({
 					description: externalStatusModal.desc
 				}} 
 				onClose={onExternalStatusClose} 
+				onReportBug={onReportBug}
 			/>
 
 			<DisconnectModal 

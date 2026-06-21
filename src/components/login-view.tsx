@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/components/language-provider";
 import { supabase } from "@/lib/supabase-client";
+import { StatusModal } from "./dashboard/status-modal";
+import { SupportModal } from "./dashboard/bug-report-modal";
 
 interface LoginViewProps {
 	onLoginSuccess: () => void;
@@ -23,6 +25,26 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewP
 	const [password, setPassword] = React.useState("");
 	const [name, setName] = React.useState("");
 	const [loading, setLoading] = React.useState(false);
+	
+	const [statusModal, setStatusModal] = React.useState<{
+		isOpen: boolean;
+		type: "success" | "error" | null;
+		title: string;
+		description: string;
+	}>({
+		isOpen: false,
+		type: null,
+		title: "",
+		description: ""
+	});
+
+	const [isSupportOpen, setIsSupportOpen] = React.useState(false);
+	const [supportData, setSupportData] = React.useState({
+		category: "bug",
+		email: "",
+		title: "",
+		message: ""
+	});
 
 	const handleAuthSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -44,7 +66,14 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewP
 				if (data.session) {
 					onLoginSuccess();
 				} else {
-					alert(language === "en" ? "Registration successful! Please check your email for confirmation." : "Pendaftaran berhasil! Silakan periksa email Anda untuk konfirmasi.");
+					setStatusModal({
+						isOpen: true,
+						type: "success",
+						title: language === "en" ? "Registration Successful" : "Pendaftaran Berhasil",
+						description: language === "en" 
+							? "Please check your email for confirmation." 
+							: "Silakan periksa email Anda untuk konfirmasi."
+					});
 				}
 			} else {
 				const { error } = await supabase.auth.signInWithPassword({
@@ -55,7 +84,12 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewP
 				onLoginSuccess();
 			}
 		} catch (error: any) {
-			alert(error.message || "Authentication failed");
+			setStatusModal({
+				isOpen: true,
+				type: "error",
+				title: language === "en" ? "Authentication Failed" : "Autentikasi Gagal",
+				description: error.message || "An unexpected error occurred"
+			});
 		} finally {
 			setLoading(false);
 		}
@@ -71,10 +105,22 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewP
 				redirectTo: `${window.location.origin}/auth/reset-password`,
 			});
 			if (error) throw error;
-			alert(language === "en" ? "Password reset link sent to your email!" : "Link reset kata sandi telah dikirim ke email Anda!");
+			setStatusModal({
+				isOpen: true,
+				type: "success",
+				title: language === "en" ? "Reset Link Sent" : "Link Reset Terkirim",
+				description: language === "en" 
+					? "Password reset link has been sent to your email!" 
+					: "Link reset kata sandi telah dikirim ke email Anda!"
+			});
 			setIsForgotPassword(false);
 		} catch (error: any) {
-			alert(error.message || "Failed to send reset link");
+			setStatusModal({
+				isOpen: true,
+				type: "error",
+				title: language === "en" ? "Failed to Send Reset Link" : "Gagal Mengirim Link Reset",
+				description: error.message || "Failed to send reset link"
+			});
 		} finally {
 			setLoading(false);
 		}
@@ -91,7 +137,12 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewP
 			});
 			if (error) throw error;
 		} catch (error: any) {
-			alert(error.message || "Failed to log in with Google");
+			setStatusModal({
+				isOpen: true,
+				type: "error",
+				title: language === "en" ? "Google Login Failed" : "Gagal Masuk Google",
+				description: error.message || "Failed to log in with Google"
+			});
 			setLoading(false);
 		}
 	};
@@ -328,6 +379,37 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewP
 					)}
 				</AnimatePresence>
 			</div>
+
+			<StatusModal 
+				state={statusModal}
+				onClose={() => setStatusModal(prev => ({ ...prev, isOpen: false }))}
+				onReportBug={(title, desc) => {
+					setSupportData({
+						category: "bug",
+						email: email || "",
+						title: `[BUG] ${title}`,
+						message: `User encountered error during login/recovery:\n\nError Title: ${title}\nError Message: ${desc}`
+					});
+					setIsSupportOpen(true);
+				}}
+			/>
+
+			<SupportModal 
+				isOpen={isSupportOpen}
+				onOpenChange={setIsSupportOpen}
+				onSuccess={(title, desc) => {
+					setStatusModal({
+						isOpen: true,
+						type: "success",
+						title,
+						description: desc
+					});
+				}}
+				initialCategory={supportData.category}
+				initialEmail={supportData.email}
+				initialTitle={supportData.title}
+				initialMessage={supportData.message}
+			/>
 		</motion.div>
 	);
 }
