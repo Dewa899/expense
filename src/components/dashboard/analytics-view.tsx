@@ -348,11 +348,13 @@ export function AnalyticsView({
 												<Input 
 													type="text" 
 													inputMode={isMobile ? "none" : "numeric"}
-													placeholder="0" 
+													readOnly={isMobile}
+													placeholder="0"
 													disabled={isPastMonth}
 													value={manualBalanceInput} 
 													onChange={(e) => handleManualBalanceChange(e.target.value)}
 													onFocus={() => isMobile && setIsMobileKeyboardOpen(true)}
+													onClick={() => isMobile && setIsMobileKeyboardOpen(true)}
 													className="h-12 w-full pl-9 pr-4 rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-medium text-base animate-none"
 												/>
 											</div>

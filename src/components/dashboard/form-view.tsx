@@ -603,12 +603,14 @@ export function FormView(props: FormViewProps) {
 												<Input
 													type="text"
 													inputMode={isMobile ? "none" : "numeric"}
+													readOnly={isMobile}
 													disabled={isInteractionDisabled}
 													placeholder={t("amountPlaceholder")}
 													className="h-12 w-full pl-9 pr-4 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium text-base transition-colors"
 													value={props.formData[header] || ""}
 													onChange={(e) => handleAmountChange(header, e.target.value)}
 													onFocus={() => isMobile && setMobileKbHeader(header)}
+													onClick={() => isMobile && setMobileKbHeader(header)}
 												/>
 											</div>
 											{/* Feature 2: Mobile keyboard – shows when this field is focused on mobile */}
