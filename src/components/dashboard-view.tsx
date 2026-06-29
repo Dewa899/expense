@@ -64,7 +64,7 @@ export function DashboardView({
 			formBody.append("file", file);
 			formBody.append("categories", JSON.stringify(categories));
 
-			const apiUrl = process.env.NEXT_PUBLIC_OCR_API_URL || "https://dewa899-expense-ocr.hf.space";
+			const apiUrl = process.env.NEXT_PUBLIC_OCR_API_URL || "https://genlord899-expense-ocr-backend.hf.space";
 			const res = await fetch(`${apiUrl}/scan`, { method: "POST", body: formBody });
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const data = await res.json();
