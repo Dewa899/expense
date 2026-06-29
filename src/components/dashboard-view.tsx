@@ -10,7 +10,7 @@ import { DisconnectModal } from "./dashboard/disconnect-modal";
 import { DeleteFieldModal } from "./dashboard/delete-field-modal";
 import { OnboardingTutorial } from "./dashboard/onboarding-tutorial";
 import { IntegrationLoading } from "./dashboard/integration-loading";
-import { Camera, FlaskConical, X } from "lucide-react";
+import { Camera, FlaskConical, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/components/language-provider";
 import { useDemo } from "@/components/demo-context";
@@ -49,6 +49,42 @@ export function DashboardView({
 		? demoTransactions.reduce((sum, t) => sum + t.amount, 0)
 		: logic.totalAmount;
 	
+	// OCR States
+	const ocrInputRef = React.useRef<HTMLInputElement>(null);
+	const [ocrLoading, setOcrLoading] = React.useState(false);
+	const [ocrMessage, setOcrMessage] = React.useState("");
+
+	const handleOcrScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		setOcrLoading(true);
+		setOcrMessage("");
+		try {
+			const formBody = new FormData();
+			formBody.append("file", file);
+			formBody.append("categories", JSON.stringify(categories));
+
+			const apiUrl = process.env.NEXT_PUBLIC_OCR_API_URL || "https://dewa899-expense-ocr.hf.space";
+			const res = await fetch(`${apiUrl}/scan`, { method: "POST", body: formBody });
+			if (!res.ok) throw new Error(`HTTP ${res.status}`);
+			const data = await res.json();
+
+			if (data.amount) logic.handleInputChange("Amount / Jumlah", String(Math.round(data.amount)));
+			if (data.name) logic.handleInputChange("Name / Nama", data.name);
+			if (data.date) logic.handleInputChange("Date / Tanggal", data.date);
+			if (data.category) logic.handleInputChange("Category / Kategori", data.category);
+			logic.handleInputChange("Type / Tipe", "Expense / Pengeluaran");
+
+			setOcrMessage(t("ocrSuccess"));
+		} catch (err) {
+			console.error("OCR Error:", err);
+			setOcrMessage(t("ocrFailed"));
+		} finally {
+			setOcrLoading(false);
+			if (ocrInputRef.current) ocrInputRef.current.value = "";
+		}
+	};
+
 	// UI States for Modals
 	const [isDisconnectModalOpen, setIsDisconnectModalOpen] = React.useState(false);
 	const [deleteConfirm, setDeleteConfirm] = React.useState<{ isOpen: boolean; fieldName: string; index: number }>({ 
@@ -122,17 +158,30 @@ export function DashboardView({
 							onLoginClick={onLoginClick}
 						/>
 
-						{/* OCR Placeholder Section moved inside the same width container */}
-						<section className="pb-10">
-							<Button variant="outline" disabled className="w-full h-16 rounded-2xl border-dashed border-2 border-zinc-200 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-900/50 flex items-center justify-center gap-3 opacity-60">
-								<div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center">
-									<Camera size={20} className="text-zinc-500" />
+					{/* OCR Scan Receipt */}
+						<section className="pb-10 space-y-2">
+							<input ref={ocrInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleOcrScan} />
+							<Button
+								variant="outline"
+								disabled={ocrLoading}
+								onClick={() => ocrInputRef.current?.click()}
+								className="w-full h-16 rounded-2xl border-dashed border-2 border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40 flex items-center justify-center gap-3 cursor-pointer transition-colors"
+							>
+								<div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
+									{ocrLoading ? <Loader2 size={20} className="text-emerald-600 animate-spin" /> : <Camera size={20} className="text-emerald-600" />}
 								</div>
 								<div className="text-left">
-									<p className="font-bold text-sm text-zinc-700 dark:text-zinc-300">Scan Receipt</p>
-									<p className="text-[10px] uppercase font-bold tracking-widest text-emerald-600">{t("ocrComingSoon")}</p>
+									<p className="font-bold text-sm text-emerald-700 dark:text-emerald-300">{t("ocrScanReceipt")}</p>
+									<p className="text-[10px] uppercase font-bold tracking-widest text-emerald-500">
+										{ocrLoading ? t("ocrScanning") : "OCR"}
+									</p>
 								</div>
 							</Button>
+							{ocrMessage && (
+								<p className={`text-xs text-center font-medium ${ocrMessage === t("ocrSuccess") ? "text-emerald-600" : "text-red-500"}`}>
+									{ocrMessage}
+								</p>
+							)}
 						</section>
 					</div>
 				) : (

@@ -99,9 +99,21 @@ const dictionary: Dictionary = {
 		id: "Pengeluaran Anda telah berhasil ditambahkan ke Google Sheets.",
 	},
 	close: { en: "Close", id: "Tutup" },
-	ocrComingSoon: {
-		en: "OCR Receipt (Coming Soon)",
-		id: "OCR Struk (Segera Hadir)",
+	ocrScanReceipt: {
+		en: "Scan Receipt",
+		id: "Scan Struk",
+	},
+	ocrScanning: {
+		en: "Scanning receipt...",
+		id: "Memindai struk...",
+	},
+	ocrSuccess: {
+		en: "Receipt scanned! Review the filled fields.",
+		id: "Struk berhasil dipindai! Periksa field yang terisi.",
+	},
+	ocrFailed: {
+		en: "Failed to scan receipt",
+		id: "Gagal memindai struk",
 	},
 	integrationTitle: {
 		en: "Google Sheets Sync",
