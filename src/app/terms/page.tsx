@@ -21,7 +21,7 @@ export default function TermsOfService() {
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 transition-colors duration-300">
       {/* Consistent Navbar */}
       <header className="px-4 py-3 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/50 backdrop-blur-sm sticky top-0 z-50 bg-white/80 dark:bg-zinc-950/80">
-        <Logo onClick={() => router.push("/")} />
+        <Logo onClick={() => router.push("/dashboard")} />
         
         <div className="flex items-center gap-1">
           <Link href="/">
@@ -73,10 +73,10 @@ export default function TermsOfService() {
               <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
               {language === "id" ? "2. Deskripsi Layanan" : "2. Description of Service"}
             </h2>
-            <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
+            <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium font-bold">
               {language === "id" 
-                ? "Expense by Genlord adalah aplikasi web sisi-klien yang terhubung langsung dengan akun Google Anda untuk membantu mengelola dan melacak pengeluaran di dalam Google Sheets Anda sendiri. Kami menyediakan antarmuka pengguna, sementara penyimpanan dan pemrosesan data aktual ditangani secara aman oleh infrastruktur Google di bawah akun Anda." 
-                : "Expense by Genlord is a client-side web application that connects directly to your Google account to help you manage and track expenses inside your own Google Sheets. We provide the user interface, while the actual data storage and processing are handled securely by Google's infrastructure under your account."}
+                ? "Expense by Genlord menyediakan dua mode operasional: (1) Mode Sheets Langsung, di mana aplikasi bertindak sebagai antarmuka sisi-klien yang terhubung langsung dengan akun Google Anda untuk mengelola pengeluaran di Google Sheets pribadi Anda, dan (2) Mode Akun, yang memungkinkan Anda untuk login dan menyimpan data transaksi dengan aman di database PostgreSQL kami (dikelola oleh Supabase) untuk sinkronisasi lintas perangkat, dilengkapi opsi ekspor/sinkronisasi manual ke Google Sheets." 
+                : "Expense by Genlord provides two operational modes: (1) Direct Sheets Mode, where the app acts as a client-side interface connecting directly to your Google account to manage expenses in your personal Google Sheets, and (2) Account Mode, which allows you to log in and store transaction data securely in our PostgreSQL database (managed by Supabase) for cross-device synchronization, with manual Google Sheets export/sync options."}
             </p>
           </section>
 

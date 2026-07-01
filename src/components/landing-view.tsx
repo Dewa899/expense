@@ -51,20 +51,18 @@ export function LandingView({ onGetStarted, onTryDemo }: { onGetStarted: () => v
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-4xl md:text-7xl font-bold tracking-tight mb-8"
+          className="text-4xl md:text-7xl font-black tracking-tight mb-8 leading-tight"
         >
-          {language === 'en' ? (
-            <>Your <span className="text-emerald-500 italic">Expenses</span>, Your <span className="text-zinc-400 dark:text-zinc-400">Rules.</span></>
-          ) : (
-            <><span className="text-emerald-500 italic">Pengeluaran</span> Anda, <span className="text-zinc-400 dark:text-zinc-400">Aturan</span> Anda.</>
-          )}
+          Track Less <span className="text-emerald-500 italic">Expenses.</span>
+          <br />
+          Live More <span className="text-emerald-500 italic">Experiences.</span>
         </motion.h1>
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="text-lg text-zinc-600 dark:text-zinc-400 mb-12 max-w-2xl leading-relaxed"
+          className="text-lg text-zinc-650 dark:text-zinc-355 mb-12 max-w-2xl leading-relaxed"
         >
           {t("heroSubtitle")}
         </motion.p>
@@ -77,17 +75,17 @@ export function LandingView({ onGetStarted, onTryDemo }: { onGetStarted: () => v
         >
           <Button 
             onClick={onGetStarted}
-            className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black h-14 px-8 rounded-2xl text-lg group shadow-lg shadow-emerald-500/20 active:scale-98 transition-all cursor-pointer border-none"
+            className="bg-emerald-500 hover:bg-emerald-600 text-black font-black h-14 px-8 rounded-2xl text-lg shadow-lg shadow-emerald-500/20 active:scale-98 transition-all cursor-pointer border-none"
           >
-            {t("getStarted")}
-            <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+            {language === 'en' ? "Get Started ➔" : "Mulai Sekarang ➔"}
           </Button>
-          <button
+          <Button
+            variant="outline"
             onClick={onTryDemo}
-            className="text-sm font-bold text-zinc-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors underline underline-offset-4 cursor-pointer"
+            className="h-14 px-8 rounded-2xl text-lg font-bold border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 cursor-pointer"
           >
-            {t("tryDemo")}
-          </button>
+            {language === 'en' ? "Try Demo" : "Coba Demo"}
+          </Button>
         </motion.div>
       </section>
 

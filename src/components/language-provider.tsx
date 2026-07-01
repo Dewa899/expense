@@ -44,8 +44,13 @@ const dictionary: Dictionary = {
 	// Tutorial Steps
 	step1Title: { en: "Welcome to Expense", id: "Selamat Datang di Expense" },
 	step1Desc: {
-		en: "The minimalist expense manager that connects directly to your Google Sheets—no account or signup required. Keep complete ownership of your data.",
-		id: "Manajer pengeluaran minimalis yang terhubung langsung ke Google Sheets Anda—tanpa perlu membuat akun atau mendaftar. Miliki data Anda sepenuhnya.",
+		en: "The minimalist expense manager that connects directly to your Google Sheets or saves securely to a cloud database. Take complete ownership of your data.",
+		id: "Manajer pengeluaran minimalis yang terhubung langsung ke Google Sheets Anda atau disimpan dengan aman di database cloud. Miliki data Anda sepenuhnya.",
+	},
+	stepOcrTitle: { en: "Effortless Capture (Beta)", id: "Pindai Otomatis (Beta)" },
+	stepOcrDesc: {
+		en: "Snap a photo of your receipt. Our AI-powered OCR extracts the merchant name, total amount, date, and category instantly to speed up your entry. (Beta)",
+		id: "Foto struk Anda. OCR bertenaga AI kami akan mengekstrak nama merchant, total nominal, tanggal, dan kategori secara instan untuk mempercepat input Anda. (Beta)",
 	},
 	step2Title: { en: "Cloud Synchronization", id: "Sinkronisasi Cloud" },
 	step2Desc: {
@@ -74,8 +79,8 @@ const dictionary: Dictionary = {
 		id: "Pengeluaran Anda, Aturan Anda.",
 	},
 	heroSubtitle: {
-		en: "The minimalist expense manager that adapts to your Google Sheets structure.",
-		id: "Manajer pengeluaran minimalis yang menyesuaikan dengan struktur Google Sheets Anda.",
+		en: "The minimalist expense manager that adapts to your Google Sheets structure. Stop fighting rigid templates—spend less time logging and more time exploring.",
+		id: "Manajer pengeluaran minimalis yang menyesuaikan dengan struktur Google Sheets Anda. Berhenti dipusingkan oleh templat yang kaku—kurangi waktu mencatat, perbanyak waktu menjelajah.",
 	},
 	getStarted: { en: "Get Started", id: "Mulai Sekarang" },
 	connectSheets: { en: "Connect Google Sheets", id: "Hubungkan Google Sheets" },
@@ -112,8 +117,8 @@ const dictionary: Dictionary = {
 		id: "Struk berhasil dipindai! Periksa field yang terisi.",
 	},
 	ocrFailed: {
-		en: "Failed to scan receipt",
-		id: "Gagal memindai struk",
+		en: "Failed to scan receipt/bill (Beta). Make sure the photo contains a valid receipt of expenses.",
+		id: "Gagal memindai struk/bill (Beta). Pastikan foto yang diambil adalah struk pengeluaran yang valid.",
 	},
 	integrationTitle: {
 		en: "Google Sheets Sync",
@@ -246,15 +251,15 @@ const dictionary: Dictionary = {
 	},
 	back: { en: "Back", id: "Kembali" },
 	delete: { en: "Delete", id: "Hapus" },
-	ocrTitle: { en: "Receipt Scanning", id: "Scan Struk" },
+	ocrTitle: { en: "Effortless Capture (Beta)", id: "Pindai Otomatis (Beta)" },
 	ocrDesc: {
-		en: "Coming soon: Instantly capture expenses from receipts using AI-powered OCR technology.",
-		id: "Segera hadir: Catat pengeluaran secara instan dari struk menggunakan teknologi OCR berbasis AI.",
+		en: "Instantly capture your experiences on the go. Snap a receipt, and let our AI-powered OCR parse the numbers directly into your custom sheet columns—zero manual typing required. (Beta)",
+		id: "Catat pengeluaran secara instan saat bepergian. Cukup foto struk, dan biarkan OCR bertenaga AI kami memindai nominal langsung ke kolom sheet kustom Anda—tanpa perlu mengetik manual. (Beta)",
 	},
 	dynamicTitle: { en: "Dynamic Schema", id: "Skema Dinamis" },
 	dynamicDesc: {
-		en: "Adapt to any Google Sheet structure. Define your own categories and columns easily.",
-		id: "Menyesuaikan dengan struktur Google Sheet apa pun. Tentukan kategori dan kolom Anda sendiri dengan mudah.",
+		en: "Your data, your playground. EXP adapts to any Google Sheet layout instantly. Define your own custom columns, names, and categories without being locked into a rigid database structure.",
+		id: "Data Anda, taman bermain Anda. EXP menyesuaikan dengan tata letak Google Sheet apa pun secara instan. Tentukan kolom kustom, nama, dan kategori Anda sendiri tanpa terkunci dalam struktur database yang kaku.",
 	},
 	contactSupport: {
 		en: "Contact Support",
@@ -296,10 +301,10 @@ const dictionary: Dictionary = {
 	supportCatBug: { en: "Report a Bug", id: "Laporkan Bug" },
 	supportCatOther: { en: "Other Question", id: "Pertanyaan Lain" },
 
-	sheetsTitle: { en: "Real-time Sync", id: "Sinkronisasi Real-time" },
+	sheetsTitle: { en: "Real-time Sync & Privacy", id: "Sinkronisasi Real-time & Privasi" },
 	sheetsDesc: {
-		en: "Your data stays in your control. Expenses are synced directly to your personal Google Sheets.",
-		id: "Data Anda tetap dalam kendali Anda. Pengeluaran disinkronkan langsung ke Google Sheets pribadi Anda.",
+		en: "No middleman, no data tracking. Your expenses are synced directly into your personal Google Sheets in real-time. Enjoy complete privacy and full ownership of your financial history.",
+		id: "Tanpa perantara, tanpa pelacakan data. Pengeluaran Anda disinkronkan langsung ke Google Sheets pribadi Anda secara real-time. Nikmati privasi penuh dan kepemilikan mutlak atas riwayat keuangan Anda.",
 	},
 
 	// Privacy Policy
@@ -307,8 +312,8 @@ const dictionary: Dictionary = {
 	lastUpdated: { en: "Last updated", id: "Terakhir diperbarui" },
 	introTitle: { en: "Introduction", id: "Pendahuluan" },
 	introDesc: {
-		en: "Welcome to Expense by GENLORD. Your privacy is our top priority. This app is designed as a client-side interface that connects directly to your personal Google Sheets. We do not own your data; you do.",
-		id: "Selamat datang di Expense by GENLORD. Privasi Anda adalah prioritas utama kami. Aplikasi ini dirancang sebagai antarmuka sisi klien yang terhubung langsung ke Google Sheets pribadi Anda. Kami tidak memiliki data Anda; Anda yang memilikinya.",
+		en: "Welcome to Expense by GENLORD. Your privacy is our top priority. This app is designed to connect directly to your personal Google Sheets, or securely save transactions to a cloud database in Account Mode. We do not own your data; you do.",
+		id: "Selamat datang di Expense by GENLORD. Privasi Anda adalah prioritas utama kami. Aplikasi ini dirancang untuk terhubung langsung ke Google Sheets pribadi Anda, atau menyimpan transaksi secara aman di database cloud pada Mode Akun. Kami tidak memiliki data Anda; Anda yang memilikinya.",
 	},
 	infoTitle: { en: "Information We Access", id: "Informasi yang Kami Akses" },
 	infoDesc: {
@@ -328,8 +333,8 @@ const dictionary: Dictionary = {
 		id: "Bagaimana Kami Menggunakan Data Anda",
 	},
 	usageDesc1: {
-		en: "All your financial data is stored exclusively in your personal Google Sheets. Expense by GENLORD does not have a central database to store your personal transactions. The processing of your data happens locally in your browser.",
-		id: "Semua data keuangan Anda disimpan secara eksklusif di Google Sheets pribadi Anda. Expense by GENLORD tidak memiliki database pusat untuk menyimpan transaksi pribadi Anda. Pemrosesan data Anda terjadi secara lokal di browser Anda.",
+		en: "All your financial data is stored depending on your chosen mode: (1) In 'No Account' mode, your data is stored exclusively and directly in your personal Google Sheets. (2) In 'Account Mode', your transaction data is stored securely in our PostgreSQL database (managed by Supabase) to enable multi-device sync, with optional manual sync/export directly to your personal Google Sheets.",
+		id: "Semua data keuangan Anda disimpan berdasarkan mode yang Anda pilih: (1) Pada mode 'Tanpa Akun', data Anda disimpan secara eksklusif dan langsung di Google Sheets pribadi Anda. (2) Pada 'Mode Akun', data transaksi Anda disimpan secara aman di database PostgreSQL kami (dikelola oleh Supabase) untuk memungkinkan sinkronisasi lintas perangkat, dengan opsi sinkronisasi/ekspor manual langsung ke Google Sheets pribadi Anda.",
 	},
 	usagePoint1: {
 		en: "We do not sell your personal information.",
@@ -345,8 +350,8 @@ const dictionary: Dictionary = {
 	},
 	securityTitle: { en: "Security", id: "Keamanan" },
 	securityDesc: {
-		en: "We use industry-standard OAuth 2.0 to authenticate with Google. Your access token is stored locally in your browser's localStorage and is never sent to our servers.",
-		id: "Kami menggunakan standar industri OAuth 2.0 untuk autentikasi dengan Google. Token akses Anda disimpan secara lokal di localStorage browser Anda dan tidak pernah dikirim ke server kami.",
+		en: "We use industry-standard OAuth 2.0 to authenticate with Google, and secure authentication via Supabase for Account Mode. Your Google access tokens are stored locally in your browser and are never sent to our servers. In Account Mode, your password and account details are encrypted and securely managed by Supabase.",
+		id: "Kami menggunakan standar industri OAuth 2.0 untuk autentikasi dengan Google, dan autentikasi aman via Supabase untuk Mode Akun. Token akses Google Anda disimpan secara lokal di browser Anda dan tidak pernah dikirim ke server kami. Pada Mode Akun, kata sandi dan rincian akun Anda dienkripsi dan dikelola secara aman oleh Supabase.",
 	},
 	contactTitle: { en: "Contact Us", id: "Hubungi Kami" },
 	contactDesc: {

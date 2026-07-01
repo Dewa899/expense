@@ -17,7 +17,8 @@ import {
 	Loader2,
 	Smartphone,
 	Download,
-	Home
+	Home,
+	ReceiptText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,7 +119,12 @@ export function OnboardingTutorial({
 			title: t("step1Title"),
 			desc: t("step1Desc"),
 			vision: true,
-			icon: <Image src="/illustrations/hello.png" alt="Hello" width={180} height={180} className="scale-125" />
+			icon: <Image src="/illustrations/hello.webp" alt="Hello" width={180} height={180} className="scale-125" />
+		},
+		{
+			title: t("stepOcrTitle"),
+			desc: t("stepOcrDesc"),
+			icon: <ReceiptText className="text-emerald-500" size={48} />
 		},
 		{
 			title: t("step3Title"),

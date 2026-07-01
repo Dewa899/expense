@@ -704,7 +704,7 @@ export function AnalyticsView({
 			) : (
 				<div className="h-[400px] flex flex-col items-center justify-center text-zinc-400 gap-4">
 					<Image 
-						src="/illustrations/file-not-found.png" 
+						src="/illustrations/file-not-found.webp" 
 						alt="No data found" 
 						width={200} 
 						height={200} 

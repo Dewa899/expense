@@ -45,7 +45,7 @@ export default function NotFound() {
 						className="relative w-full h-64"
 					>
 						<Image
-							src="/illustrations/404.png"
+							src="/illustrations/404.webp"
 							alt="404 Not Found"
 							fill
 							className="object-contain drop-shadow-xl"

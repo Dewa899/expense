@@ -44,7 +44,7 @@ export function StatusModal({ state, onClose, onGoogleLogin, onReportBug }: Stat
 						{isSyncSuccess ? (
 							<div className="relative w-full h-full">
 								<Image 
-									src="/illustrations/done.png" 
+									src="/illustrations/done.webp" 
 									alt="Success" 
 									fill
 									className="object-contain"
@@ -54,7 +54,7 @@ export function StatusModal({ state, onClose, onGoogleLogin, onReportBug }: Stat
 						) : state.type === "error" ? (
 							<div className="relative w-full h-full">
 								<Image 
-									src="/illustrations/404.png" 
+									src="/illustrations/404.webp" 
 									alt="Error" 
 									fill
 									className="object-contain"

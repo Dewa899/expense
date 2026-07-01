@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/components/language-provider";
 import { supabase } from "@/lib/supabase-client";
+import { useRouter } from "next/navigation";
 import { StatusModal } from "./dashboard/status-modal";
 import { SupportModal } from "./dashboard/bug-report-modal";
 
@@ -15,16 +16,22 @@ interface LoginViewProps {
 	onLoginSuccess: () => void;
 	onBypassSheets: () => void;
 	onBack: () => void;
+	mode?: "login" | "register";
 }
 
-export function LoginView({ onLoginSuccess, onBypassSheets, onBack }: LoginViewProps) {
+export function LoginView({ onLoginSuccess, onBypassSheets, onBack, mode = "login" }: LoginViewProps) {
+	const router = useRouter();
 	const { t, language } = useLanguage();
-	const [isSignUp, setIsSignUp] = React.useState(false);
+	const [isSignUp, setIsSignUp] = React.useState(mode === "register");
 	const [isForgotPassword, setIsForgotPassword] = React.useState(false);
 	const [email, setEmail] = React.useState("");
 	const [password, setPassword] = React.useState("");
 	const [name, setName] = React.useState("");
 	const [loading, setLoading] = React.useState(false);
+
+	React.useEffect(() => {
+		setIsSignUp(mode === "register");
+	}, [mode]);
 	
 	const [statusModal, setStatusModal] = React.useState<{
 		isOpen: boolean;

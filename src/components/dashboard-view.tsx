@@ -42,6 +42,8 @@ export function DashboardView({
 			: {}
 	);
 	
+	const isLoggedIn = !!logic.supabaseUser || !!logic.user;
+	
 	// In demo mode, overlay the in-memory data on top of the hook's state
 	const transactions = isDemoMode ? demoTransactions : logic.transactions;
 	const categories = isDemoMode ? [...demoCategories, ...logic.categories.filter(c => !demoCategories.includes(c))] : logic.categories;
@@ -64,7 +66,7 @@ export function DashboardView({
 			formBody.append("file", file);
 			formBody.append("categories", JSON.stringify(categories));
 
-			const apiUrl = process.env.NEXT_PUBLIC_OCR_API_URL || "https://genlord899-expense-ocr-backend.hf.space";
+			const apiUrl = process.env.NEXT_PUBLIC_OCR_API_URL;
 			const res = await fetch(`${apiUrl}/scan`, { method: "POST", body: formBody });
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const data = await res.json();
@@ -73,7 +75,7 @@ export function DashboardView({
 			if (data.name) logic.handleInputChange("Name / Nama", data.name);
 			if (data.date) logic.handleInputChange("Date / Tanggal", data.date);
 			if (data.category) logic.handleInputChange("Category / Kategori", data.category);
-			logic.handleInputChange("Type / Tipe", "Expense / Pengeluaran");
+			logic.handleInputChange("Type / Tipe", "Pengeluaran / Expense");
 
 			setOcrMessage(t("ocrSuccess"));
 		} catch (err) {
@@ -163,9 +165,9 @@ export function DashboardView({
 							<input ref={ocrInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleOcrScan} />
 							<Button
 								variant="outline"
-								disabled={ocrLoading}
+								disabled={ocrLoading || (!isLoggedIn && !isDemoMode)}
 								onClick={() => ocrInputRef.current?.click()}
-								className="w-full h-16 rounded-2xl border-dashed border-2 border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40 flex items-center justify-center gap-3 cursor-pointer transition-colors"
+								className="w-full h-16 rounded-2xl border-dashed border-2 border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40 flex items-center justify-center gap-3 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-50/50 dark:disabled:hover:bg-emerald-950/30"
 							>
 								<div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
 									{ocrLoading ? <Loader2 size={20} className="text-emerald-600 animate-spin" /> : <Camera size={20} className="text-emerald-600" />}

@@ -72,6 +72,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { DemoProvider } from "@/components/demo-context";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -101,7 +103,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
-            {children}
+            <DemoProvider>
+              {children}
+            </DemoProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>

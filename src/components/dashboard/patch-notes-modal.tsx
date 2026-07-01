@@ -32,6 +32,37 @@ interface UpdateItem {
 
 const UPDATES: UpdateItem[] = [
 	{
+		version: "v2.1.0",
+		type: "minor",
+		date: { en: "Wed, July 1, 2026", id: "Rabu, 1 Juli 2026" },
+		time: "18:00",
+		title: {
+			en: "Intelligent OCR Beta & Hybrid Storage Sync",
+			id: "OCR Cerdas (Beta) & Sinkronisasi Penyimpanan Hibrida"
+		},
+		description: {
+			en: "Introducing AI-powered receipt scanning (Beta) for effortless expense capture, hybrid cloud/sheet storage updates, and improved merchant name detection.",
+			id: "Memperkenalkan pemindaian struk bertenaga AI (Beta) untuk pencatatan pengeluaran instan, sinkronisasi penyimpanan cloud/sheet hibrida, dan deteksi nama merchant yang ditingkatkan."
+		},
+		details: [
+			{
+				type: "feature",
+				title: { en: "Intelligent OCR Receipt Scanner (Beta)", id: "Pemindai Struk OCR Cerdas (Beta)" },
+				desc: { en: "Instantly scan receipt photos to extract name, amount, date, and category. The algorithm prioritizes true totals over payment and change lines.", id: "Pindai foto struk secara instan untuk mengekstrak nama, nominal, tanggal, dan kategori. Algoritma memprioritaskan nominal total daripada baris pembayaran atau kembalian." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Smart Merchant Recognition", id: "Pengenalan Merchant Cerdas" },
+				desc: { en: "Recognizes well-known stores (e.g. Indomaret, Alfamart, Solaria, etc.) and cleans up receipt prefixes like 'Welcome' or 'Struk'.", id: "Mengenali toko dan gerai populer (seperti Indomaret, Alfamart, Solaria, dll.) serta membersihkan awalan struk seperti 'Welcome' atau 'Struk'." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Hybrid Cloud & Google Sheets Storage", id: "Penyimpanan Cloud & Google Sheets Hibrida" },
+				desc: { en: "Fully updated onboarding and privacy policy to support seamless transitions between offline Sheets mode and secure Supabase cloud login databases.", id: "Pembaruan panduan dan kebijakan privasi untuk mendukung transisi lancar antara mode offline Sheets dan database login cloud Supabase yang aman." }
+			}
+		]
+	},
+	{
 		version: "v2.0.1",
 		type: "minor",
 		date: { en: "Sun, June 22, 2026", id: "Minggu, 22 Juni 2026" },
