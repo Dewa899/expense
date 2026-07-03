@@ -7,7 +7,7 @@ import {
 	Link as LinkIcon, 
 	History, 
 	Wallet, 
-	Settings2, 
+	Settings, 
 	Trash2, 
 	ListTree, 
 	Pencil, 
@@ -378,7 +378,13 @@ export function FormView(props: FormViewProps) {
 					}}
 					className="w-full cursor-grab active:cursor-grabbing select-none"
 				>
-					<div className={`bg-gradient-to-br ${themeColors.gradient} rounded-3xl p-6 text-black shadow-lg ${themeColors.shadow} relative overflow-hidden group flex flex-col justify-between transition-colors duration-300 ${props.pockets.length > 0 ? "pr-14" : ""}`}>
+					<div 
+						onClick={(e) => {
+							e.stopPropagation();
+							props.onViewDetail();
+						}}
+						className={`bg-gradient-to-br ${themeColors.gradient} rounded-3xl p-6 text-black shadow-lg ${themeColors.shadow} relative overflow-hidden group flex flex-col justify-between transition-all duration-300 cursor-pointer hover:shadow-xl active:scale-[0.99] ${props.pockets.length > 0 ? "pr-14" : ""}`}
+					>
 						<div className="absolute -right-4 -top-4 w-24 h-24 bg-black/5 rounded-full blur-2xl pointer-events-none" />
 						
 						<AnimatePresence mode="wait">
@@ -401,7 +407,7 @@ export function FormView(props: FormViewProps) {
 												{activePocket.name}
 											</h4>
 										</div>
-										<div className="flex gap-1.5">
+										<div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
 											<Button 
 												size="icon" 
 												variant="ghost" 
@@ -412,6 +418,18 @@ export function FormView(props: FormViewProps) {
 												{isPrivate ? <EyeOff size={14} /> : <Eye size={14} />}
 											</Button>
 											
+											{/* Tombol Detail Transaksi (Ikon charts naik turun) */}
+											<Button 
+												size="icon" 
+												variant="ghost" 
+												onClick={(e) => { e.stopPropagation(); props.onViewDetail(); }}
+												disabled={isSyncing}
+												className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center"
+												aria-label="Detail Transaksi"
+											>
+												<TrendingUp size={14} />
+											</Button>
+
 											{/* Settings icon button inside card */}
 											<Button 
 												size="icon" 
@@ -421,7 +439,7 @@ export function FormView(props: FormViewProps) {
 												className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center"
 												aria-label="Pengaturan Dasbor"
 											>
-												<Settings2 size={14} />
+												<Settings size={14} />
 											</Button>
 										</div>
 									</div>
@@ -629,7 +647,7 @@ export function FormView(props: FormViewProps) {
 				<DialogContent className="sm:max-w-[420px] rounded-3xl p-6">
 					<DialogHeader>
 						<DialogTitle className="flex items-center gap-2">
-							<Settings2 className={themeColors.text} size={20} />
+							<Settings className={themeColors.text} size={20} />
 							{language === "en" ? "Dashboard Controls" : "Kontrol Dasbor"}
 						</DialogTitle>
 					</DialogHeader>
@@ -640,7 +658,11 @@ export function FormView(props: FormViewProps) {
 							variant="outline"
 							onClick={() => {
 								setIsDashboardSettingsOpen(false);
-								setIsProfileModalOpen(true);
+								if (!props.supabaseUser && !props.user) {
+									props.onLoginClick?.();
+								} else {
+									setIsProfileModalOpen(true);
+								}
 							}}
 							className="h-14 rounded-2xl justify-start px-5 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
 						>
@@ -887,7 +909,7 @@ export function FormView(props: FormViewProps) {
 				<DialogContent className="sm:max-w-[420px] rounded-3xl overflow-hidden p-6">
 					<DialogHeader>
 						<DialogTitle className="flex items-center gap-2">
-							<Settings2 className={themeColors.text} size={20} />
+							<Settings className={themeColors.text} size={20} />
 							{language === "en" ? "Manage Pockets" : "Kelola Kantong"}
 						</DialogTitle>
 					</DialogHeader>
@@ -898,10 +920,10 @@ export function FormView(props: FormViewProps) {
 								<Button
 									onClick={() => {
 										const newId = `pocket_${localPockets.length + 2}`;
-										const colors: ("indigo" | "amber")[] = ["indigo", "amber"];
+										const colors: ("indigo" | "amber")[] = ["indigo", "amber", "indigo"];
 										const newPocket: PocketDef = {
 											id: newId,
-											name: `Kantong ${localPockets.length + 2}`,
+											name: `Kantong ${localPockets.length + 1}`,
 											type: "default",
 											color: colors[localPockets.length] || "indigo"
 										};
@@ -922,7 +944,7 @@ export function FormView(props: FormViewProps) {
 													? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
 													: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
 											}`}>
-												Kantong {idx + 2}
+												Kantong {idx + 1}
 											</span>
 											<Button
 												variant="ghost"
@@ -985,14 +1007,14 @@ export function FormView(props: FormViewProps) {
 									</div>
 								))}
 
-								{localPockets.length < 2 && (
+								{localPockets.length < 3 && (
 									<Button
 										onClick={() => {
 											const newId = `pocket_${localPockets.length + 2}`;
-											const colors: ("indigo" | "amber")[] = ["indigo", "amber"];
+											const colors: ("indigo" | "amber")[] = ["indigo", "amber", "indigo"];
 											const newPocket: PocketDef = {
 												id: newId,
-												name: `Kantong ${localPockets.length + 2}`,
+												name: `Kantong ${localPockets.length + 1}`,
 												type: "default",
 												color: colors[localPockets.length] || "indigo"
 											};
@@ -1049,7 +1071,7 @@ export function FormView(props: FormViewProps) {
 								className={`h-8 text-[10px] font-black ${themeColors.textDark} ${themeColors.bgLight} border ${themeColors.border} ${themeColors.hoverBg} px-2.5 rounded-xl cursor-pointer flex items-center gap-1.5 transition-all shadow-sm`}
 								onClick={handleManageFieldsClick}
 							>
-								<Settings2 size={14} /> {t("manageFields")}
+								<Settings size={14} /> {t("manageFields")}
 							</Button>
 						} />
 						<DialogContent className="sm:max-w-[400px] rounded-3xl overflow-hidden">
