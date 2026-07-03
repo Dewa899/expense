@@ -16,14 +16,13 @@ import {
 	TrendingDown, 
 	Eye, 
 	EyeOff, 
-	ChevronDown, 
-	ChevronUp,
 	Download,
 	Home,
 	User,
 	Camera,
 	Loader2,
-	ChevronRight
+	ChevronRight,
+	CalendarDays
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +47,13 @@ import { NumericKeyboard, formatRupiah, stripRupiah, evaluateExpression } from "
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDemo } from "@/components/demo-context";
 import { supabase } from "@/lib/supabase-client";
+
+const cleanNumber = (val: string | number) => {
+	if (typeof val === "number") return val;
+	if (!val) return 0;
+	const cleaned = val.toString().replace(/\./g, "").replace(/,/g, "").replace(/\s/g, "");
+	return parseFloat(cleaned) || 0;
+};
 
 interface FormViewProps {
 	totalAmount: number;
@@ -105,6 +111,11 @@ interface FormViewProps {
 	getPocketBalance: (pocket: PocketDef) => number;
 	handleUpdatePockets: (list: PocketDef[]) => void;
 
+	// Recurring Props
+	recurringTemplates: any[];
+	handleAddRecurringTemplate: (template: any) => void;
+	handleDeleteRecurringTemplate: (id: string) => void;
+
 	// PWA Props
 	isAddToHomeOpen: boolean;
 	setIsAddToHomeOpen: (open: boolean) => void;
@@ -133,9 +144,8 @@ export function FormView(props: FormViewProps) {
 		return "desktop";
 	}, []);
 	
-	// Clean Coder: Privacy & Compact States
+	// Privacy State
 	const [isPrivate, setIsPrivate] = React.useState(false);
-	const [isCompact, setIsCompact] = React.useState(false);
 
 	// Local form data state for performance optimization (stops full parent re-renders on keystroke)
 	const [localFormData, setLocalFormData] = React.useState<Record<string, string>>(props.formData);
@@ -145,13 +155,13 @@ export function FormView(props: FormViewProps) {
 		setLocalFormData(props.formData);
 	}, [props.formData]);
 
-	// Mobile keyboard focus state – which amount header is focused
+	// Mobile keyboard focus state
 	const [mobileKbHeader, setMobileKbHeader] = React.useState<string | null>(null);
 
 	// Ref to amount field container for scroll-into-view
 	const amountFieldRef = React.useRef<HTMLDivElement>(null);
 
-	// Auto-scroll focused amount field into view when the mobile keyboard slides up
+	// Auto-scroll focused amount field into view
 	React.useEffect(() => {
 		if (isMobile && mobileKbHeader && amountFieldRef.current) {
 			const timer = setTimeout(() => {
@@ -159,7 +169,7 @@ export function FormView(props: FormViewProps) {
 					behavior: "smooth",
 					block: "center",
 				});
-			}, 300); // 300ms is standard for keyboard animation transition
+			}, 300);
 			return () => clearTimeout(timer);
 		}
 	}, [mobileKbHeader, isMobile]);
@@ -169,10 +179,9 @@ export function FormView(props: FormViewProps) {
 
 	React.useEffect(() => {
 		setIsPrivate(localStorage.getItem("privacy_mode") === "true");
-		setIsCompact(localStorage.getItem("compact_mode") === "true");
 	}, []);
 
-	// ─── Feature 6: Enter Key shortcut ──────────────────────────────────────────
+	// Shortcut Enter Key
 	React.useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (e.key !== "Enter") return;
@@ -192,15 +201,10 @@ export function FormView(props: FormViewProps) {
 		localStorage.setItem("privacy_mode", String(newVal));
 	};
 
-	const toggleCompact = () => {
-		const newVal = !isCompact;
-		setIsCompact(newVal);
-		localStorage.setItem("compact_mode", String(newVal));
-	};
-
 	const maskValue = (val: string) => isPrivate ? "******" : val;
 
 	const [isProfileModalOpen, setIsProfileModalOpen] = React.useState(false);
+	const [isDashboardSettingsOpen, setIsDashboardSettingsOpen] = React.useState(false);
 
 	const handleManageFieldsClick = (e: React.MouseEvent) => {
 		if (!props.user && !props.supabaseUser && !props.isDemoMode) {
@@ -209,7 +213,7 @@ export function FormView(props: FormViewProps) {
 		}
 	};
 
-	// ─── Local state amount formatting helpers ────────────────────────────────────
+	// Amount change and evaluation
 	const handleAmountChange = (header: string, raw: string) => {
 		const digits = stripRupiah(raw);
 		const formatted = digits ? formatRupiah(digits) : "";
@@ -226,8 +230,12 @@ export function FormView(props: FormViewProps) {
 
 	const displayHeaders = props.headers.length > 0 ? props.headers : ["Nama Pengeluaran", "Jumlah", "Tipe", "Kategori", "Catatan"];
 
-	// ─── Pocket / Theme Settings ────────────────────────────────────────────────
-	const activePocket = props.pockets[props.activePocketIdx] || { id: "pocket_1", name: "Utama", type: "default", color: "emerald" };
+	const carouselPockets = React.useMemo<PocketDef[]>(() => [
+		{ id: "net_worth", name: language === "en" ? "Total Net Worth" : "Total Kekayaan", type: "default", color: "emerald", target: undefined } as PocketDef,
+		...props.pockets
+	], [props.pockets, language]);
+
+	const activePocket = carouselPockets[props.activePocketIdx] || carouselPockets[0];
 
 	const themeColors = {
 		emerald: {
@@ -275,9 +283,7 @@ export function FormView(props: FormViewProps) {
 	const [localPockets, setLocalPockets] = React.useState<PocketDef[]>(props.pockets);
 
 	React.useEffect(() => {
-		if (props.pockets.length > 0) {
-			setLocalPockets(props.pockets);
-		}
+		setLocalPockets(props.pockets);
 	}, [props.pockets]);
 
 	const handleLocalPocketFieldChange = (idx: number, field: string, value: any) => {
@@ -293,17 +299,59 @@ export function FormView(props: FormViewProps) {
 		setIsPocketSettingsOpen(false);
 	};
 
+	// ─── Manage Recurring Templates Modal ──────────────────────────────────────
+	const [isRecurringModalOpen, setIsRecurringModalOpen] = React.useState(false);
+	const [recName, setRecName] = React.useState("");
+	const [recAmount, setRecAmount] = React.useState("");
+	const [recType, setRecType] = React.useState<"income" | "expense">("expense");
+	const [recCategory, setRecCategory] = React.useState("");
+	const [recPocket, setRecPocket] = React.useState("Utama");
+	const [recInterval, setRecInterval] = React.useState<"daily" | "weekly" | "monthly">("monthly");
+
+	React.useEffect(() => {
+		if (props.categories.length > 0 && !recCategory) {
+			setRecCategory(props.categories[0]);
+		}
+	}, [props.categories, recCategory]);
+
+	const handleCreateRecurring = () => {
+		if (!recName.trim() || !recAmount) return;
+		const rawAmt = cleanNumber(stripRupiah(recAmount));
+		if (rawAmt <= 0) return;
+
+		const targetRun = new Date();
+		// Schedule for tomorrow/next run
+		if (recInterval === "daily") targetRun.setDate(targetRun.getDate() + 1);
+		else if (recInterval === "weekly") targetRun.setDate(targetRun.getDate() + 7);
+		else if (recInterval === "monthly") targetRun.setMonth(targetRun.getMonth() + 1);
+
+		const template = {
+			id: Math.random().toString(36).substring(2, 9),
+			name: recName.trim(),
+			amount: rawAmt,
+			type: recType,
+			category: recCategory || props.categories[0] || "Lainnya",
+			pocket: recPocket,
+			interval_unit: recInterval,
+			interval_value: 1,
+			next_execution_at: targetRun.toISOString(),
+			last_executed_at: null
+		};
+
+		props.handleAddRecurringTemplate(template);
+		setRecName("");
+		setRecAmount("");
+	};
+
 	// Calculate target progress percentage
 	const progressBarPercent = React.useMemo(() => {
 		if (activePocket.type === "default" || !activePocket.target) return 0;
 		if (activePocket.type === "budget") {
-			// Monthly expenses
 			const expense = props.transactions
 				.filter(t => (t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount < 0)
 				.reduce((sum, t) => sum + t.amount, 0);
 			return (Math.abs(expense) / activePocket.target) * 100;
 		} else {
-			// Accumulated balance
 			const balance = props.getPocketBalance(activePocket);
 			return Math.max(0, (balance / activePocket.target) * 100);
 		}
@@ -315,16 +363,17 @@ export function FormView(props: FormViewProps) {
 			className="space-y-6"
 		>
 			{/* Pocket Total Amount Card with 80/20 Layout & Swipe controls */}
-			<section className="mt-2 flex gap-3 items-stretch h-[170px]">
+			<section className="mt-2 flex gap-3 items-stretch min-h-[220px]">
 				<motion.div 
-					drag="x"
+					drag={props.pockets.length > 0 ? "x" : false}
 					dragConstraints={{ left: 0, right: 0 }}
 					onDragEnd={(e, info) => {
+						if (props.pockets.length === 0) return;
 						const swipeThreshold = 50;
 						if (info.offset.x < -swipeThreshold) {
-							props.setActivePocketIdx((props.activePocketIdx + 1) % props.pockets.length);
+							props.setActivePocketIdx((props.activePocketIdx + 1) % carouselPockets.length);
 						} else if (info.offset.x > swipeThreshold) {
-							props.setActivePocketIdx((props.activePocketIdx - 1 + props.pockets.length) % props.pockets.length);
+							props.setActivePocketIdx((props.activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
 						}
 					}}
 					className="flex-grow flex-1 cursor-grab active:cursor-grabbing select-none h-full"
@@ -339,55 +388,52 @@ export function FormView(props: FormViewProps) {
 								animate={{ x: 0, opacity: 1 }}
 								exit={{ x: -20, opacity: 0 }}
 								transition={{ duration: 0.15 }}
-								className="w-full flex-grow flex flex-col justify-between"
+								className="w-full flex-grow flex flex-col justify-between gap-y-4"
 							>
 								<div>
 									<div className="flex justify-between items-start">
 										<div className="flex flex-col">
-											<span className="text-[9px] font-black uppercase tracking-wider opacity-60">Pocket</span>
+											<span className="text-[9px] font-black uppercase tracking-wider opacity-60">
+												{activePocket.id === "net_worth" ? (language === "en" ? "Net Worth" : "Total Kekayaan") : "Pocket"}
+											</span>
 											<h4 className="text-sm font-black uppercase tracking-wide flex items-center gap-1.5 mt-0.5">
 												<Wallet size={14} className="opacity-70" />
 												{activePocket.name}
 											</h4>
 										</div>
-										<div className="flex gap-1">
+										<div className="flex gap-1.5">
 											<Button 
 												size="icon" 
 												variant="ghost" 
 												onClick={(e) => { e.stopPropagation(); togglePrivacy(); }}
 												disabled={isSyncing}
-												className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer"
+												className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center"
 											>
 												{isPrivate ? <EyeOff size={14} /> : <Eye size={14} />}
 											</Button>
+											
+											{/* Settings icon button inside card */}
 											<Button 
-												size="sm" 
-												onClick={(e) => { e.stopPropagation(); props.onViewDetail(); }} 
-												disabled={isSyncing} 
-												className="h-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full font-bold text-[10px] px-3 cursor-pointer"
+												size="icon" 
+												variant="ghost" 
+												onClick={(e) => { e.stopPropagation(); setIsDashboardSettingsOpen(true); }}
+												disabled={isSyncing}
+												className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center"
+												aria-label="Pengaturan Dasbor"
 											>
-												<History size={12} className="mr-1" /> {t("viewDetail")}
+												<Settings2 size={14} />
 											</Button>
 										</div>
 									</div>
 
 									<div className="flex items-center justify-between mt-2">
 										<h2 className="text-3xl font-black tracking-tight">{maskValue(props.formatCurrency(props.totalAmount))}</h2>
-										<Button 
-											size="icon" 
-											variant="ghost" 
-											onClick={(e) => { e.stopPropagation(); toggleCompact(); }}
-											disabled={isSyncing}
-											className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer transition-transform"
-										>
-											{isCompact ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-										</Button>
 									</div>
 								</div>
 
 								{/* Progress target bar for Budget or Saving pocket */}
-								{!isCompact && activePocket.type !== "default" && activePocket.target && (
-									<div className="mt-4 space-y-1">
+								{activePocket.type !== "default" && activePocket.target && (
+									<div className="space-y-1">
 										<div className="flex justify-between text-[9px] font-black opacity-85">
 											<span>
 												{activePocket.type === "budget" 
@@ -405,7 +451,7 @@ export function FormView(props: FormViewProps) {
 														? progressBarPercent > 90
 															? "bg-red-600"
 															: progressBarPercent > 70
-																? "bg-amber-600"
+																? "bg-amber-605"
 																: "bg-emerald-700"
 														: "bg-teal-700"
 												}`}
@@ -413,97 +459,45 @@ export function FormView(props: FormViewProps) {
 										</div>
 									</div>
 								)}
+
+								{/* Static balance details directly inside card */}
+								<div className="pt-3 border-t border-black/5 flex items-center justify-between text-[10px] font-black opacity-80 flex-wrap gap-y-2">
+									<div className="flex items-center gap-1.5">
+										<Wallet size={12} className="opacity-50" />
+										<span>{maskValue(props.formatCurrency(props.transactions.find(t => t.category === "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id))?.amount || 0))}</span>
+									</div>
+									
+									<div className="flex items-center gap-3">
+										<div className="flex items-center gap-1 text-emerald-900">
+											<TrendingUp size={12} />
+											<span>{maskValue(props.formatCurrency(props.transactions.filter(t => t.category !== "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0)))}</span>
+										</div>
+										<div className="w-1 h-1 rounded-full bg-black/10" />
+										<div className="flex items-center gap-1 text-red-900">
+											<TrendingDown size={12} />
+											<span>{maskValue(props.formatCurrency(Math.abs(props.transactions.filter(t => t.category !== "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0))))}</span>
+										</div>
+									</div>
+								</div>
 							</motion.div>
 						</AnimatePresence>
 					</div>
 				</motion.div>
 
-				{/* Right Side: Double Stacked Buttons (20%) */}
-				<div className="w-[60px] flex flex-col gap-2 flex-shrink-0">
-					{/* Button 1 (Top): Pocket Manager Modal */}
+				{/* Right Side: Panah Next (HANYA MUNCUL JIKA ADA SAKU TAMBAHAN) */}
+				{props.pockets.length > 0 && (
 					<Button
-						onClick={() => setIsPocketSettingsOpen(true)}
-						className="flex-1 rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-all active:scale-95 shadow-sm p-0 gap-1"
-						aria-label="Kelola Kantong"
-					>
-						<Settings2 size={18} />
-						<span className="text-[8px] font-black uppercase">Edit</span>
-					</Button>
-					
-					{/* Button 2 (Bottom): Shift active pocket */}
-					<Button
-						onClick={() => props.setActivePocketIdx((props.activePocketIdx + 1) % props.pockets.length)}
-						className="flex-1 rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-all active:scale-95 shadow-sm p-0 gap-1"
+						onClick={() => props.setActivePocketIdx((props.activePocketIdx + 1) % carouselPockets.length)}
+						className="w-[60px] rounded-3xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-all active:scale-95 shadow-sm p-0 gap-1 h-full flex-shrink-0"
 						aria-label="Kantong Berikutnya"
 					>
-						<ChevronRight size={18} />
-						<span className="text-[8px] font-black uppercase">Next</span>
+						<ChevronRight size={22} />
+						<span className="text-[9px] font-black uppercase">Next</span>
 					</Button>
-				</div>
+				)}
 			</section>
 
-			{/* Detailed Profile and Install Modal */}
-			<AnimatePresence>
-				{!isCompact && (
-					<motion.div 
-						initial={{ height: 0, opacity: 0 }}
-						animate={{ height: "auto", opacity: 1 }}
-						exit={{ height: 0, opacity: 0 }}
-						className="overflow-hidden mt-0"
-					>
-						<div className="flex justify-between items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-850 p-4 rounded-3xl text-[10px] font-black flex-wrap gap-y-2">
-							<div className="flex items-center gap-1.5">
-								<div className="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
-									<Wallet size={12} className="opacity-50" />
-								</div>
-								<span>{maskValue(props.formatCurrency(props.transactions.find(t => t.category === "Initial Balance" && (t.pocket === activePocket.name || t.pocket === activePocket.id))?.amount || 0))}</span>
-							</div>
-							
-							<div className="flex items-center gap-3">
-								<div className="flex items-center gap-1.5 text-emerald-650 dark:text-emerald-450">
-									<TrendingUp size={12} />
-									<span>{maskValue(props.formatCurrency(props.transactions.filter(t => t.category !== "Initial Balance" && (t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0)))}</span>
-								</div>
-								<div className="w-1 h-1 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-								<div className="flex items-center gap-1.5 text-red-650 dark:text-red-450">
-									<TrendingDown size={12} />
-									<span>{maskValue(props.formatCurrency(Math.abs(props.transactions.filter(t => t.category !== "Initial Balance" && (t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0))))}</span>
-								</div>
-							</div>
-
-							<div className="flex gap-1.5">
-								{!props.isStandaloneMode && (
-									<Button 
-										size="sm" 
-										variant="secondary" 
-										disabled={isSyncing} 
-										onClick={() => props.setIsAddToHomeOpen(true)}
-										className="h-7 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-none rounded-full font-bold px-2.5 cursor-pointer flex items-center gap-1 text-[9px]"
-									>
-										<Download size={10} />
-										Install
-									</Button>
-								)}
-
-								{!props.isDemoMode && (
-									<Button 
-										size="sm" 
-										variant="secondary" 
-										onClick={() => setIsProfileModalOpen(true)} 
-										disabled={isSyncing} 
-										className="h-7 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-none rounded-full font-bold px-2.5 cursor-pointer text-[9px] flex items-center gap-1"
-									>
-										<User size={10} />
-										Profile
-									</Button>
-								)}
-							</div>
-						</div>
-					</motion.div>
-				)}
-			</AnimatePresence>
-
-			{/* PWA Downloader instructions modal */}
+			{/* PWA Downloader modal */}
 			<Dialog open={props.isAddToHomeOpen} onOpenChange={props.setIsAddToHomeOpen}>
 				<DialogContent className="sm:max-w-[420px] rounded-3xl overflow-hidden p-6">
 					<DialogHeader>
@@ -546,7 +540,7 @@ export function FormView(props: FormViewProps) {
 				</DialogContent>
 			</Dialog>
 
-			{/* Profile Modal */}
+			{/* Profile Connection Modal */}
 			<Dialog open={isProfileModalOpen} onOpenChange={setIsProfileModalOpen}>
 				<DialogContent className="sm:max-w-[425px] rounded-3xl">
 					<DialogHeader>
@@ -588,7 +582,7 @@ export function FormView(props: FormViewProps) {
 											localStorage.removeItem("customPockets");
 											window.location.reload();
 										}}
-										className="text-xs font-bold text-destructive hover:underline cursor-pointer"
+										className="text-xs font-bold text-destructive hover:underline cursor-pointer bg-transparent border-none"
 									>
 										Log Out Account
 									</button>
@@ -627,7 +621,265 @@ export function FormView(props: FormViewProps) {
 				</DialogContent>
 			</Dialog>
 
-			{/* Pocket Customization Settings Dialog */}
+			{/* Dashboard Settings Modal (Central Control Center) */}
+			<Dialog open={isDashboardSettingsOpen} onOpenChange={setIsDashboardSettingsOpen}>
+				<DialogContent className="sm:max-w-[420px] rounded-3xl p-6">
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2">
+							<Settings2 className={themeColors.text} size={20} />
+							{language === "en" ? "Dashboard Controls" : "Kontrol Dasbor"}
+						</DialogTitle>
+					</DialogHeader>
+					
+					<div className="grid grid-cols-1 gap-3 pt-4">
+						{/* Item 1: Profile & Connections */}
+						<Button
+							variant="outline"
+							onClick={() => {
+								setIsDashboardSettingsOpen(false);
+								setIsProfileModalOpen(true);
+							}}
+							className="h-14 rounded-2xl justify-start px-5 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
+						>
+							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center`}>
+								<User size={18} className={themeColors.text} />
+							</div>
+							<div className="text-left leading-none">
+								<p className="text-sm font-black">{language === "en" ? "Profile & Sync" : "Profil & Sinkronisasi"}</p>
+								<p className="text-[10px] text-zinc-400 font-bold mt-0.5">{language === "en" ? "Manage account connections" : "Kelola koneksi akun"}</p>
+							</div>
+						</Button>
+
+						{/* Item 2: Manage Pockets (Always Available) */}
+						<Button
+							variant="outline"
+							onClick={() => {
+								setIsDashboardSettingsOpen(false);
+								setIsPocketSettingsOpen(true);
+							}}
+							className="h-14 rounded-2xl justify-start px-5 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
+						>
+							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center`}>
+								<Wallet size={18} className={themeColors.text} />
+							</div>
+							<div className="text-left leading-none">
+								<p className="text-sm font-black">{language === "en" ? "Manage Pockets" : "Kelola Kantong"}</p>
+								<p className="text-[10px] text-zinc-400 font-bold mt-0.5">{language === "en" ? "Rename and configure budgets" : "Sesuaikan nama dan limit saku"}</p>
+							</div>
+						</Button>
+
+						{/* Item 3: Recurring Scheduler (Always Available) */}
+						<Button
+							variant="outline"
+							onClick={() => {
+								setIsDashboardSettingsOpen(false);
+								setIsRecurringModalOpen(true);
+							}}
+							className="h-14 rounded-2xl justify-start px-5 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
+						>
+							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center`}>
+								<CalendarDays size={18} className={themeColors.text} />
+							</div>
+							<div className="text-left leading-none">
+								<p className="text-sm font-black">{language === "en" ? "Recurring Transactions" : "Transaksi Otomatis"}</p>
+								<p className="text-[10px] text-zinc-400 font-bold mt-0.5">{language === "en" ? "Automate weekly/monthly inputs" : "Atur pencatatan teratur otomatis"}</p>
+							</div>
+						</Button>
+
+						{/* Item 4: Manage custom fields */}
+						<Button
+							variant="outline"
+							onClick={(e) => {
+								setIsDashboardSettingsOpen(false);
+								handleManageFieldsClick(e);
+							}}
+							className="h-14 rounded-2xl justify-start px-5 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
+						>
+							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center`}>
+								<ListTree size={18} className={themeColors.text} />
+							</div>
+							<div className="text-left leading-none">
+								<p className="text-sm font-black">{t("manageFields")}</p>
+								<p className="text-[10px] text-zinc-400 font-bold mt-0.5">{language === "en" ? "Add fields and categories" : "Tambah kolom dan kategori baru"}</p>
+							</div>
+						</Button>
+
+						{/* Item 5 & 6: Data Exports (Only if transactions exist) */}
+						{props.transactions.length > 0 && (
+							<div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-850">
+								<Button
+									variant="outline"
+									onClick={() => {
+										setIsDashboardSettingsOpen(false);
+										props.exportToCSV?.();
+									}}
+									className="h-10 rounded-xl font-bold text-xs cursor-pointer bg-transparent border-zinc-200 dark:border-zinc-800"
+								>
+									{language === "en" ? "Export CSV" : "Ekspor CSV"}
+								</Button>
+								{props.isGoogleConnected && (
+									<Button
+										variant="outline"
+										onClick={() => {
+											setIsDashboardSettingsOpen(false);
+											props.exportToGoogleSheets?.();
+										}}
+										className={`h-10 rounded-xl font-bold text-xs cursor-pointer text-emerald-600 bg-emerald-500/5 border-emerald-500/35 hover:bg-emerald-500/10`}
+									>
+										{language === "en" ? "Sync Sheets" : "Sinkron Sheets"}
+									</Button>
+								)}
+							</div>
+						)}
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			{/* Recurring Transactions Manager Modal */}
+			<Dialog open={isRecurringModalOpen} onOpenChange={setIsRecurringModalOpen}>
+				<DialogContent className="sm:max-w-[450px] rounded-3xl p-6">
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2">
+							<CalendarDays className={themeColors.text} size={20} />
+							{language === "en" ? "Recurring Transaction Templates" : "Template Transaksi Otomatis"}
+						</DialogTitle>
+					</DialogHeader>
+
+					<div className="space-y-4 pt-3 overflow-y-auto max-h-[480px] pr-1">
+						{/* Section 1: Create new template */}
+						<div className="p-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-850 rounded-2xl space-y-3">
+							<p className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
+								{language === "en" ? "Create Auto-Transaction" : "Buat Transaksi Otomatis"}
+							</p>
+							
+							<div className="space-y-2">
+								<Input
+									placeholder={language === "en" ? "Transaction Name (e.g. Salary)" : "Nama Transaksi (misal: Uang Jajan)"}
+									value={recName}
+									onChange={(e) => setRecName(e.target.value)}
+									className="h-10 rounded-xl"
+								/>
+							</div>
+
+							<div className="grid grid-cols-2 gap-2">
+								<div className="relative flex items-center">
+									<span className="absolute left-3 text-[10px] font-black text-zinc-400 select-none">Rp</span>
+									<Input
+										placeholder="e.g. 500.000"
+										value={recAmount}
+										onChange={(e) => setRecAmount(formatRupiah(stripRupiah(e.target.value)))}
+										className="h-10 pl-7 rounded-xl"
+									/>
+								</div>
+								
+								<Select value={recType} onValueChange={(val: any) => setRecType(val)}>
+									<SelectTrigger className="h-10 rounded-xl cursor-pointer">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent className="rounded-xl">
+										<SelectItem value="expense" className="cursor-pointer">{t("expense")}</SelectItem>
+										<SelectItem value="income" className="cursor-pointer">{t("income")}</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+
+							<div className="grid grid-cols-2 gap-2">
+								<Select value={recCategory} onValueChange={(val) => setRecCategory(val || "")}>
+									<SelectTrigger className="h-10 rounded-xl cursor-pointer">
+										<SelectValue placeholder={t("category")} />
+									</SelectTrigger>
+									<SelectContent className="rounded-xl">
+										{props.categories.map((c) => (
+											<SelectItem key={c} value={c} className="cursor-pointer">{c}</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+
+								<Select value={recInterval} onValueChange={(val: any) => setRecInterval(val || "monthly")}>
+									<SelectTrigger className="h-10 rounded-xl cursor-pointer">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent className="rounded-xl">
+										<SelectItem value="daily" className="cursor-pointer">{language === "en" ? "Daily" : "Harian"}</SelectItem>
+										<SelectItem value="weekly" className="cursor-pointer">{language === "en" ? "Weekly" : "Mingguan"}</SelectItem>
+										<SelectItem value="monthly" className="cursor-pointer">{language === "en" ? "Monthly" : "Bulanan"}</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+
+							{props.pockets.length > 0 && (
+								<div className="space-y-1">
+									<Label className="text-[10px] text-zinc-400 font-bold">{language === "en" ? "Select Pocket" : "Pilih Kantong"}</Label>
+									<Select value={recPocket} onValueChange={(val) => setRecPocket(val || "Utama")}>
+										<SelectTrigger className="h-10 rounded-xl cursor-pointer">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent className="rounded-xl">
+											<SelectItem value="Utama" className="cursor-pointer">Utama</SelectItem>
+											{props.pockets.map((p) => (
+												<SelectItem key={p.id} value={p.name} className="cursor-pointer">{p.name}</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+							)}
+
+							<Button
+								onClick={handleCreateRecurring}
+								disabled={!recName.trim() || !recAmount}
+								className={`w-full h-10 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black rounded-xl border-none shadow-md cursor-pointer`}
+							>
+								{language === "en" ? "Schedule Transaction" : "Jadwalkan Transaksi"}
+							</Button>
+						</div>
+
+						{/* Section 2: Active list */}
+						<div className="space-y-2">
+							<p className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
+								{language === "en" ? "Active Automations" : "Daftar Transaksi Otomatis"}
+							</p>
+							{props.recurringTemplates.length === 0 ? (
+								<div className="py-6 text-center text-zinc-450 dark:text-zinc-500 text-xs font-semibold">
+									{language === "en" ? "No scheduled transactions" : "Belum ada transaksi otomatis yang dijadwalkan"}
+								</div>
+							) : (
+								<div className="space-y-2">
+									{props.recurringTemplates.map((t) => (
+										<div key={t.id} className="p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 rounded-xl flex items-center justify-between">
+											<div className="space-y-0.5">
+												<div className="flex items-center gap-1.5">
+													<p className="text-sm font-bold">{t.name}</p>
+													<span className={`text-[8px] font-black uppercase px-1 rounded-sm ${
+														t.type === "expense" ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"
+													}`}>
+														{t.type}
+													</span>
+												</div>
+												<p className="text-[10px] text-zinc-500 font-medium">
+													Rp {formatRupiah(t.amount.toString())} • {t.category} {props.pockets.length > 0 && `• Saku: ${t.pocket}`}
+												</p>
+												<p className="text-[8px] uppercase tracking-wider text-zinc-400 font-bold">
+													Interval: {t.interval_unit} (Next: {new Date(t.next_execution_at).toLocaleDateString()})
+												</p>
+											</div>
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={() => props.handleDeleteRecurringTemplate(t.id)}
+												className="text-destructive cursor-pointer hover:bg-destructive/15 h-8 w-8 p-0 rounded-full"
+											>
+												<Trash2 size={14} />
+											</Button>
+										</div>
+									))}
+								</div>
+							)}
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			{/* Pocket Settings Dialog */}
 			<Dialog open={isPocketSettingsOpen} onOpenChange={setIsPocketSettingsOpen}>
 				<DialogContent className="sm:max-w-[420px] rounded-3xl overflow-hidden p-6">
 					<DialogHeader>
@@ -637,36 +889,60 @@ export function FormView(props: FormViewProps) {
 						</DialogTitle>
 					</DialogHeader>
 					<div className="space-y-4 pt-2 max-h-[350px] overflow-y-auto pr-1">
-						{localPockets.map((pocket, idx) => (
-							<div key={pocket.id} className="p-4 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800 space-y-3">
-								<div className="flex items-center justify-between">
-									<span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
-										pocket.color === "emerald" 
-											? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-											: pocket.color === "indigo"
-												? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
-												: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-									}`}>
-										Kantong {idx + 1}
-									</span>
-									{pocket.id === "pocket_1" && (
-										<span className="text-[9px] text-zinc-400 uppercase font-black">Default Wallet</span>
-									)}
-								</div>
-								
-								<div className="space-y-2">
-									<Label className="text-xs text-zinc-500 font-bold">{language === "en" ? "Pocket Name" : "Nama Kantong"}</Label>
-									<Input
-										value={pocket.name}
-										disabled={pocket.id === "pocket_1"} // Utama is read-only for system integrity
-										onChange={(e) => handleLocalPocketFieldChange(idx, "name", e.target.value)}
-										className={`h-10 rounded-xl focus:border-${pocket.color}-500 focus:ring-1 focus:ring-${pocket.color}-500`}
-										placeholder="e.g. Jajan / Tabungan"
-									/>
-								</div>
+						{localPockets.length === 0 ? (
+							<div className="text-center py-6 text-zinc-500 text-xs font-semibold space-y-3">
+								<p>{language === "en" ? "You haven't added any custom pockets." : "Anda belum menambahkan kantong kustom."}</p>
+								<Button
+									onClick={() => {
+										const newId = `pocket_${localPockets.length + 2}`;
+										const colors: ("indigo" | "amber")[] = ["indigo", "amber"];
+										const newPocket: PocketDef = {
+											id: newId,
+											name: `Kantong ${localPockets.length + 2}`,
+											type: "default",
+											color: colors[localPockets.length] || "indigo"
+										};
+										setLocalPockets([...localPockets, newPocket]);
+									}}
+									className={`bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black rounded-xl border-none cursor-pointer`}
+								>
+									{language === "en" ? "Add First Pocket" : "Tambah Kantong Pertama"}
+								</Button>
+							</div>
+						) : (
+							<div className="space-y-4">
+								{localPockets.map((pocket, idx) => (
+									<div key={pocket.id} className="p-4 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800 space-y-3 relative">
+										<div className="flex items-center justify-between">
+											<span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+												pocket.color === "indigo"
+													? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+													: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+											}`}>
+												Kantong {idx + 2}
+											</span>
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={() => {
+													setLocalPockets(localPockets.filter((_, i) => i !== idx));
+												}}
+												className="h-6 text-destructive text-[10px] font-bold hover:bg-destructive/15 cursor-pointer px-2 rounded-lg"
+											>
+												{language === "en" ? "Delete" : "Hapus"}
+											</Button>
+										</div>
+										
+										<div className="space-y-2">
+											<Label className="text-xs text-zinc-500 font-bold">{language === "en" ? "Pocket Name" : "Nama Kantong"}</Label>
+											<Input
+												value={pocket.name}
+												onChange={(e) => handleLocalPocketFieldChange(idx, "name", e.target.value)}
+												className={`h-10 rounded-xl focus:border-${pocket.color}-500 focus:ring-1 focus:ring-${pocket.color}-500`}
+												placeholder="e.g. Jajan / Tabungan"
+											/>
+										</div>
 
-								{pocket.id !== "pocket_1" && (
-									<>
 										<div className="space-y-2">
 											<Label className="text-xs text-zinc-500 font-bold">{language === "en" ? "Pocket Type" : "Tipe Kantong"}</Label>
 											<Select
@@ -703,10 +979,31 @@ export function FormView(props: FormViewProps) {
 												/>
 											</div>
 										)}
-									</>
+									</div>
+								))}
+
+								{localPockets.length < 2 && (
+									<Button
+										onClick={() => {
+											const newId = `pocket_${localPockets.length + 2}`;
+											const colors: ("indigo" | "amber")[] = ["indigo", "amber"];
+											const newPocket: PocketDef = {
+												id: newId,
+												name: `Kantong ${localPockets.length + 2}`,
+												type: "default",
+												color: colors[localPockets.length] || "indigo"
+											};
+											setLocalPockets([...localPockets, newPocket]);
+										}}
+										variant="outline"
+										className="w-full h-11 border-dashed rounded-xl font-bold flex items-center justify-center gap-1.5 cursor-pointer border-zinc-300 dark:border-zinc-800"
+									>
+										<Plus size={16} />
+										{language === "en" ? "Add Pocket" : "Tambah Kantong"}
+									</Button>
 								)}
 							</div>
-						))}
+						)}
 					</div>
 					<div className="flex gap-2 mt-4">
 						<Button
@@ -864,7 +1161,7 @@ export function FormView(props: FormViewProps) {
 											</button>
 											<button
 												type="button"
-												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${localFormData[header] === "Pengeluaran / Expense" ? "bg-white/80 dark:bg-zinc-900/60 text-red-600 shadow-sm border border-white/40 dark:border-white/5" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
+												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${localFormData[header] === "Pengeluaran / Expense" ? "bg-white/80 dark:bg-zinc-900/60 text-red-650 shadow-sm border border-white/40 dark:border-white/5" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
 												onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleLocalInputChange(header, "Pengeluaran / Expense"); }}
 												disabled={isInteractionDisabled}
 											>
@@ -914,28 +1211,41 @@ export function FormView(props: FormViewProps) {
 						const isOcrDisabled = props.ocrLoading || isInteractionDisabled || (!props.supabaseUser && !props.user && !props.isDemoMode);
 						
 						return (props.supabaseUser || props.user || props.isDemoMode) ? (
-							<div className="flex items-center gap-3 mt-4 w-full">
-								<Button 
-									disabled={isInteractionDisabled} 
-									onClick={handleLocalSubmit} 
-									className={`flex-grow h-14 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black text-lg rounded-2xl shadow-lg ${themeColors.buttonShadow} cursor-pointer border-none transition-all active:scale-[0.98]`}
-								>
-									{props.loading ? "..." : t("addExpense")}
-								</Button>
-								<Button
-									type="button"
-									variant="outline"
-									disabled={isOcrDisabled}
-									onClick={props.onOcrClick}
-									className={`h-14 w-14 rounded-2xl border ${themeColors.border} ${themeColors.bgLight} ${themeColors.hoverBg} flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 bg-transparent`}
-									aria-label="Scan Struk / OCR Receipt Scan"
-								>
-									{props.ocrLoading ? (
-										<Loader2 size={24} className={`${themeColors.text} animate-spin`} />
-									) : (
-										<Camera size={24} className={themeColors.text} />
-									)}
-								</Button>
+							<div className="flex flex-col items-center w-full gap-2">
+								<div className="flex items-center gap-3 mt-4 w-full">
+									<Button 
+										disabled={isInteractionDisabled} 
+										onClick={handleLocalSubmit} 
+										className={`flex-grow h-14 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black text-lg rounded-2xl shadow-lg ${themeColors.buttonShadow} cursor-pointer border-none transition-all active:scale-[0.98]`}
+									>
+										{props.loading ? "..." : t("addExpense")}
+									</Button>
+									<Button
+										type="button"
+										variant="outline"
+										disabled={isOcrDisabled}
+										onClick={props.onOcrClick}
+										className={`h-14 w-14 rounded-2xl border ${themeColors.border} ${themeColors.bgLight} ${themeColors.hoverBg} flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 bg-transparent`}
+										aria-label="Scan Struk / OCR Receipt Scan"
+									>
+										{props.ocrLoading ? (
+											<Loader2 size={24} className={`${themeColors.text} animate-spin`} />
+										) : (
+											<Camera size={24} className={themeColors.text} />
+										)}
+									</Button>
+								</div>
+
+								{/* PWA Install Button position moved to bottom of quickAdd card */}
+								{props.isInstallable && (
+									<button
+										type="button"
+										onClick={props.triggerInstall}
+										className="text-xs font-semibold text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors underline underline-offset-2 cursor-pointer mt-2 bg-transparent border-none"
+									>
+										{language === "en" ? "Install Application" : "Instal Aplikasi"}
+									</button>
+								)}
 							</div>
 						) : (
 							<div className="flex flex-col items-center gap-2 w-full">
@@ -953,6 +1263,7 @@ export function FormView(props: FormViewProps) {
 										<Camera size={24} className="text-zinc-400" />
 									</Button>
 								</div>
+								
 								<button
 									type="button"
 									onClick={enterDemo}
@@ -989,7 +1300,7 @@ export function FormView(props: FormViewProps) {
 				/>
 			)}
 
-			{/* Extra bottom spacing when mobile keyboard is open so the user can scroll the input field above the keyboard */}
+			{/* Extra bottom spacing when mobile keyboard is open */}
 			{isMobile && mobileKbHeader && (
 				<div className="h-[310px] w-full pointer-events-none" />
 			)}

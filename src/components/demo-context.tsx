@@ -22,6 +22,7 @@ const DEMO_TRANSACTIONS: Transaction[] = [
 		type: "Pengeluaran / Expense",
 		category: "Makanan & Minuman",
 		note: "Warung Bu Sari",
+		pocket: "Jajan",
 		raw: [],
 	},
 	{
@@ -31,6 +32,7 @@ const DEMO_TRANSACTIONS: Transaction[] = [
 		type: "Pemasukan / Income",
 		category: "Lainnya",
 		note: "Transfer dari kantor",
+		pocket: "Utama",
 		raw: [],
 	},
 	{
@@ -40,6 +42,7 @@ const DEMO_TRANSACTIONS: Transaction[] = [
 		type: "Pengeluaran / Expense",
 		category: "Transportasi",
 		note: "",
+		pocket: "Utama",
 		raw: [],
 	},
 	{
@@ -49,6 +52,7 @@ const DEMO_TRANSACTIONS: Transaction[] = [
 		type: "Pengeluaran / Expense",
 		category: "Belanja",
 		note: "Diskon 20%",
+		pocket: "Utama",
 		raw: [],
 	},
 	{
@@ -58,6 +62,7 @@ const DEMO_TRANSACTIONS: Transaction[] = [
 		type: "Pengeluaran / Expense",
 		category: "Hiburan",
 		note: "Nonton bareng teman",
+		pocket: "Jajan",
 		raw: [],
 	},
 ];
