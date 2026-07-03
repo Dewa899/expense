@@ -32,6 +32,42 @@ interface UpdateItem {
 
 const UPDATES: UpdateItem[] = [
 	{
+		version: "v2.2.0",
+		type: "minor",
+		date: { en: "Fri, July 3, 2026", id: "Jumat, 3 Juli 2026" },
+		time: "14:15",
+		title: {
+			en: "Performance Tuning, Hook Modularization & Accessibility",
+			id: "Penyelarasan Performa, Modularisasi Hook & Aksesibilitas"
+		},
+		description: {
+			en: "Introducing form state isolation for fluid mobile typing, dynamic lazy loading for charts, clean modular refactoring of dashboard hooks, and accessibility enhancements.",
+			id: "Memperkenalkan isolasi state formulir untuk ketikan seluler yang lancar, pemuatan grafik dinamis, refactoring modular hook dashboard, dan peningkatan aksesibilitas."
+		},
+		details: [
+			{
+				type: "improvement",
+				title: { en: "Form State Isolation", id: "Isolasi State Formulir" },
+				desc: { en: "Localized input form state inside FormView to eliminate parent re-renders on every keystroke, resulting in a buttery-smooth typing experience.", id: "Melokalisasi state input formulir di dalam FormView untuk menghilangkan render ulang komponen induk di setiap ketukan tombol." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Dynamic Lazy Loading for Charts", id: "Pemuatan Grafis Dinamis" },
+				desc: { en: "Switched to Next.js dynamic import for the AnalyticsView component, delaying heavy charting bundles until they are viewed to speed up initial load.", id: "Beralih ke impor dinamis Next.js untuk AnalyticsView, menunda pemuatan grafik Recharts yang berat hingga halaman diakses." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Modular Hook Refactoring", id: "Refactoring Modular Hook" },
+				desc: { en: "Split the massive 1600+ line hook into a stateless sheets-api utility file and a usePWAInstall hook, reducing maintenance complexity.", id: "Memecah hook raksasa 1600+ baris menjadi file utilitas sheets-api stateless dan hook usePWAInstall." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Screen Reader Accessibility", id: "Aksesibilitas Pembaca Layar" },
+				desc: { en: "Added ARIA labels and hidden elements for assistive technologies on Logo controls.", id: "Menambahkan label ARIA dan menyembunyikan elemen hiasan untuk teknologi asistif pada tombol Logo." }
+			}
+		]
+	},
+	{
 		version: "v2.1.0",
 		type: "minor",
 		date: { en: "Wed, July 1, 2026", id: "Rabu, 1 Juli 2026" },

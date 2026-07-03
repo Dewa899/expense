@@ -92,7 +92,8 @@ const dictionary: Dictionary = {
 	amount: { en: "Amount", id: "Jumlah" },
 	category: { en: "Category", id: "Kategori" },
 	note: { en: "Note", id: "Catatan" },
-	addExpense: { en: "Add Expense", id: "Tambah Pengeluaran" },
+	addExpense: { en: "Quick Add", id: "Tambah Cepat" },
+	transactionEntry: { en: "New Transaction", id: "Catat Transaksi" },
 	validationError: { en: "Missing Information", id: "Data Belum Lengkap" },
 	validationDesc: {
 		en: "Please fill in all fields except Note before submitting.",

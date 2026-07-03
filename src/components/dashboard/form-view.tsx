@@ -20,9 +20,9 @@ import {
 	ChevronUp,
 	Download,
 	Home,
-	Smartphone,
-	Monitor,
-	User
+	User,
+	Camera,
+	Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,7 +67,7 @@ interface FormViewProps {
 	isManageFieldsOpen: boolean;
 	setIsManageFieldsOpen: (open: boolean) => void;
 	onInputChange: (header: string, value: string) => void;
-	onSubmit: () => void;
+	onSubmit: (overrideFormData?: Record<string, string>) => void;
 	onAddCategory: () => void;
 	onDeleteCategory: (cat: string) => void;
 	onAddField: () => void;
@@ -93,6 +93,10 @@ interface FormViewProps {
 	exportToGoogleSheets?: () => void;
 	onLoginClick?: () => void;
 	
+	ocrLoading: boolean;
+	ocrMessage: string;
+	onOcrClick: () => void;
+
 	// PWA Props
 	isAddToHomeOpen: boolean;
 	setIsAddToHomeOpen: (open: boolean) => void;
@@ -124,6 +128,14 @@ export function FormView(props: FormViewProps) {
 	// Clean Coder: Privacy & Compact States
 	const [isPrivate, setIsPrivate] = React.useState(false);
 	const [isCompact, setIsCompact] = React.useState(false);
+
+	// Local form data state for performance optimization (stops full parent re-renders on keystroke)
+	const [localFormData, setLocalFormData] = React.useState<Record<string, string>>(props.formData);
+
+	// Sync local state when parent props.formData changes (e.g. from OCR scanner or reset)
+	React.useEffect(() => {
+		setLocalFormData(props.formData);
+	}, [props.formData]);
 
 	// Mobile keyboard focus state – which amount header is focused
 	const [mobileKbHeader, setMobileKbHeader] = React.useState<string | null>(null);
@@ -162,11 +174,11 @@ export function FormView(props: FormViewProps) {
 			// Don't intercept if a dialog/modal is open
 			if (document.querySelector("[data-state='open'][role='dialog']")) return;
 			e.preventDefault();
-			props.onSubmit();
+			props.onSubmit(localFormData);
 		};
 		document.addEventListener("keydown", handleKeyDown);
 		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [isInteractionDisabled, props.onSubmit]);
+	}, [isInteractionDisabled, props.onSubmit, localFormData]);
 
 	const togglePrivacy = () => {
 		const newVal = !isPrivate;
@@ -191,18 +203,23 @@ export function FormView(props: FormViewProps) {
 		}
 	};
 
-	// ─── Feature 3: Amount formatting helpers ────────────────────────────────────
+	// ─── Local state amount formatting helpers ────────────────────────────────────
 	const handleAmountChange = (header: string, raw: string) => {
 		// Strip any existing formatting then re-format
 		const digits = stripRupiah(raw);
 		const formatted = digits ? formatRupiah(digits) : "";
-		props.onInputChange(header, formatted);
+		handleLocalInputChange(header, formatted);
+	};
+
+	const handleLocalInputChange = (header: string, value: string) => {
+		setLocalFormData((prev) => ({ ...prev, [header]: value }));
+	};
+
+	const handleLocalSubmit = () => {
+		props.onSubmit(localFormData);
 	};
 
 	const displayHeaders = props.headers.length > 0 ? props.headers : ["Nama Pengeluaran", "Jumlah", "Tipe", "Kategori", "Catatan"];
-
-	// Determine if previously logged in (for silent re-auth hint)
-	const hasPreviousLogin = typeof window !== "undefined" && !!localStorage.getItem("googleUser");
 
 	return (
 		<motion.div 
@@ -451,7 +468,7 @@ export function FormView(props: FormViewProps) {
 
 			<section className="rounded-3xl p-6 glass-card">
 				<div className="flex items-center justify-between mb-6">
-					<h3 className="text-lg font-bold flex items-center gap-2"><Plus className="text-emerald-500" size={20} />{t("quickAdd")}</h3>
+					<h3 className="text-lg font-bold flex items-center gap-2">{t("transactionEntry")}</h3>
 					
 					{/* Manage Fields Dialog */}
 					<Dialog open={props.isManageFieldsOpen} onOpenChange={(open) => {
@@ -521,7 +538,7 @@ export function FormView(props: FormViewProps) {
 								) : (
 									<div className="space-y-4">
 										<div className="flex gap-2"><Input placeholder={t("newOption")} value={props.newOptionInput} onChange={(e) => props.setNewOptionInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-xl" /><Button onClick={() => props.onAddOption(editingOptionsIdx, props.newOptionInput)} disabled={isInteractionDisabled} className="bg-emerald-500 text-black font-bold rounded-xl cursor-pointer">{t("add")}</Button></div>
-										<div className="max-h-[200px] overflow-y-auto space-y-2">{(props.customFields[editingOptionsIdx].options || []).map((opt) => (<div key={opt} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800"><span className="text-sm font-medium">{opt}</span><Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => props.onDeleteOption(editingOptionsIdx, opt)} className="cursor-pointer"><Trash2 size={14} /></Button></div>))}</div>
+										<div className="max-h-[200px] overflow-y-auto space-y-2">{(props.customFields[editingOptionsIdx].options || []).map((opt: string) => (<div key={opt} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800"><span className="text-sm font-medium">{opt}</span><Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => props.onDeleteOption(editingOptionsIdx, opt)} className="cursor-pointer"><Trash2 size={14} /></Button></div>))}</div>
 									</div>
 								)}
 							</div>
@@ -545,7 +562,7 @@ export function FormView(props: FormViewProps) {
 							return (
 								<div key={header} ref={isAmount ? amountFieldRef : undefined} className="space-y-2">
 									<div className="flex items-center justify-between ml-1">
-										<Label className="text-xs text-zinc-500 dark:text-zinc-400">
+										<Label className="text-xs text-zinc-550 dark:text-zinc-400">
 											{/* Feature 3: Amount label shows "Nominal (Rp)" */}
 											{isAmount ? t("amountLabel") : props.translateHeader(header)} 
 											{customField?.required && <span className="text-red-500 ml-1">*</span>}
@@ -560,7 +577,7 @@ export function FormView(props: FormViewProps) {
 													<DialogHeader><DialogTitle>{isCoreCat ? t("manageCategories") : `${t("manageOptions")}: ${header}`}</DialogTitle></DialogHeader>
 													<div className="space-y-4 py-4">
 														<div className="flex gap-2"><Input placeholder={isCoreCat ? t("newCategory") : t("newOption")} value={isCoreCat ? props.newCategoryInput : props.newOptionInput} onChange={(e) => isCoreCat ? props.setNewCategoryInput(e.target.value) : props.setNewOptionInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-xl" /><Button onClick={() => isCoreCat ? props.onAddCategory() : props.onAddOption(customFieldIdx, props.newOptionInput)} disabled={isInteractionDisabled} className="bg-emerald-500 text-black font-bold rounded-xl cursor-pointer">{t("add")}</Button></div>
-														<div className="max-h-[200px] overflow-y-auto space-y-2">{(isCoreCat ? props.categories : customField?.options || []).map((opt) => (<div key={opt} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800">
+														<div className="max-h-[200px] overflow-y-auto space-y-2">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<div key={opt} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800">
 															<span className="text-sm font-medium">{opt}</span><Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => isCoreCat ? props.onDeleteCategory(opt) : props.onDeleteOption(customFieldIdx, opt)} className="cursor-pointer"><Trash2 size={14} /></Button></div>))}</div>
 													</div>
 												</DialogContent>
@@ -568,16 +585,16 @@ export function FormView(props: FormViewProps) {
 										)}
 									</div>
 									{(isCoreCat || (customField?.type === "dropdown")) ? (
-										<Select value={props.formData[header] || ""} disabled={isInteractionDisabled} onValueChange={(val) => props.onInputChange(header, val || "")}>
+										<Select value={localFormData[header] || ""} disabled={isInteractionDisabled} onValueChange={(val) => handleLocalInputChange(header, val || "")}>
 											<SelectTrigger className="h-12 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 cursor-pointer transition-colors"><SelectValue placeholder={t("selectCategory")} /></SelectTrigger>
-											<SelectContent className="rounded-xl">{(isCoreCat ? props.categories : customField?.options || []).map((opt) => (<SelectItem key={opt} value={opt} className="cursor-pointer">{opt}</SelectItem>))}</SelectContent>
+											<SelectContent className="rounded-xl">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<SelectItem key={opt} value={opt} className="cursor-pointer">{opt}</SelectItem>))}</SelectContent>
 										</Select>
 									) : isType ? (
 										<div className="flex bg-white/30 dark:bg-zinc-950/20 p-1.5 rounded-xl gap-1 border border-zinc-250 dark:border-zinc-850">
 											<button
 												type="button"
-												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${props.formData[header] === "Pemasukan / Income" ? "bg-white/80 dark:bg-zinc-900/60 text-emerald-600 shadow-sm border border-white/40 dark:border-white/5" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
-												onClick={(e) => { e.preventDefault(); e.stopPropagation(); props.onInputChange(header, "Pemasukan / Income"); }}
+												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${localFormData[header] === "Pemasukan / Income" ? "bg-white/80 dark:bg-zinc-900/60 text-emerald-600 shadow-sm border border-white/40 dark:border-white/5" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
+												onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleLocalInputChange(header, "Pemasukan / Income"); }}
 												disabled={isInteractionDisabled}
 											>
 												<TrendingUp size={18} />
@@ -585,8 +602,8 @@ export function FormView(props: FormViewProps) {
 											</button>
 											<button
 												type="button"
-												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${props.formData[header] === "Pengeluaran / Expense" ? "bg-white/80 dark:bg-zinc-900/60 text-red-600 shadow-sm border border-white/40 dark:border-white/5" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
-												onClick={(e) => { e.preventDefault(); e.stopPropagation(); props.onInputChange(header, "Pengeluaran / Expense"); }}
+												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${localFormData[header] === "Pengeluaran / Expense" ? "bg-white/80 dark:bg-zinc-900/60 text-red-600 shadow-sm border border-white/40 dark:border-white/5" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
+												onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleLocalInputChange(header, "Pengeluaran / Expense"); }}
 												disabled={isInteractionDisabled}
 											>
 												<TrendingDown size={18} />
@@ -607,7 +624,7 @@ export function FormView(props: FormViewProps) {
 													disabled={isInteractionDisabled}
 													placeholder={t("amountPlaceholder")}
 													className="h-12 w-full pl-9 pr-4 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium text-base transition-colors"
-													value={props.formData[header] || ""}
+													value={localFormData[header] || ""}
 													onChange={(e) => handleAmountChange(header, e.target.value)}
 													onFocus={() => isMobile && setMobileKbHeader(header)}
 													onClick={() => isMobile && setMobileKbHeader(header)}
@@ -616,8 +633,8 @@ export function FormView(props: FormViewProps) {
 											{/* Feature 2: Mobile keyboard – shows when this field is focused on mobile */}
 											{isMobile && mobileKbHeader === header && (
 												<NumericKeyboard
-													value={props.formData[header] || ""}
-													onChange={(val) => props.onInputChange(header, val)}
+													value={localFormData[header] || ""}
+													onChange={(val) => handleLocalInputChange(header, val)}
 													onSubmit={() => {
 														setMobileKbHeader(null);
 													}}
@@ -626,31 +643,72 @@ export function FormView(props: FormViewProps) {
 											)}
 										</>
 									) : (
-										<Input type="text" disabled={isInteractionDisabled} placeholder={`${props.translateHeader(header)}...`} className="h-12 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium transition-colors" value={props.formData[header] || ""} onChange={(e) => props.onInputChange(header, e.target.value)} />
+										<Input type="text" disabled={isInteractionDisabled} placeholder={`${props.translateHeader(header)}...`} className="h-12 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium transition-colors" value={localFormData[header] || ""} onChange={(e) => handleLocalInputChange(header, e.target.value)} />
 									)}
 								</div>
 							);
 						})
 					)}
 					
-					{(props.supabaseUser || props.user || props.isDemoMode) ? (
-						<Button disabled={isInteractionDisabled} onClick={props.onSubmit} className="w-full h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black text-lg rounded-2xl mt-4 shadow-lg shadow-emerald-500/20 cursor-pointer border-none transition-all active:scale-[0.98]">
-							{props.loading ? "..." : t("addExpense")}
-						</Button>
-					) : (
-						<div className="flex flex-col items-center gap-2">
-							<Button onClick={props.onLoginClick} disabled={isSyncing} className="w-full h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black text-lg rounded-2xl mt-4 shadow-lg shadow-emerald-500/20 cursor-pointer border-none transition-all active:scale-[0.98]">
-								{t("signIn")}
-							</Button>
-							<button
-								type="button"
-								onClick={enterDemo}
-								disabled={isSyncing}
-								className="text-xs font-semibold text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-2 cursor-pointer mt-2 disabled:opacity-50"
-							>
-								{t("tryDemo")}
-							</button>
-						</div>
+					{(() => {
+						const isOcrDisabled = props.ocrLoading || isInteractionDisabled || (!props.supabaseUser && !props.user && !props.isDemoMode);
+						
+						return (props.supabaseUser || props.user || props.isDemoMode) ? (
+							<div className="flex items-center gap-3 mt-4 w-full">
+								<Button 
+									disabled={isInteractionDisabled} 
+									onClick={handleLocalSubmit} 
+									className="flex-grow h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black text-lg rounded-2xl shadow-lg shadow-emerald-500/20 cursor-pointer border-none transition-all active:scale-[0.98]"
+								>
+									{props.loading ? "..." : t("addExpense")}
+								</Button>
+								<Button
+									type="button"
+									variant="outline"
+									disabled={isOcrDisabled}
+									onClick={props.onOcrClick}
+									className="h-14 w-14 rounded-2xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40 flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+									aria-label="Scan Struk / OCR Receipt Scan"
+								>
+									{props.ocrLoading ? (
+										<Loader2 size={24} className="text-emerald-600 animate-spin" />
+									) : (
+										<Camera size={24} className="text-emerald-600" />
+									)}
+								</Button>
+							</div>
+						) : (
+							<div className="flex flex-col items-center gap-2 w-full">
+								<div className="flex items-center gap-3 mt-4 w-full">
+									<Button onClick={props.onLoginClick} disabled={isSyncing} className="flex-grow h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black text-lg rounded-2xl shadow-lg shadow-emerald-500/20 cursor-pointer border-none transition-all active:scale-[0.98]">
+										{t("signIn")}
+									</Button>
+									<Button
+										type="button"
+										variant="outline"
+										disabled={true}
+										className="h-14 w-14 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/30 flex items-center justify-center opacity-40 cursor-not-allowed flex-shrink-0"
+										aria-label="Scan Struk / OCR Receipt Scan"
+									>
+										<Camera size={24} className="text-zinc-400" />
+									</Button>
+								</div>
+								<button
+									type="button"
+									onClick={enterDemo}
+									disabled={isSyncing}
+									className="text-xs font-semibold text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-2 cursor-pointer mt-2 disabled:opacity-50"
+								>
+									{t("tryDemo")}
+								</button>
+							</div>
+						);
+					})()}
+
+					{props.ocrMessage && (
+						<p className={`text-xs text-center font-medium mt-3 ${props.ocrMessage === t("ocrSuccess") ? "text-emerald-600" : "text-red-500"}`}>
+							{props.ocrMessage}
+						</p>
 					)}
 				</div>
 			</section>
@@ -660,11 +718,11 @@ export function FormView(props: FormViewProps) {
 				<div
 					className="fixed inset-0 z-[68] bg-transparent"
 					onClick={() => {
-						const val = props.formData[mobileKbHeader] || "";
+						const val = localFormData[mobileKbHeader] || "";
 						const cleaned = val.replace(/\./g, "").replace(/,/g, "").replace(/\s/g, "");
 						if (cleaned) {
 							const result = evaluateExpression(cleaned);
-							props.onInputChange(mobileKbHeader, formatRupiah(result.toString()));
+							handleLocalInputChange(mobileKbHeader, formatRupiah(result.toString()));
 						}
 						setMobileKbHeader(null);
 					}}
