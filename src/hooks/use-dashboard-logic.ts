@@ -1086,7 +1086,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		if (isDemoMode && addDemoTransaction) {
 			const missingFields = headers.filter(h => {
 				const hL = h.toLowerCase();
-				if (hL.includes("tanggal") || hL.includes("date") || hL.includes("catatan") || hL.includes("note")) return false;
+				if (hL.includes("tanggal") || hL.includes("date") || hL.includes("catatan") || hL.includes("note") || hL.includes("pocket") || hL.includes("kantong")) return false;
 				const customField = customFields.find(f => f.name.toLowerCase() === hL);
 				if (customField && !customField.required) return false;
 				return !activeFormData[h];
@@ -1135,7 +1135,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		if (supabaseUser) {
 			const missingFields = headers.filter(h => {
 				const hL = h.toLowerCase();
-				if (hL.includes("tanggal") || hL.includes("date") || hL.includes("catatan") || hL.includes("note")) return false;
+				if (hL.includes("tanggal") || hL.includes("date") || hL.includes("catatan") || hL.includes("note") || hL.includes("pocket") || hL.includes("kantong")) return false;
 				const customField = customFields.find(f => f.name.toLowerCase() === hL);
 				if (customField && !customField.required) return false;
 				return !activeFormData[h];
@@ -1204,7 +1204,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		const currentMonth = getCurrentMonthSheetName();
 		const missingFields = headers.filter(h => {
 			const hL = h.toLowerCase();
-			if (hL.includes("tanggal") || hL.includes("date") || hL.includes("catatan") || hL.includes("note")) return false;
+			if (hL.includes("tanggal") || hL.includes("date") || hL.includes("catatan") || hL.includes("note") || hL.includes("pocket") || hL.includes("kantong")) return false;
 			const customField = customFields.find(f => f.name.toLowerCase() === hL);
 			if (customField && !customField.required) return false;
 			return !activeFormData[h];
