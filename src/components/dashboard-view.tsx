@@ -4,7 +4,20 @@ import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useDashboardLogic } from "@/hooks/use-dashboard-logic";
 import { FormView } from "./dashboard/form-view";
-import { AnalyticsView } from "./dashboard/analytics-view";
+import dynamic from "next/dynamic";
+
+const AnalyticsView = dynamic(
+	() => import("./dashboard/analytics-view").then((mod) => mod.AnalyticsView),
+	{
+		ssr: false,
+		loading: () => (
+			<div className="h-[400px] flex flex-col items-center justify-center text-zinc-400 gap-4">
+				<Loader2 className="animate-spin text-emerald-500" size={32} />
+				<p className="font-bold uppercase tracking-widest text-[10px]">Processing Data...</p>
+			</div>
+		)
+	}
+);
 import { StatusModal } from "./dashboard/status-modal";
 import { DisconnectModal } from "./dashboard/disconnect-modal";
 import { DeleteFieldModal } from "./dashboard/delete-field-modal";

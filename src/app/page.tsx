@@ -15,9 +15,10 @@ export function Logo({
   return (
     <button 
       onClick={onClick}
-      className={`flex items-center gap-1 leading-none text-left hover:opacity-80 transition-opacity cursor-pointer ${className}`}
+      aria-label="Expense by GENLORD - Kembali ke Dashboard"
+      className={`flex items-center gap-1 leading-none text-left hover:opacity-80 transition-opacity cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-500 ${className}`}
     >
-      <div className="flex flex-col">
+      <div className="flex flex-col" aria-hidden="true">
         <div className="flex items-baseline">
           <span className="text-xl font-black tracking-tighter text-emerald-500 italic">EXP</span>
           <span className="text-xs font-bold tracking-tight text-emerald-600/70 dark:text-emerald-400/50 -ml-0.5">ense</span>
