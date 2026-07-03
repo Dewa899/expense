@@ -22,7 +22,8 @@ import {
 	Home,
 	User,
 	Camera,
-	Loader2
+	Loader2,
+	ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +43,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/components/language-provider";
-import { CustomFieldDef } from "@/hooks/use-dashboard-logic";
+import { CustomFieldDef, PocketDef } from "@/hooks/use-dashboard-logic";
 import { NumericKeyboard, formatRupiah, stripRupiah, evaluateExpression } from "@/components/dashboard/numeric-keyboard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDemo } from "@/components/demo-context";
@@ -96,6 +97,13 @@ interface FormViewProps {
 	ocrLoading: boolean;
 	ocrMessage: string;
 	onOcrClick: () => void;
+
+	// Pocket Props
+	pockets: PocketDef[];
+	activePocketIdx: number;
+	setActivePocketIdx: (idx: number) => void;
+	getPocketBalance: (pocket: PocketDef) => number;
+	handleUpdatePockets: (list: PocketDef[]) => void;
 
 	// PWA Props
 	isAddToHomeOpen: boolean;
@@ -169,9 +177,7 @@ export function FormView(props: FormViewProps) {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (e.key !== "Enter") return;
 			const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
-			// Don't intercept if in textarea, select, or when disabled
 			if (tag === "textarea" || isInteractionDisabled) return;
-			// Don't intercept if a dialog/modal is open
 			if (document.querySelector("[data-state='open'][role='dialog']")) return;
 			e.preventDefault();
 			props.onSubmit(localFormData);
@@ -205,7 +211,6 @@ export function FormView(props: FormViewProps) {
 
 	// ─── Local state amount formatting helpers ────────────────────────────────────
 	const handleAmountChange = (header: string, raw: string) => {
-		// Strip any existing formatting then re-format
 		const digits = stripRupiah(raw);
 		const formatted = digits ? formatRupiah(digits) : "";
 		handleLocalInputChange(header, formatted);
@@ -221,170 +226,325 @@ export function FormView(props: FormViewProps) {
 
 	const displayHeaders = props.headers.length > 0 ? props.headers : ["Nama Pengeluaran", "Jumlah", "Tipe", "Kategori", "Catatan"];
 
+	// ─── Pocket / Theme Settings ────────────────────────────────────────────────
+	const activePocket = props.pockets[props.activePocketIdx] || { id: "pocket_1", name: "Utama", type: "default", color: "emerald" };
+
+	const themeColors = {
+		emerald: {
+			gradient: "from-emerald-500 to-teal-500",
+			shadow: "shadow-emerald-500/25",
+			buttonShadow: "shadow-emerald-500/20",
+			text: "text-emerald-500",
+			textDark: "text-emerald-600 dark:text-emerald-400",
+			border: "border-emerald-500/35 dark:border-emerald-500/25",
+			bgLight: "bg-emerald-500/5 dark:bg-emerald-500/10",
+			hoverBg: "hover:bg-emerald-500/15 dark:hover:bg-emerald-500/20",
+			focusRing: "focus-visible:outline-emerald-500",
+			focusRingInput: "focus:border-emerald-500 focus:ring-emerald-500 dark:focus:border-emerald-400 dark:focus:ring-emerald-400",
+			accentText: "text-emerald-700 dark:text-emerald-300",
+		},
+		indigo: {
+			gradient: "from-indigo-500 to-purple-500",
+			shadow: "shadow-indigo-500/25",
+			buttonShadow: "shadow-indigo-500/20",
+			text: "text-indigo-500",
+			textDark: "text-indigo-600 dark:text-indigo-400",
+			border: "border-indigo-500/35 dark:border-indigo-500/25",
+			bgLight: "bg-indigo-500/5 dark:bg-indigo-500/10",
+			hoverBg: "hover:bg-indigo-500/15 dark:hover:bg-indigo-500/20",
+			focusRing: "focus-visible:outline-indigo-500",
+			focusRingInput: "focus:border-indigo-500 focus:ring-indigo-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400",
+			accentText: "text-indigo-700 dark:text-indigo-300",
+		},
+		amber: {
+			gradient: "from-amber-500 to-rose-500",
+			shadow: "shadow-amber-500/25",
+			buttonShadow: "shadow-amber-500/20",
+			text: "text-amber-500",
+			textDark: "text-amber-600 dark:text-amber-400",
+			border: "border-amber-500/35 dark:border-amber-500/25",
+			bgLight: "bg-amber-500/5 dark:bg-amber-500/10",
+			hoverBg: "hover:bg-amber-500/15 dark:hover:bg-amber-500/20",
+			focusRing: "focus-visible:outline-amber-500",
+			focusRingInput: "focus:border-amber-500 focus:ring-amber-500 dark:focus:border-amber-400 dark:focus:ring-amber-400",
+			accentText: "text-amber-700 dark:text-amber-300",
+		}
+	}[activePocket.color || "emerald"];
+
+	const [isPocketSettingsOpen, setIsPocketSettingsOpen] = React.useState(false);
+	const [localPockets, setLocalPockets] = React.useState<PocketDef[]>(props.pockets);
+
+	React.useEffect(() => {
+		if (props.pockets.length > 0) {
+			setLocalPockets(props.pockets);
+		}
+	}, [props.pockets]);
+
+	const handleLocalPocketFieldChange = (idx: number, field: string, value: any) => {
+		setLocalPockets((prev) => {
+			const updated = [...prev];
+			updated[idx] = { ...updated[idx], [field]: value };
+			return updated;
+		});
+	};
+
+	const savePocketSettings = () => {
+		props.handleUpdatePockets(localPockets);
+		setIsPocketSettingsOpen(false);
+	};
+
+	// Calculate target progress percentage
+	const progressBarPercent = React.useMemo(() => {
+		if (activePocket.type === "default" || !activePocket.target) return 0;
+		if (activePocket.type === "budget") {
+			// Monthly expenses
+			const expense = props.transactions
+				.filter(t => (t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount < 0)
+				.reduce((sum, t) => sum + t.amount, 0);
+			return (Math.abs(expense) / activePocket.target) * 100;
+		} else {
+			// Accumulated balance
+			const balance = props.getPocketBalance(activePocket);
+			return Math.max(0, (balance / activePocket.target) * 100);
+		}
+	}, [activePocket, props.transactions, props.getPocketBalance]);
+
 	return (
 		<motion.div 
 			initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
 			className="space-y-6"
 		>
-			<section className="mt-2">
-				<div className="bg-gradient-to-br from-emerald-500 to-teal-500 rounded-3xl p-6 text-black shadow-lg shadow-emerald-500/25 relative overflow-hidden group">
-					<div className="absolute -right-4 -top-4 w-24 h-24 bg-black/5 rounded-full blur-2xl" />
-					<div className="relative z-10">
-						<div className="flex justify-between items-start">
-							<p className="text-xs font-bold uppercase opacity-70 tracking-wider">Total {t("amount")} ({props.currentMonth.split(' ')[0]})</p>
-							<div className="flex gap-2">
-								<Button 
-									size="icon" 
-									variant="ghost" 
-									onClick={togglePrivacy}
-									disabled={isSyncing}
-									className="h-8 w-8 bg-black/10 hover:bg-black/20 text-black border-none rounded-full cursor-pointer"
-								>
-									{isPrivate ? <EyeOff size={14} /> : <Eye size={14} />}
-								</Button>
-								<Button size="sm" onClick={props.onViewDetail} disabled={isSyncing} className="h-8 bg-black/10 hover:bg-black/20 text-black border-none rounded-full font-bold text-[10px] px-3 cursor-pointer">
-									<History size={12} className="mr-1" /> {t("viewDetail")}
-								</Button>
-							</div>
-						</div>
+			{/* Pocket Total Amount Card with 80/20 Layout & Swipe controls */}
+			<section className="mt-2 flex gap-3 items-stretch h-[170px]">
+				<motion.div 
+					drag="x"
+					dragConstraints={{ left: 0, right: 0 }}
+					onDragEnd={(e, info) => {
+						const swipeThreshold = 50;
+						if (info.offset.x < -swipeThreshold) {
+							props.setActivePocketIdx((props.activePocketIdx + 1) % props.pockets.length);
+						} else if (info.offset.x > swipeThreshold) {
+							props.setActivePocketIdx((props.activePocketIdx - 1 + props.pockets.length) % props.pockets.length);
+						}
+					}}
+					className="flex-grow flex-1 cursor-grab active:cursor-grabbing select-none h-full"
+				>
+					<div className={`h-full bg-gradient-to-br ${themeColors.gradient} rounded-3xl p-6 text-black shadow-lg ${themeColors.shadow} relative overflow-hidden group flex flex-col justify-between transition-colors duration-300`}>
+						<div className="absolute -right-4 -top-4 w-24 h-24 bg-black/5 rounded-full blur-2xl pointer-events-none" />
 						
-						<div className="flex items-center justify-between mt-1">
-							<h2 className="text-3xl font-black tracking-tight">{maskValue(props.formatCurrency(props.totalAmount))}</h2>
-							<Button 
-								size="icon" 
-								variant="ghost" 
-								onClick={toggleCompact}
-								disabled={isSyncing}
-								className="h-8 w-8 bg-black/10 hover:bg-black/20 text-black border-none rounded-full cursor-pointer transition-transform"
+						<AnimatePresence mode="wait">
+							<motion.div
+								key={activePocket.id}
+								initial={{ x: 20, opacity: 0 }}
+								animate={{ x: 0, opacity: 1 }}
+								exit={{ x: -20, opacity: 0 }}
+								transition={{ duration: 0.15 }}
+								className="w-full flex-grow flex flex-col justify-between"
 							>
-								{isCompact ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-							</Button>
-						</div>
-						
-						<AnimatePresence>
-							{!isCompact && (
-								<motion.div
-									initial={{ height: 0, opacity: 0 }}
-									animate={{ height: "auto", opacity: 1 }}
-									exit={{ height: 0, opacity: 0 }}
-									className="overflow-hidden"
-								>
-									{/* Balance Summary Row */}
-									<div className="mt-6 pt-4 border-t border-black/5 flex items-center justify-between text-[10px] font-black opacity-80 flex-wrap gap-y-2">
-										<div className="flex items-center gap-1.5">
-											<div className="w-6 h-6 rounded-full bg-black/5 flex items-center justify-center">
-												<Wallet size={12} className="opacity-50" />
-											</div>
-											<span>{maskValue(props.formatCurrency(props.transactions.find(t => t.category === "Initial Balance")?.amount || 0))}</span>
+								<div>
+									<div className="flex justify-between items-start">
+										<div className="flex flex-col">
+											<span className="text-[9px] font-black uppercase tracking-wider opacity-60">Pocket</span>
+											<h4 className="text-sm font-black uppercase tracking-wide flex items-center gap-1.5 mt-0.5">
+												<Wallet size={14} className="opacity-70" />
+												{activePocket.name}
+											</h4>
 										</div>
-										
-										<div className="flex items-center gap-3">
-											<div className="flex items-center gap-1.5 text-emerald-900">
-												<TrendingUp size={12} />
-												<span>{maskValue(props.formatCurrency(props.transactions.filter(t => t.category !== "Initial Balance" && t.amount > 0).reduce((sum, t) => sum + t.amount, 0)))}</span>
-											</div>
-											<div className="w-1 h-1 rounded-full bg-black/10" />
-											<div className="flex items-center gap-1.5 text-red-900">
-												<TrendingDown size={12} />
-												<span>{maskValue(props.formatCurrency(Math.abs(props.transactions.filter(t => t.category !== "Initial Balance" && t.amount < 0).reduce((sum, t) => sum + t.amount, 0))))}</span>
-											</div>
+										<div className="flex gap-1">
+											<Button 
+												size="icon" 
+												variant="ghost" 
+												onClick={(e) => { e.stopPropagation(); togglePrivacy(); }}
+												disabled={isSyncing}
+												className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer"
+											>
+												{isPrivate ? <EyeOff size={14} /> : <Eye size={14} />}
+											</Button>
+											<Button 
+												size="sm" 
+												onClick={(e) => { e.stopPropagation(); props.onViewDetail(); }} 
+												disabled={isSyncing} 
+												className="h-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full font-bold text-[10px] px-3 cursor-pointer"
+											>
+												<History size={12} className="mr-1" /> {t("viewDetail")}
+											</Button>
 										</div>
 									</div>
 
-									{/* Actions Row */}
-									<div className="flex justify-end items-center mt-4">
-										<div className="flex gap-2">
-											{!props.isStandaloneMode && (
-												<Dialog open={props.isAddToHomeOpen} onOpenChange={(open) => {
-													props.setIsAddToHomeOpen(open);
-													if (!open) setShowManualInstruction(false);
-												}}>
-													<DialogTrigger render={
-														<Button 
-															size="sm" 
-															variant="secondary" 
-															disabled={isSyncing} 
-															className="bg-black/10 hover:bg-black/20 text-black border-none rounded-full font-bold px-3 cursor-pointer flex items-center gap-1.5"
-														>
-															<Download size={12} />
-															{t("addToHomepage")}
-														</Button>
-													} />
-													<DialogContent className="sm:max-w-[420px] rounded-3xl overflow-hidden p-6">
-														<DialogHeader>
-															<DialogTitle className="flex items-center gap-2">
-																<Home size={20} className="text-emerald-500" />
-																{t("addToHomeTitle")}
-															</DialogTitle>
-														</DialogHeader>
-														<div className="space-y-4 pt-2">
-															<p className="text-xs text-zinc-550 dark:text-zinc-400 leading-relaxed font-semibold">
-																{t("addToHomeDesc")}
-															</p>
-															
-															<Button 
-																onClick={() => {
-																	if (props.isInstallable) {
-																		props.triggerInstall();
-																	} else {
-																		setShowManualInstruction(true);
-																	}
-																}}
-																className="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-black h-12 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
-															>
-																<Download size={18} />
-																{props.isInstallable ? t("installApp") : t("addToHomepage")}
-															</Button>
+									<div className="flex items-center justify-between mt-2">
+										<h2 className="text-3xl font-black tracking-tight">{maskValue(props.formatCurrency(props.totalAmount))}</h2>
+										<Button 
+											size="icon" 
+											variant="ghost" 
+											onClick={(e) => { e.stopPropagation(); toggleCompact(); }}
+											disabled={isSyncing}
+											className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer transition-transform"
+										>
+											{isCompact ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+										</Button>
+									</div>
+								</div>
 
-															{showManualInstruction && (
-																<motion.div 
-																	initial={{ opacity: 0, height: 0 }}
-																	animate={{ opacity: 1, height: "auto" }}
-																	className="bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-400 p-4 rounded-2xl text-xs font-semibold leading-relaxed space-y-1.5"
-																>
-																	{(os === "ios" ? t("iosShortInstruction") : os === "android" ? t("chromeInstructions") : t("desktopInstructions")).split("\n").map((line, idx) => (
-																		<p key={idx}>{line}</p>
-																	))}
-																</motion.div>
-															)}
-														</div>
-													</DialogContent>
-												</Dialog>
-											)}
-
-											{!props.isDemoMode && (
-												props.supabaseUser || props.user ? (
-													<Button 
-														size="sm" 
-														variant="secondary" 
-														onClick={() => setIsProfileModalOpen(true)} 
-														disabled={isSyncing} 
-														className="bg-black/10 hover:bg-black/20 text-black border-none rounded-full font-bold px-4 h-8 cursor-pointer text-xs flex items-center gap-1.5"
-													>
-														<User size={12} />
-														Profile
-													</Button>
-												) : (
-													<Button 
-														size="sm" 
-														variant="secondary" 
-														onClick={props.onLoginClick} 
-														disabled={isSyncing} 
-														className="bg-black/10 hover:bg-black/20 text-black border-none rounded-full font-bold px-4 h-8 cursor-pointer text-xs flex items-center gap-1.5"
-													>
-														<User size={12} />
-														Login
-													</Button>
-												)
-											)}
+								{/* Progress target bar for Budget or Saving pocket */}
+								{!isCompact && activePocket.type !== "default" && activePocket.target && (
+									<div className="mt-4 space-y-1">
+										<div className="flex justify-between text-[9px] font-black opacity-85">
+											<span>
+												{activePocket.type === "budget" 
+													? `${language === "en" ? "Monthly Limit" : "Batas Bulanan"}: ${props.formatCurrency(activePocket.target)}`
+													: `${language === "en" ? "Savings Goal" : "Target Tabungan"}: ${props.formatCurrency(activePocket.target)}`}
+											</span>
+											<span>{Math.round(progressBarPercent)}%</span>
+										</div>
+										<div className="w-full h-1.5 bg-black/10 rounded-full overflow-hidden">
+											<motion.div 
+												initial={{ width: 0 }}
+												animate={{ width: `${Math.min(progressBarPercent, 100)}%` }}
+												className={`h-full rounded-full ${
+													activePocket.type === "budget"
+														? progressBarPercent > 90
+															? "bg-red-600"
+															: progressBarPercent > 70
+																? "bg-amber-600"
+																: "bg-emerald-700"
+														: "bg-teal-700"
+												}`}
+											/>
 										</div>
 									</div>
-								</motion.div>
-							)}
+								)}
+							</motion.div>
 						</AnimatePresence>
 					</div>
+				</motion.div>
+
+				{/* Right Side: Double Stacked Buttons (20%) */}
+				<div className="w-[60px] flex flex-col gap-2 flex-shrink-0">
+					{/* Button 1 (Top): Pocket Manager Modal */}
+					<Button
+						onClick={() => setIsPocketSettingsOpen(true)}
+						className="flex-1 rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-all active:scale-95 shadow-sm p-0 gap-1"
+						aria-label="Kelola Kantong"
+					>
+						<Settings2 size={18} />
+						<span className="text-[8px] font-black uppercase">Edit</span>
+					</Button>
+					
+					{/* Button 2 (Bottom): Shift active pocket */}
+					<Button
+						onClick={() => props.setActivePocketIdx((props.activePocketIdx + 1) % props.pockets.length)}
+						className="flex-1 rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-all active:scale-95 shadow-sm p-0 gap-1"
+						aria-label="Kantong Berikutnya"
+					>
+						<ChevronRight size={18} />
+						<span className="text-[8px] font-black uppercase">Next</span>
+					</Button>
 				</div>
 			</section>
+
+			{/* Detailed Profile and Install Modal */}
+			<AnimatePresence>
+				{!isCompact && (
+					<motion.div 
+						initial={{ height: 0, opacity: 0 }}
+						animate={{ height: "auto", opacity: 1 }}
+						exit={{ height: 0, opacity: 0 }}
+						className="overflow-hidden mt-0"
+					>
+						<div className="flex justify-between items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-850 p-4 rounded-3xl text-[10px] font-black flex-wrap gap-y-2">
+							<div className="flex items-center gap-1.5">
+								<div className="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
+									<Wallet size={12} className="opacity-50" />
+								</div>
+								<span>{maskValue(props.formatCurrency(props.transactions.find(t => t.category === "Initial Balance" && (t.pocket === activePocket.name || t.pocket === activePocket.id))?.amount || 0))}</span>
+							</div>
+							
+							<div className="flex items-center gap-3">
+								<div className="flex items-center gap-1.5 text-emerald-650 dark:text-emerald-450">
+									<TrendingUp size={12} />
+									<span>{maskValue(props.formatCurrency(props.transactions.filter(t => t.category !== "Initial Balance" && (t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0)))}</span>
+								</div>
+								<div className="w-1 h-1 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+								<div className="flex items-center gap-1.5 text-red-650 dark:text-red-450">
+									<TrendingDown size={12} />
+									<span>{maskValue(props.formatCurrency(Math.abs(props.transactions.filter(t => t.category !== "Initial Balance" && (t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0))))}</span>
+								</div>
+							</div>
+
+							<div className="flex gap-1.5">
+								{!props.isStandaloneMode && (
+									<Button 
+										size="sm" 
+										variant="secondary" 
+										disabled={isSyncing} 
+										onClick={() => props.setIsAddToHomeOpen(true)}
+										className="h-7 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-none rounded-full font-bold px-2.5 cursor-pointer flex items-center gap-1 text-[9px]"
+									>
+										<Download size={10} />
+										Install
+									</Button>
+								)}
+
+								{!props.isDemoMode && (
+									<Button 
+										size="sm" 
+										variant="secondary" 
+										onClick={() => setIsProfileModalOpen(true)} 
+										disabled={isSyncing} 
+										className="h-7 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-none rounded-full font-bold px-2.5 cursor-pointer text-[9px] flex items-center gap-1"
+									>
+										<User size={10} />
+										Profile
+									</Button>
+								)}
+							</div>
+						</div>
+					</motion.div>
+				)}
+			</AnimatePresence>
+
+			{/* PWA Downloader instructions modal */}
+			<Dialog open={props.isAddToHomeOpen} onOpenChange={props.setIsAddToHomeOpen}>
+				<DialogContent className="sm:max-w-[420px] rounded-3xl overflow-hidden p-6">
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2">
+							<Home size={20} className="text-emerald-500" />
+							{t("addToHomeTitle")}
+						</DialogTitle>
+					</DialogHeader>
+					<div className="space-y-4 pt-2">
+						<p className="text-xs text-zinc-550 dark:text-zinc-400 leading-relaxed font-semibold">
+							{t("addToHomeDesc")}
+						</p>
+						
+						<Button 
+							onClick={() => {
+								if (props.isInstallable) {
+									props.triggerInstall();
+								} else {
+									setShowManualInstruction(true);
+								}
+							}}
+							className={`w-full bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black h-12 rounded-xl shadow-lg ${themeColors.buttonShadow} flex items-center justify-center gap-2 transition-all cursor-pointer border-none`}
+						>
+							<Download size={18} />
+							{props.isInstallable ? t("installApp") : t("addToHomepage")}
+						</Button>
+
+						{showManualInstruction && (
+							<motion.div 
+								initial={{ opacity: 0, height: 0 }}
+								animate={{ opacity: 1, height: "auto" }}
+								className="bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-400 p-4 rounded-2xl text-xs font-semibold leading-relaxed space-y-1.5"
+							>
+								{(os === "ios" ? t("iosShortInstruction") : os === "android" ? t("chromeInstructions") : t("desktopInstructions")).split("\n").map((line, idx) => (
+									<p key={idx}>{line}</p>
+								))}
+							</motion.div>
+						)}
+					</div>
+				</DialogContent>
+			</Dialog>
 
 			{/* Profile Modal */}
 			<Dialog open={isProfileModalOpen} onOpenChange={setIsProfileModalOpen}>
@@ -407,8 +567,8 @@ export function FormView(props: FormViewProps) {
 								alt="Profile Photo" 
 							/>
 						) : (
-							<div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
-								<User className="text-emerald-600 dark:text-emerald-400" size={32} />
+							<div className={`w-16 h-16 rounded-full ${themeColors.bgLight} flex items-center justify-center mb-2`}>
+								<User className={themeColors.text} size={32} />
 							</div>
 						)}
 						
@@ -425,6 +585,7 @@ export function FormView(props: FormViewProps) {
 											await supabase.auth.signOut();
 											localStorage.removeItem("googleUser");
 											localStorage.removeItem("sheetId");
+											localStorage.removeItem("customPockets");
 											window.location.reload();
 										}}
 										className="text-xs font-bold text-destructive hover:underline cursor-pointer"
@@ -437,7 +598,7 @@ export function FormView(props: FormViewProps) {
 							<div className="space-y-4 w-full px-4">
 								<div className="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 text-left space-y-1">
 									<p className="text-[10px] uppercase font-bold text-zinc-400">Sync Status</p>
-									<p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{t("googleSyncActive")}</p>
+									<p className="text-sm font-bold text-emerald-650 dark:text-emerald-450">{t("googleSyncActive")}</p>
 									<p className="text-[10px] text-zinc-500 truncate mt-0.5">Account: {props.user.name}</p>
 								</div>
 								
@@ -445,7 +606,7 @@ export function FormView(props: FormViewProps) {
 									{props.headers.length > 0 && (
 										<Button 
 											variant="outline" 
-											className="w-full h-11 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border-zinc-200 dark:border-zinc-800 cursor-pointer"
+											className="w-full h-11 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border-zinc-200 dark:border-zinc-800 cursor-pointer bg-transparent"
 											onClick={() => window.open(`https://docs.google.com/spreadsheets/d/${localStorage.getItem("sheetId")}/edit`, "_blank")}
 										>
 											<LinkIcon size={14} />
@@ -462,6 +623,108 @@ export function FormView(props: FormViewProps) {
 								</div>
 							</div>
 						) : null}
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			{/* Pocket Customization Settings Dialog */}
+			<Dialog open={isPocketSettingsOpen} onOpenChange={setIsPocketSettingsOpen}>
+				<DialogContent className="sm:max-w-[420px] rounded-3xl overflow-hidden p-6">
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2">
+							<Settings2 className={themeColors.text} size={20} />
+							{language === "en" ? "Manage Pockets" : "Kelola Kantong"}
+						</DialogTitle>
+					</DialogHeader>
+					<div className="space-y-4 pt-2 max-h-[350px] overflow-y-auto pr-1">
+						{localPockets.map((pocket, idx) => (
+							<div key={pocket.id} className="p-4 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800 space-y-3">
+								<div className="flex items-center justify-between">
+									<span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+										pocket.color === "emerald" 
+											? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+											: pocket.color === "indigo"
+												? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+												: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+									}`}>
+										Kantong {idx + 1}
+									</span>
+									{pocket.id === "pocket_1" && (
+										<span className="text-[9px] text-zinc-400 uppercase font-black">Default Wallet</span>
+									)}
+								</div>
+								
+								<div className="space-y-2">
+									<Label className="text-xs text-zinc-500 font-bold">{language === "en" ? "Pocket Name" : "Nama Kantong"}</Label>
+									<Input
+										value={pocket.name}
+										disabled={pocket.id === "pocket_1"} // Utama is read-only for system integrity
+										onChange={(e) => handleLocalPocketFieldChange(idx, "name", e.target.value)}
+										className={`h-10 rounded-xl focus:border-${pocket.color}-500 focus:ring-1 focus:ring-${pocket.color}-500`}
+										placeholder="e.g. Jajan / Tabungan"
+									/>
+								</div>
+
+								{pocket.id !== "pocket_1" && (
+									<>
+										<div className="space-y-2">
+											<Label className="text-xs text-zinc-500 font-bold">{language === "en" ? "Pocket Type" : "Tipe Kantong"}</Label>
+											<Select
+												value={pocket.type}
+												onValueChange={(val: any) => handleLocalPocketFieldChange(idx, "type", val)}
+											>
+												<SelectTrigger className="h-10 rounded-xl cursor-pointer">
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent className="rounded-xl">
+													<SelectItem value="default" className="cursor-pointer">{language === "en" ? "Regular (No Target)" : "Biasa (Tanpa Target)"}</SelectItem>
+													<SelectItem value="budget" className="cursor-pointer">{language === "en" ? "Monthly Budget Limit" : "Limit Anggaran Bulanan"}</SelectItem>
+													<SelectItem value="saving" className="cursor-pointer">{language === "en" ? "Savings Goal" : "Target Tabungan"}</SelectItem>
+												</SelectContent>
+											</Select>
+										</div>
+
+										{pocket.type !== "default" && (
+											<div className="space-y-2">
+												<Label className="text-xs text-zinc-500 font-bold">
+													{pocket.type === "budget" 
+														? (language === "en" ? "Monthly Limit (Rp)" : "Batas Bulanan (Rp)")
+														: (language === "en" ? "Target Amount (Rp)" : "Target Saldo (Rp)")}
+												</Label>
+												<Input
+													type="text"
+													value={pocket.target ? formatRupiah(pocket.target.toString()) : ""}
+													onChange={(e) => {
+														const raw = stripRupiah(e.target.value);
+														handleLocalPocketFieldChange(idx, "target", raw ? parseInt(raw, 10) : 0);
+													}}
+													placeholder="e.g. 1.000.000"
+													className={`h-10 rounded-xl focus:border-${pocket.color}-500 focus:ring-1 focus:ring-${pocket.color}-500`}
+												/>
+											</div>
+										)}
+									</>
+								)}
+							</div>
+						))}
+					</div>
+					<div className="flex gap-2 mt-4">
+						<Button
+							onClick={savePocketSettings}
+							className={`flex-1 h-12 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black rounded-xl cursor-pointer border-none shadow-lg ${themeColors.buttonShadow}`}
+						>
+							{language === "en" ? "Save Changes" : "Simpan Perubahan"}
+						</Button>
+						<Button
+							variant="outline"
+							onClick={() => {
+								setLocalPockets(props.pockets);
+								setIsPocketSettingsOpen(false);
+							}}
+							className="h-12 px-5 rounded-xl font-bold cursor-pointer bg-transparent"
+						>
+							{language === "en" ? "Cancel" : "Batal"}
+						</Button>
 					</div>
 				</DialogContent>
 			</Dialog>
@@ -483,7 +746,7 @@ export function FormView(props: FormViewProps) {
 								size="sm" 
 								variant="outline" 
 								disabled={isSyncing} 
-								className="h-8 text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/35 hover:bg-emerald-500/15 hover:text-emerald-700 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300 dark:border-emerald-500/25 px-2.5 rounded-xl cursor-pointer flex items-center gap-1.5 transition-all shadow-sm"
+								className={`h-8 text-[10px] font-black ${themeColors.textDark} ${themeColors.bgLight} border ${themeColors.border} ${themeColors.hoverBg} px-2.5 rounded-xl cursor-pointer flex items-center gap-1.5 transition-all shadow-sm`}
 								onClick={handleManageFieldsClick}
 							>
 								<Settings2 size={14} /> {t("manageFields")}
@@ -551,7 +814,7 @@ export function FormView(props: FormViewProps) {
 					) : (
 						displayHeaders.map((header) => {
 							const hL = header.toLowerCase();
-							if (hL.includes("tanggal") || hL.includes("date")) return null;
+							if (hL.includes("tanggal") || hL.includes("date") || hL.includes("pocket") || hL.includes("kantong")) return null;
 							const isCoreCat = hL.includes("kategori") || hL.includes("category");
 							const isType = hL.includes("tipe") || hL.includes("type");
 							const isAmount = hL.includes("jumlah") || hL.includes("amount");
@@ -563,20 +826,19 @@ export function FormView(props: FormViewProps) {
 								<div key={header} ref={isAmount ? amountFieldRef : undefined} className="space-y-2">
 									<div className="flex items-center justify-between ml-1">
 										<Label className="text-xs text-zinc-550 dark:text-zinc-400">
-											{/* Feature 3: Amount label shows "Nominal (Rp)" */}
 											{isAmount ? t("amountLabel") : props.translateHeader(header)} 
 											{customField?.required && <span className="text-red-500 ml-1">*</span>}
 											{isNote && <span className="text-[10px] opacity-60 font-normal ml-1">({t("optionalLabel")})</span>}
 										</Label>
 										{(isCoreCat || customField?.type === "dropdown") && (
 											<Dialog>
-												<DialogTrigger render={<Button variant="ghost" size="sm" disabled={isInteractionDisabled} className="h-6 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 px-2 rounded-lg cursor-pointer" />}>
+												<DialogTrigger render={<Button variant="ghost" size="sm" disabled={isInteractionDisabled} className={`h-6 text-[10px] font-bold ${themeColors.textDark} ${themeColors.hoverBg} px-2 rounded-lg cursor-pointer bg-transparent`} />}>
 													{t("manageOptions")}
 												</DialogTrigger>
 												<DialogContent className="sm:max-w-[400px] rounded-3xl">
 													<DialogHeader><DialogTitle>{isCoreCat ? t("manageCategories") : `${t("manageOptions")}: ${header}`}</DialogTitle></DialogHeader>
 													<div className="space-y-4 py-4">
-														<div className="flex gap-2"><Input placeholder={isCoreCat ? t("newCategory") : t("newOption")} value={isCoreCat ? props.newCategoryInput : props.newOptionInput} onChange={(e) => isCoreCat ? props.setNewCategoryInput(e.target.value) : props.setNewOptionInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-xl" /><Button onClick={() => isCoreCat ? props.onAddCategory() : props.onAddOption(customFieldIdx, props.newOptionInput)} disabled={isInteractionDisabled} className="bg-emerald-500 text-black font-bold rounded-xl cursor-pointer">{t("add")}</Button></div>
+														<div className="flex gap-2"><Input placeholder={isCoreCat ? t("newCategory") : t("newOption")} value={isCoreCat ? props.newCategoryInput : props.newOptionInput} onChange={(e) => isCoreCat ? props.setNewCategoryInput(e.target.value) : props.setNewOptionInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-xl" /><Button onClick={() => isCoreCat ? props.onAddCategory() : props.onAddOption(customFieldIdx, props.newOptionInput)} disabled={isInteractionDisabled} className={`bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-bold rounded-xl cursor-pointer border-none shadow-md`}>{t("add")}</Button></div>
 														<div className="max-h-[200px] overflow-y-auto space-y-2">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<div key={opt} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800">
 															<span className="text-sm font-medium">{opt}</span><Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => isCoreCat ? props.onDeleteCategory(opt) : props.onDeleteOption(customFieldIdx, opt)} className="cursor-pointer"><Trash2 size={14} /></Button></div>))}</div>
 													</div>
@@ -586,14 +848,14 @@ export function FormView(props: FormViewProps) {
 									</div>
 									{(isCoreCat || (customField?.type === "dropdown")) ? (
 										<Select value={localFormData[header] || ""} disabled={isInteractionDisabled} onValueChange={(val) => handleLocalInputChange(header, val || "")}>
-											<SelectTrigger className="h-12 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 cursor-pointer transition-colors"><SelectValue placeholder={t("selectCategory")} /></SelectTrigger>
+											<SelectTrigger className={`h-12 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 cursor-pointer transition-colors ${themeColors.focusRingInput}`}><SelectValue placeholder={t("selectCategory")} /></SelectTrigger>
 											<SelectContent className="rounded-xl">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<SelectItem key={opt} value={opt} className="cursor-pointer">{opt}</SelectItem>))}</SelectContent>
 										</Select>
 									) : isType ? (
 										<div className="flex bg-white/30 dark:bg-zinc-950/20 p-1.5 rounded-xl gap-1 border border-zinc-250 dark:border-zinc-850">
 											<button
 												type="button"
-												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${localFormData[header] === "Pemasukan / Income" ? "bg-white/80 dark:bg-zinc-900/60 text-emerald-600 shadow-sm border border-white/40 dark:border-white/5" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
+												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${localFormData[header] === "Pemasukan / Income" ? `bg-white/80 dark:bg-zinc-900/60 ${themeColors.textDark} shadow-sm border border-white/40 dark:border-white/5` : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
 												onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleLocalInputChange(header, "Pemasukan / Income"); }}
 												disabled={isInteractionDisabled}
 											>
@@ -611,7 +873,6 @@ export function FormView(props: FormViewProps) {
 											</button>
 										</div>
 									) : isAmount ? (
-										// ─── Feature 2 & 3: Amount field with Rupiah formatting ──────────
 										<>
 											<div className="relative flex items-center w-full">
 												<span className="absolute left-4 text-[10px] font-black text-zinc-400 dark:text-zinc-500 select-none pointer-events-none">
@@ -623,14 +884,13 @@ export function FormView(props: FormViewProps) {
 													readOnly={isMobile}
 													disabled={isInteractionDisabled}
 													placeholder={t("amountPlaceholder")}
-													className="h-12 w-full pl-9 pr-4 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium text-base transition-colors"
+													className={`h-12 w-full pl-9 pr-4 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium text-base transition-colors ${themeColors.focusRingInput}`}
 													value={localFormData[header] || ""}
 													onChange={(e) => handleAmountChange(header, e.target.value)}
 													onFocus={() => isMobile && setMobileKbHeader(header)}
 													onClick={() => isMobile && setMobileKbHeader(header)}
 												/>
 											</div>
-											{/* Feature 2: Mobile keyboard – shows when this field is focused on mobile */}
 											{isMobile && mobileKbHeader === header && (
 												<NumericKeyboard
 													value={localFormData[header] || ""}
@@ -643,7 +903,7 @@ export function FormView(props: FormViewProps) {
 											)}
 										</>
 									) : (
-										<Input type="text" disabled={isInteractionDisabled} placeholder={`${props.translateHeader(header)}...`} className="h-12 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium transition-colors" value={localFormData[header] || ""} onChange={(e) => handleLocalInputChange(header, e.target.value)} />
+										<Input type="text" disabled={isInteractionDisabled} placeholder={`${props.translateHeader(header)}...`} className={`h-12 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium transition-colors ${themeColors.focusRingInput}`} value={localFormData[header] || ""} onChange={(e) => handleLocalInputChange(header, e.target.value)} />
 									)}
 								</div>
 							);
@@ -658,7 +918,7 @@ export function FormView(props: FormViewProps) {
 								<Button 
 									disabled={isInteractionDisabled} 
 									onClick={handleLocalSubmit} 
-									className="flex-grow h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black text-lg rounded-2xl shadow-lg shadow-emerald-500/20 cursor-pointer border-none transition-all active:scale-[0.98]"
+									className={`flex-grow h-14 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black text-lg rounded-2xl shadow-lg ${themeColors.buttonShadow} cursor-pointer border-none transition-all active:scale-[0.98]`}
 								>
 									{props.loading ? "..." : t("addExpense")}
 								</Button>
@@ -667,27 +927,27 @@ export function FormView(props: FormViewProps) {
 									variant="outline"
 									disabled={isOcrDisabled}
 									onClick={props.onOcrClick}
-									className="h-14 w-14 rounded-2xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40 flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+									className={`h-14 w-14 rounded-2xl border ${themeColors.border} ${themeColors.bgLight} ${themeColors.hoverBg} flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 bg-transparent`}
 									aria-label="Scan Struk / OCR Receipt Scan"
 								>
 									{props.ocrLoading ? (
-										<Loader2 size={24} className="text-emerald-600 animate-spin" />
+										<Loader2 size={24} className={`${themeColors.text} animate-spin`} />
 									) : (
-										<Camera size={24} className="text-emerald-600" />
+										<Camera size={24} className={themeColors.text} />
 									)}
 								</Button>
 							</div>
 						) : (
 							<div className="flex flex-col items-center gap-2 w-full">
 								<div className="flex items-center gap-3 mt-4 w-full">
-									<Button onClick={props.onLoginClick} disabled={isSyncing} className="flex-grow h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black text-lg rounded-2xl shadow-lg shadow-emerald-500/20 cursor-pointer border-none transition-all active:scale-[0.98]">
+									<Button onClick={props.onLoginClick} disabled={isSyncing} className={`flex-grow h-14 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black text-lg rounded-2xl shadow-lg ${themeColors.buttonShadow} cursor-pointer border-none transition-all active:scale-[0.98]`}>
 										{t("signIn")}
 									</Button>
 									<Button
 										type="button"
 										variant="outline"
 										disabled={true}
-										className="h-14 w-14 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/30 flex items-center justify-center opacity-40 cursor-not-allowed flex-shrink-0"
+										className="h-14 w-14 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/30 flex items-center justify-center opacity-40 cursor-not-allowed flex-shrink-0 bg-transparent"
 										aria-label="Scan Struk / OCR Receipt Scan"
 									>
 										<Camera size={24} className="text-zinc-400" />
@@ -697,7 +957,7 @@ export function FormView(props: FormViewProps) {
 									type="button"
 									onClick={enterDemo}
 									disabled={isSyncing}
-									className="text-xs font-semibold text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-2 cursor-pointer mt-2 disabled:opacity-50"
+									className="text-xs font-semibold text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-2 cursor-pointer mt-2 disabled:opacity-50 bg-transparent border-none"
 								>
 									{t("tryDemo")}
 								</button>

@@ -4,10 +4,11 @@ export const CORE_HEADERS_DUAL = [
 	"Amount / Jumlah",
 	"Type / Tipe",
 	"Category / Kategori",
-	"Note / Catatan"
+	"Note / Catatan",
+	"Pocket / Kantong"
 ];
 
-export const CORE_FIELDS_COUNT = 6;
+export const CORE_FIELDS_COUNT = 7;
 
 export interface CustomFieldDef {
 	name: string;
@@ -351,6 +352,13 @@ export async function initializeSheetFormatting(
 						}
 					},
 					{
+						updateDimensionProperties: {
+							range: { sheetId: internalSheetId, dimension: "COLUMNS", startIndex: 6, endIndex: 7 },
+							properties: { pixelSize: 200 },
+							fields: "pixelSize"
+						}
+					},
+					{
 						addConditionalFormatRule: {
 							rule: {
 								ranges: [
@@ -451,7 +459,8 @@ export async function handleInitialBalanceCarryForward(
 				amountVal,
 				typeVal,
 				"Initial Balance",
-				fromPreviousMonthText
+				fromPreviousMonthText,
+				"Utama"
 			];
 
 			await fetch(

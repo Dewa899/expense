@@ -27,6 +27,20 @@ import {
 
 export type { CustomFieldDef };
 
+export type PocketDef = {
+	id: string;
+	name: string;
+	type: "default" | "budget" | "saving";
+	target?: number;
+	color: "emerald" | "indigo" | "amber";
+};
+
+export const DEFAULT_POCKETS: PocketDef[] = [
+	{ id: "pocket_1", name: "Utama", type: "default", color: "emerald" },
+	{ id: "pocket_2", name: "Jajan", type: "budget", target: 1000000, color: "indigo" },
+	{ id: "pocket_3", name: "Tabungan", type: "saving", target: 50000000, color: "amber" }
+];
+
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
 let isGlobalIntegrating = false;
@@ -48,6 +62,7 @@ export type Transaction = {
 	type: string;
 	category: string;
 	note: string;
+	pocket?: string;
 	raw: any; // Original row data for custom fields access
 };
 
@@ -78,6 +93,8 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	const [selectedMonth, setSelectedMonth] = React.useState<string>("");
 	const [newCategoryInput, setNewCategoryInput] = React.useState("");
 	const [formData, setFormData] = React.useState<Record<string, string>>({});
+	const [pockets, setPockets] = React.useState<PocketDef[]>([]);
+	const [activePocketIdx, setActivePocketIdx] = React.useState<number>(0);
 	const [loading, setLoading] = React.useState(false);
 	const [isIntegrating, setIsIntegrating] = React.useState(false);
 	const [totalAmount, setTotalAmount] = React.useState(0);
@@ -119,6 +136,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				.single();
 				
 			let fields: CustomFieldDef[] = [];
+			let dbPockets = DEFAULT_POCKETS;
 			if (settings) {
 				if (settings.custom_categories) setCategories(settings.custom_categories);
 				if (settings.custom_field_defs) {
@@ -126,6 +144,19 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					fields = settings.custom_field_defs;
 				}
 				if (settings.custom_chart_configs) setCustomChartConfigs(settings.custom_chart_configs);
+				if (settings.custom_pockets) {
+					dbPockets = settings.custom_pockets;
+					setPockets(dbPockets);
+				} else {
+					setPockets(DEFAULT_POCKETS);
+					await supabase.from("user_settings").upsert({
+						user_id: userId,
+						custom_pockets: DEFAULT_POCKETS,
+						updated_at: new Date().toISOString()
+					});
+				}
+			} else {
+				setPockets(DEFAULT_POCKETS);
 			}
 			setHeaders([...CORE_HEADERS_DUAL, ...fields.map((f: any) => f.name)]);
 
@@ -185,6 +216,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			if (currentMonthTxs.length > 0) {
 				const parsedTxs = currentMonthTxs.map(t => {
 					const isExpense = t.type === "expense" || t.type.toLowerCase().includes("expense") || t.type.toLowerCase().includes("pengeluaran");
+					const pObj = dbPockets.find((p: any) => p.id === t.pocket_id) || dbPockets[0];
 					return {
 						id: t.id,
 						date: new Date(t.date).toLocaleString(),
@@ -194,6 +226,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 						type: t.type === "expense" ? "Pengeluaran / Expense" : "Pemasukan / Income",
 						category: t.category,
 						note: t.note || "",
+						pocket: pObj.name,
 						raw: t.custom_fields || {}
 					};
 				});
@@ -366,6 +399,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				const catIdx = fetchedHeaders.findIndex((h: string) => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category"));
 				const noteIdx = fetchedHeaders.findIndex((h: string) => h.toLowerCase().includes("catatan") || h.toLowerCase().includes("note"));
 
+				const pocketIdx = fetchedHeaders.findIndex((h: string) => h.toLowerCase().includes("pocket") || h.toLowerCase().includes("kantong"));
 				const rowData = data.values.slice(1).map((row: any) => {
 					const rawAmount = cleanNumber(row[amountIdx]);
 					const type = row[typeIdx] || "";
@@ -377,12 +411,12 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 						type: type,
 						category: row[catIdx] || "",
 						note: row[noteIdx] || "",
+						pocket: pocketIdx !== -1 ? row[pocketIdx] || "Utama" : "Utama",
 						raw: row
 					};
 				});
 				
 				setTransactions(rowData);
-				setTotalAmount(rowData.reduce((sum: number, t: any) => sum + t.amount, 0));
 
 				// Auto-discover unique categories from the Google Sheet and sync them locally
 				const sheetCategories = Array.from(new Set(rowData.map((t: any) => t.category).filter(Boolean))) as string[];
@@ -835,6 +869,13 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			const savedCats = localStorage.getItem("customCategories");
 			const savedFields = localStorage.getItem("customFieldDefs");
 			const savedCharts = localStorage.getItem("customChartConfigs");
+			const savedPockets = localStorage.getItem("customPockets");
+
+			if (savedPockets) setPockets(JSON.parse(savedPockets));
+			else {
+				setPockets(DEFAULT_POCKETS);
+				localStorage.setItem("customPockets", JSON.stringify(DEFAULT_POCKETS));
+			}
 
 			if (savedCats) setCategories(JSON.parse(savedCats));
 			else {
@@ -967,9 +1008,22 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				return txMonth === selectedMonth;
 			});
 			setTransactions(filtered);
-			setTotalAmount(filtered.reduce((sum, t) => sum + t.amount, 0));
 		}
 	}, [selectedMonth, allTransactions, supabaseUser]);
+
+	React.useEffect(() => {
+		if (pockets.length > 0) {
+			const activePocket = pockets[activePocketIdx] || pockets[0];
+			if (activePocket.id === "pocket_1") {
+				setTotalAmount(transactions.reduce((sum, t) => sum + t.amount, 0));
+			} else {
+				const filtered = transactions.filter(t => t.pocket === activePocket.name || t.pocket === activePocket.id);
+				setTotalAmount(filtered.reduce((sum, t) => sum + t.amount, 0));
+			}
+		} else {
+			setTotalAmount(transactions.reduce((sum, t) => sum + t.amount, 0));
+		}
+	}, [transactions, activePocketIdx, pockets]);
 
 	const handleInputChange = (header: string, value: string) => {
 		setFormData((prev) => ({ ...prev, [header]: value }));
@@ -1010,6 +1064,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				}
 			});
 
+			const activePocket = pockets[activePocketIdx] || pockets[0];
 			addDemoTransaction({
 				date: new Date().toLocaleString(),
 				name: activeFormData[nameHeader] || "",
@@ -1017,6 +1072,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				type: typeVal,
 				category: activeFormData[catHeader] || "",
 				note: activeFormData[noteHeader] || "",
+				pocket: activePocket.name,
 				raw: customFieldValues,
 			});
 			setFormData({});
@@ -1059,6 +1115,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					}
 				});
 
+				const activePocket = pockets[activePocketIdx] || pockets[0];
 				const { error } = await supabase.from("transactions").insert({
 					user_id: supabaseUser.id,
 					date: new Date().toISOString(),
@@ -1067,6 +1124,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					type: isExpense ? "expense" : "income",
 					category: activeFormData[catHeader] || "",
 					note: activeFormData[noteHeader] || "",
+					pocket_id: activePocket.id,
 					custom_fields: customFieldValues
 				});
 
@@ -1110,9 +1168,11 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		try {
 			const internalSheetId = await ensureAndGetSheetId(activeSheetId, currentMonth, activeToken, handleAuthError);
 			await initializeSheetFormatting(activeSheetId, activeToken, currentMonth, internalSheetId, customFields);
+			const activePocket = pockets[activePocketIdx] || pockets[0];
 			const values = headers.map((h) => {
 				const hL = h.toLowerCase();
 				if (hL.includes("tanggal") || hL.includes("date")) return new Date().toLocaleString();
+				if (hL.includes("pocket") || hL.includes("kantong")) return activePocket.name;
 				let val = activeFormData[h] || "";
 				// Strip Rupiah formatting before persisting raw number
 				if (hL.includes("jumlah") || hL.includes("amount")) {
@@ -1135,7 +1195,12 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		}
 	};
 
-	const updateSupabaseSettings = async (cats: string[], fields: CustomFieldDef[], charts: CustomChartConfig[]) => {
+	const updateSupabaseSettings = async (
+		cats: string[],
+		fields: CustomFieldDef[],
+		charts: CustomChartConfig[],
+		pocketsList: PocketDef[] = pockets
+	) => {
 		if (!supabaseUser) return;
 		try {
 			const { error } = await supabase.from("user_settings").upsert({
@@ -1143,6 +1208,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				custom_categories: cats,
 				custom_field_defs: fields,
 				custom_chart_configs: charts,
+				custom_pockets: pocketsList,
 				updated_at: new Date().toISOString()
 			});
 			if (error) throw error;
@@ -1366,6 +1432,128 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		}
 	};
 
+	const handleUpdatePockets = async (updatedList: PocketDef[]) => {
+		setPockets(updatedList);
+		if (isDemoMode) return;
+		if (supabaseUser) {
+			await updateSupabaseSettings(categories, customFields, customChartConfigs, updatedList);
+		} else {
+			localStorage.setItem("customPockets", JSON.stringify(updatedList));
+		}
+	};
+
+	const getPocketBalance = (pocket: PocketDef) => {
+		if (pocket.id === "pocket_1") {
+			return transactions.reduce((sum, t) => sum + t.amount, 0);
+		}
+		return transactions
+			.filter(t => t.pocket === pocket.name || t.pocket === pocket.id)
+			.reduce((sum, t) => sum + t.amount, 0);
+	};
+
+	const checkAndProcessRecurring = React.useCallback(async () => {
+		if (sessionStorage.getItem("recurringChecked")) return;
+		sessionStorage.setItem("recurringChecked", "true");
+
+		const savedTemplatesStr = localStorage.getItem("recurringTemplates");
+		if (!savedTemplatesStr) return;
+
+		try {
+			const templates = JSON.parse(savedTemplatesStr);
+			const now = new Date();
+			let hasNew = false;
+			const newTxs: any[] = [];
+
+			for (const t of templates) {
+				const nextRun = new Date(t.next_execution_at);
+				if (nextRun <= now) {
+					hasNew = true;
+					const isExpense = t.type === "expense";
+					const newTx = {
+						date: new Date().toLocaleString(),
+						name: t.name,
+						amount: isExpense ? -Math.abs(t.amount) : Math.abs(t.amount),
+						type: isExpense ? "Pengeluaran / Expense" : "Pemasukan / Income",
+						category: t.category,
+						note: t.note || "Automated Recurring",
+						pocket: t.pocket || "Utama"
+					};
+					newTxs.push(newTx);
+					
+					const intervalVal = t.interval_value || 1;
+					if (t.interval_unit === "daily") {
+						nextRun.setDate(nextRun.getDate() + intervalVal);
+					} else if (t.interval_unit === "weekly") {
+						nextRun.setDate(nextRun.getDate() + 7 * intervalVal);
+					} else if (t.interval_unit === "monthly") {
+						nextRun.setMonth(nextRun.getMonth() + intervalVal);
+					} else if (t.interval_unit === "hourly") {
+						nextRun.setHours(nextRun.getHours() + intervalVal);
+					}
+					t.next_execution_at = nextRun.toISOString();
+					t.last_executed_at = now.toISOString();
+				}
+			}
+
+			if (hasNew) {
+				localStorage.setItem("recurringTemplates", JSON.stringify(templates));
+				const activeMonth = getCurrentMonthSheetName();
+				
+				if (supabaseUser) {
+					for (const tx of newTxs) {
+						await supabase.from("transactions").insert({
+							user_id: supabaseUser.id,
+							date: new Date().toISOString(),
+							name: tx.name,
+							amount: Math.abs(tx.amount),
+							type: tx.amount < 0 ? "expense" : "income",
+							category: tx.category,
+							note: tx.note,
+							pocket_id: pockets.find(p => p.name === tx.pocket)?.id || "pocket_1"
+						});
+					}
+					await fetchSupabaseUserData(supabaseUser.id);
+				} else if (user?.accessToken && config.sheetId) {
+					for (const tx of newTxs) {
+						const values = headers.map(h => {
+							const hL = h.toLowerCase();
+							if (hL.includes("tanggal") || hL.includes("date")) return tx.date;
+							if (hL.includes("nama") || hL.includes("name")) return tx.name;
+							if (hL.includes("jumlah") || hL.includes("amount")) return Math.abs(tx.amount).toString();
+							if (hL.includes("tipe") || hL.includes("type")) return tx.type;
+							if (hL.includes("kategori") || hL.includes("category")) return tx.category;
+							if (hL.includes("catatan") || hL.includes("note")) return tx.note;
+							if (hL.includes("pocket") || hL.includes("kantong")) return tx.pocket;
+							return "";
+						});
+						await appendRowToSheet(config.sheetId, activeMonth, user.accessToken, values);
+					}
+					await fetchSheetData(config.sheetId, user.accessToken, activeMonth);
+				} else {
+					const currentLocal = localStorage.getItem("localTransactions") || "[]";
+					const currentList = JSON.parse(currentLocal);
+					localStorage.setItem("localTransactions", JSON.stringify([...newTxs, ...currentList]));
+					setAllTransactions(prev => [...newTxs, ...prev]);
+				}
+
+				setStatusModal({
+					isOpen: true,
+					type: "success",
+					title: "Transaksi Otomatis",
+					description: `${newTxs.length} transaksi berulang berhasil dicatat!`
+				});
+			}
+		} catch (e) {
+			console.error("Error checking recurring templates:", e);
+		}
+	}, [supabaseUser, user, config, headers, pockets, selectedMonth]);
+
+	React.useEffect(() => {
+		if (transactions.length > 0 && pockets.length > 0) {
+			checkAndProcessRecurring();
+		}
+	}, [transactions, pockets, checkAndProcessRecurring]);
+
 	return {
 		view, setView,
 		headers, categories, customFields, transactions,
@@ -1388,6 +1576,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		supabaseUser, isGoogleConnected, googleEmail,
 		exportToCSV, exportToGoogleSheets,
 		isAddToHomeOpen, setIsAddToHomeOpen, deferredPrompt, isInstallable, triggerInstall, isStandaloneMode,
+		pockets, activePocketIdx, setActivePocketIdx, handleUpdatePockets, getPocketBalance,
 		translateHeader: (header: string) => {
 			const h = header.toLowerCase();
 			if (h.includes("nama") || h.includes("name")) return t("name");
