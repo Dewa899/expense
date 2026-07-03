@@ -362,8 +362,8 @@ export function FormView(props: FormViewProps) {
 			initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
 			className="space-y-6"
 		>
-			{/* Pocket Total Amount Card with 80/20 Layout & Swipe controls */}
-			<section className="mt-2 flex gap-3 items-stretch min-h-[220px]">
+			{/* Pocket Total Amount Card with Swipe controls & Floating panah indicator inside */}
+			<section className="mt-2 relative">
 				<motion.div 
 					drag={props.pockets.length > 0 ? "x" : false}
 					dragConstraints={{ left: 0, right: 0 }}
@@ -376,9 +376,9 @@ export function FormView(props: FormViewProps) {
 							props.setActivePocketIdx((props.activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
 						}
 					}}
-					className="flex-grow flex-1 cursor-grab active:cursor-grabbing select-none h-full"
+					className="w-full cursor-grab active:cursor-grabbing select-none"
 				>
-					<div className={`h-full bg-gradient-to-br ${themeColors.gradient} rounded-3xl p-6 text-black shadow-lg ${themeColors.shadow} relative overflow-hidden group flex flex-col justify-between transition-colors duration-300`}>
+					<div className={`bg-gradient-to-br ${themeColors.gradient} rounded-3xl p-6 text-black shadow-lg ${themeColors.shadow} relative overflow-hidden group flex flex-col justify-between transition-colors duration-300 ${props.pockets.length > 0 ? "pr-14" : ""}`}>
 						<div className="absolute -right-4 -top-4 w-24 h-24 bg-black/5 rounded-full blur-2xl pointer-events-none" />
 						
 						<AnimatePresence mode="wait">
@@ -388,7 +388,7 @@ export function FormView(props: FormViewProps) {
 								animate={{ x: 0, opacity: 1 }}
 								exit={{ x: -20, opacity: 0 }}
 								transition={{ duration: 0.15 }}
-								className="w-full flex-grow flex flex-col justify-between gap-y-4"
+								className="w-full flex flex-col justify-between gap-y-4"
 							>
 								<div>
 									<div className="flex justify-between items-start">
@@ -449,7 +449,7 @@ export function FormView(props: FormViewProps) {
 												className={`h-full rounded-full ${
 													activePocket.type === "budget"
 														? progressBarPercent > 90
-															? "bg-red-600"
+															? "bg-red-650"
 															: progressBarPercent > 70
 																? "bg-amber-605"
 																: "bg-emerald-700"
@@ -481,20 +481,23 @@ export function FormView(props: FormViewProps) {
 								</div>
 							</motion.div>
 						</AnimatePresence>
+
+						{/* Floating Panah indicator on middle right */}
+						{props.pockets.length > 0 && (
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation();
+									props.setActivePocketIdx((props.activePocketIdx + 1) % carouselPockets.length);
+								}}
+								className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/10 hover:bg-black/20 text-black flex items-center justify-center cursor-pointer transition-all active:scale-90 z-20 border-none"
+								aria-label="Next Pocket"
+							>
+								<ChevronRight size={20} />
+							</button>
+						)}
 					</div>
 				</motion.div>
-
-				{/* Right Side: Panah Next (HANYA MUNCUL JIKA ADA SAKU TAMBAHAN) */}
-				{props.pockets.length > 0 && (
-					<Button
-						onClick={() => props.setActivePocketIdx((props.activePocketIdx + 1) % carouselPockets.length)}
-						className="w-[60px] rounded-3xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-all active:scale-95 shadow-sm p-0 gap-1 h-full flex-shrink-0"
-						aria-label="Kantong Berikutnya"
-					>
-						<ChevronRight size={22} />
-						<span className="text-[9px] font-black uppercase">Next</span>
-					</Button>
-				)}
 			</section>
 
 			{/* PWA Downloader modal */}

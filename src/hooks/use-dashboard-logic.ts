@@ -1039,8 +1039,9 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				}
 			];
 			setRecurringTemplates(demoTemplates);
+			setTransactions(demoTransactions);
 		}
-	}, [isDemoMode]);
+	}, [isDemoMode, demoTransactions]);
 
 	// Filter transactions by selectedMonth in Supabase mode
 	React.useEffect(() => {
