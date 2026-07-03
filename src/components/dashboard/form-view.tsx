@@ -20,7 +20,9 @@ import {
 	ChevronUp,
 	Download,
 	Home,
-	User
+	User,
+	Camera,
+	Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +93,10 @@ interface FormViewProps {
 	exportToGoogleSheets?: () => void;
 	onLoginClick?: () => void;
 	
+	ocrLoading: boolean;
+	ocrMessage: string;
+	onOcrClick: () => void;
+
 	// PWA Props
 	isAddToHomeOpen: boolean;
 	setIsAddToHomeOpen: (open: boolean) => void;
@@ -462,7 +468,7 @@ export function FormView(props: FormViewProps) {
 
 			<section className="rounded-3xl p-6 glass-card">
 				<div className="flex items-center justify-between mb-6">
-					<h3 className="text-lg font-bold flex items-center gap-2"><Plus className="text-emerald-500" size={20} />{t("quickAdd")}</h3>
+					<h3 className="text-lg font-bold flex items-center gap-2">{t("transactionEntry")}</h3>
 					
 					{/* Manage Fields Dialog */}
 					<Dialog open={props.isManageFieldsOpen} onOpenChange={(open) => {
@@ -644,24 +650,65 @@ export function FormView(props: FormViewProps) {
 						})
 					)}
 					
-					{(props.supabaseUser || props.user || props.isDemoMode) ? (
-						<Button disabled={isInteractionDisabled} onClick={handleLocalSubmit} className="w-full h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black text-lg rounded-2xl mt-4 shadow-lg shadow-emerald-500/20 cursor-pointer border-none transition-all active:scale-[0.98]">
-							{props.loading ? "..." : t("addExpense")}
-						</Button>
-					) : (
-						<div className="flex flex-col items-center gap-2">
-							<Button onClick={props.onLoginClick} disabled={isSyncing} className="w-full h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black text-lg rounded-2xl mt-4 shadow-lg shadow-emerald-500/20 cursor-pointer border-none transition-all active:scale-[0.98]">
-								{t("signIn")}
-							</Button>
-							<button
-								type="button"
-								onClick={enterDemo}
-								disabled={isSyncing}
-								className="text-xs font-semibold text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-2 cursor-pointer mt-2 disabled:opacity-50"
-							>
-								{t("tryDemo")}
-							</button>
-						</div>
+					{(() => {
+						const isOcrDisabled = props.ocrLoading || isInteractionDisabled || (!props.supabaseUser && !props.user && !props.isDemoMode);
+						
+						return (props.supabaseUser || props.user || props.isDemoMode) ? (
+							<div className="flex items-center gap-3 mt-4 w-full">
+								<Button 
+									disabled={isInteractionDisabled} 
+									onClick={handleLocalSubmit} 
+									className="flex-grow h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black text-lg rounded-2xl shadow-lg shadow-emerald-500/20 cursor-pointer border-none transition-all active:scale-[0.98]"
+								>
+									{props.loading ? "..." : t("addExpense")}
+								</Button>
+								<Button
+									type="button"
+									variant="outline"
+									disabled={isOcrDisabled}
+									onClick={props.onOcrClick}
+									className="h-14 w-14 rounded-2xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40 flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+									aria-label="Scan Struk / OCR Receipt Scan"
+								>
+									{props.ocrLoading ? (
+										<Loader2 size={24} className="text-emerald-600 animate-spin" />
+									) : (
+										<Camera size={24} className="text-emerald-600" />
+									)}
+								</Button>
+							</div>
+						) : (
+							<div className="flex flex-col items-center gap-2 w-full">
+								<div className="flex items-center gap-3 mt-4 w-full">
+									<Button onClick={props.onLoginClick} disabled={isSyncing} className="flex-grow h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black text-lg rounded-2xl shadow-lg shadow-emerald-500/20 cursor-pointer border-none transition-all active:scale-[0.98]">
+										{t("signIn")}
+									</Button>
+									<Button
+										type="button"
+										variant="outline"
+										disabled={true}
+										className="h-14 w-14 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/30 flex items-center justify-center opacity-40 cursor-not-allowed flex-shrink-0"
+										aria-label="Scan Struk / OCR Receipt Scan"
+									>
+										<Camera size={24} className="text-zinc-400" />
+									</Button>
+								</div>
+								<button
+									type="button"
+									onClick={enterDemo}
+									disabled={isSyncing}
+									className="text-xs font-semibold text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-2 cursor-pointer mt-2 disabled:opacity-50"
+								>
+									{t("tryDemo")}
+								</button>
+							</div>
+						);
+					})()}
+
+					{props.ocrMessage && (
+						<p className={`text-xs text-center font-medium mt-3 ${props.ocrMessage === t("ocrSuccess") ? "text-emerald-600" : "text-red-500"}`}>
+							{props.ocrMessage}
+						</p>
 					)}
 				</div>
 			</section>

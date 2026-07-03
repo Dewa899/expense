@@ -23,6 +23,7 @@ import { DisconnectModal } from "./dashboard/disconnect-modal";
 import { DeleteFieldModal } from "./dashboard/delete-field-modal";
 import { OnboardingTutorial } from "./dashboard/onboarding-tutorial";
 import { IntegrationLoading } from "./dashboard/integration-loading";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Camera, FlaskConical, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/components/language-provider";
@@ -46,7 +47,7 @@ export function DashboardView({
 	onLoginClick = () => {},
 	onReportBug,
 }: DashboardViewProps) {
-	const { t } = useLanguage();
+	const { t, language } = useLanguage();
 	const { isDemoMode, demoTransactions, demoCategories, exitDemo, addDemoTransaction } = useDemo();
 	
 	const logic = useDashboardLogic(
@@ -66,8 +67,10 @@ export function DashboardView({
 	
 	// OCR States
 	const ocrInputRef = React.useRef<HTMLInputElement>(null);
+	const ocrGalleryInputRef = React.useRef<HTMLInputElement>(null);
 	const [ocrLoading, setOcrLoading] = React.useState(false);
 	const [ocrMessage, setOcrMessage] = React.useState("");
+	const [isOcrPrivacyOpen, setIsOcrPrivacyOpen] = React.useState(false);
 
 	const handleOcrScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
@@ -97,6 +100,7 @@ export function DashboardView({
 		} finally {
 			setOcrLoading(false);
 			if (ocrInputRef.current) ocrInputRef.current.value = "";
+			if (ocrGalleryInputRef.current) ocrGalleryInputRef.current.value = "";
 		}
 	};
 
@@ -171,33 +175,10 @@ export function DashboardView({
 							onDisconnect={() => setIsDisconnectModalOpen(true)}
 							isDemoMode={isDemoMode}
 							onLoginClick={onLoginClick}
+							ocrLoading={ocrLoading}
+							ocrMessage={ocrMessage}
+							onOcrClick={() => setIsOcrPrivacyOpen(true)}
 						/>
-
-					{/* OCR Scan Receipt */}
-						<section className="pb-10 space-y-2">
-							<input ref={ocrInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleOcrScan} />
-							<Button
-								variant="outline"
-								disabled={ocrLoading || (!isLoggedIn && !isDemoMode)}
-								onClick={() => ocrInputRef.current?.click()}
-								className="w-full h-16 rounded-2xl border-dashed border-2 border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40 flex items-center justify-center gap-3 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-50/50 dark:disabled:hover:bg-emerald-950/30"
-							>
-								<div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
-									{ocrLoading ? <Loader2 size={20} className="text-emerald-600 animate-spin" /> : <Camera size={20} className="text-emerald-600" />}
-								</div>
-								<div className="text-left">
-									<p className="font-bold text-sm text-emerald-700 dark:text-emerald-300">{t("ocrScanReceipt")}</p>
-									<p className="text-[10px] uppercase font-bold tracking-widest text-emerald-500">
-										{ocrLoading ? t("ocrScanning") : "OCR"}
-									</p>
-								</div>
-							</Button>
-							{ocrMessage && (
-								<p className={`text-xs text-center font-medium ${ocrMessage === t("ocrSuccess") ? "text-emerald-600" : "text-red-500"}`}>
-									{ocrMessage}
-								</p>
-							)}
-						</section>
 					</div>
 				) : (
 					<div key="analytics-container" className="max-w-5xl mx-auto w-full">
@@ -277,6 +258,66 @@ export function DashboardView({
 					setDeleteConfirm({ isOpen: false, fieldName: "", index: -1 });
 				}}
 			/>
+
+			{/* Hidden OCR Inputs */}
+			<input ref={ocrInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleOcrScan} />
+			<input ref={ocrGalleryInputRef} type="file" accept="image/*" className="hidden" onChange={handleOcrScan} />
+
+			{/* OCR Privacy Choice Dialog */}
+			<Dialog open={isOcrPrivacyOpen} onOpenChange={setIsOcrPrivacyOpen}>
+				<DialogContent className="sm:max-w-[420px] rounded-3xl">
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2">
+							<Camera size={20} className="text-emerald-500" />
+							{language === "en" ? "Receipt Scan Privacy Policy" : "Kebijakan Privasi Pemindaian Struk"}
+						</DialogTitle>
+					</DialogHeader>
+					<div className="py-4 space-y-4 text-sm text-zinc-550 dark:text-zinc-400 leading-relaxed text-left">
+						<p>
+							{language === "en" 
+								? "To scan your receipt, the image will be sent to our AI-powered OCR service. The photo is processed instantly and is NOT stored on any server."
+								: "Untuk memindai struk Anda, foto struk akan dikirim ke layanan OCR bertenaga AI kami. Foto diproses secara instan dan TIDAK disimpan di server mana pun."}
+						</p>
+						<p className="text-xs text-zinc-450 dark:text-zinc-500 font-medium">
+							{language === "en"
+								? "By continuing, you agree to this privacy policy."
+								: "Dengan melanjutkan, Anda menyetujui kebijakan privasi ini."}
+						</p>
+					</div>
+					<div className="flex flex-col gap-2 mt-2">
+						<Button
+							onClick={() => {
+								setIsOcrPrivacyOpen(false);
+								ocrInputRef.current?.click();
+							}}
+							disabled={ocrLoading}
+							className="w-full h-12 bg-emerald-500 hover:bg-emerald-600 text-black font-black rounded-xl flex items-center justify-center gap-2 cursor-pointer border-none"
+						>
+							<Camera size={16} />
+							{language === "en" ? "Take Photo (Camera)" : "Ambil Foto (Kamera)"}
+						</Button>
+						<Button
+							variant="outline"
+							onClick={() => {
+								setIsOcrPrivacyOpen(false);
+								ocrGalleryInputRef.current?.click();
+							}}
+							disabled={ocrLoading}
+							className="w-full h-12 rounded-xl font-bold flex items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-800 cursor-pointer bg-transparent"
+						>
+							<svg className="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+							{language === "en" ? "Choose from Gallery" : "Pilih dari Galeri"}
+						</Button>
+						<Button
+							variant="ghost"
+							onClick={() => setIsOcrPrivacyOpen(false)}
+							className="w-full h-10 text-xs font-semibold text-zinc-400 hover:text-zinc-650 cursor-pointer"
+						>
+							{language === "en" ? "Cancel" : "Batal"}
+						</Button>
+					</div>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }
