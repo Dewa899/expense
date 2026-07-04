@@ -35,11 +35,21 @@ export type PocketDef = {
 	color: "emerald" | "indigo" | "amber";
 };
 
-export const DEFAULT_POCKETS: PocketDef[] = [
-	{ id: "pocket_1", name: "Utama", type: "default", color: "emerald" },
-	{ id: "pocket_2", name: "Jajan", type: "budget", target: 1000000, color: "indigo" },
-	{ id: "pocket_3", name: "Tabungan", type: "saving", target: 50000000, color: "amber" }
-];
+export const DEFAULT_POCKETS: PocketDef[] = [];
+
+const parseDateSafe = (dateStr: string): Date => {
+	if (!dateStr) return new Date();
+	const parsed = new Date(dateStr);
+	if (!isNaN(parsed.getTime())) return parsed;
+	
+	try {
+		const cleaned = dateStr.replace(/(\d{2})\.(\d{2})\.(\d{2})/, "$1:$2:$3");
+		const parsedCleaned = new Date(cleaned);
+		if (!isNaN(parsedCleaned.getTime())) return parsedCleaned;
+	} catch (e) {}
+
+	return new Date();
+};
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
@@ -124,13 +134,20 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					{ id: "pocket_2", name: "Jajan", type: "budget", target: 1000000, color: "indigo" },
 					{ id: "pocket_3", name: "Tabungan", type: "saving", target: 50000000, color: "amber" }
 				] as PocketDef[];
+			} else {
+				const stored = localStorage.getItem("customPockets");
+				if (stored) {
+					try {
+						return JSON.parse(stored);
+					} catch (e) {}
+				}
 			}
 		}
-		return [];
+		return DEFAULT_POCKETS;
 	});
 	const [activePocketIdx, setActivePocketIdx] = React.useState<number>(0);
 	const [recurringTemplates, setRecurringTemplates] = React.useState<any[]>([]);
-	const [loading, setLoading] = React.useState(false);
+	const [loading, setLoading] = React.useState(!isDemoMode);
 	const [isIntegrating, setIsIntegrating] = React.useState(false);
 	const [totalAmount, setTotalAmount] = React.useState(0);
 	const [user, setUser] = React.useState<{ name: string; email?: string; photo?: string; accessToken: string; } | null>(null);
@@ -179,19 +196,48 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					fields = settings.custom_field_defs;
 				}
 				if (settings.custom_chart_configs) setCustomChartConfigs(settings.custom_chart_configs);
-				if (settings.custom_pockets) {
+				if (settings.custom_pockets && Array.isArray(settings.custom_pockets)) {
 					dbPockets = settings.custom_pockets;
 					setPockets(dbPockets);
 				} else {
-					setPockets([]);
-					await supabase.from("user_settings").upsert({
-						user_id: userId,
-						custom_pockets: [],
-						updated_at: new Date().toISOString()
-					});
+					const stored = localStorage.getItem("customPockets");
+					if (stored) {
+						try {
+							dbPockets = JSON.parse(stored);
+							if (!Array.isArray(dbPockets)) {
+								dbPockets = DEFAULT_POCKETS;
+							}
+						} catch (e) {
+							dbPockets = DEFAULT_POCKETS;
+						}
+					} else {
+						dbPockets = DEFAULT_POCKETS;
+					}
+					setPockets(dbPockets);
+					
+					const hasMissingColumn = localStorage.getItem("supabase_missing_custom_pockets") === "true";
+					if (hasMissingColumn) {
+						localStorage.setItem("customPockets", JSON.stringify(dbPockets));
+					} else {
+						try {
+							const payload: any = {
+								user_id: userId,
+								custom_pockets: dbPockets,
+								updated_at: new Date().toISOString()
+							};
+							const { error } = await supabase.from("user_settings").upsert(payload);
+							if (error && error.message.includes("custom_pockets")) {
+								localStorage.setItem("supabase_missing_custom_pockets", "true");
+								localStorage.setItem("customPockets", JSON.stringify(dbPockets));
+							}
+						} catch (e) {
+							console.error("Failed to initialize custom_pockets in Supabase:", e);
+						}
+					}
 				}
 			} else {
-				setPockets([]);
+				dbPockets = DEFAULT_POCKETS;
+				setPockets(dbPockets);
 			}
 			setHeaders([...CORE_HEADERS_DUAL, ...fields.map((f: any) => f.name)]);
 
@@ -251,10 +297,11 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			if (currentMonthTxs.length > 0) {
 				const parsedTxs = currentMonthTxs.map(t => {
 					const isExpense = t.type === "expense" || t.type.toLowerCase().includes("expense") || t.type.toLowerCase().includes("pengeluaran");
-					const pObj = dbPockets.find((p: any) => p.id === t.pocket_id) || dbPockets[0];
+					const pocketId = t.pocket_id || (t.custom_fields && typeof t.custom_fields === "object" ? (t.custom_fields as any).pocket_id : null);
+					const pObj = dbPockets.find((p: any) => p.id === pocketId) || { name: "Utama", id: "pocket_1" };
 					return {
 						id: t.id,
-						date: new Date(t.date).toLocaleString(),
+						date: parseDateSafe(t.date).toLocaleString(),
 						rawDate: t.date,
 						name: t.name,
 						amount: isExpense ? -Math.abs(t.amount) : Math.abs(t.amount),
@@ -267,7 +314,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				});
 				setAllTransactions(parsedTxs);
 
-				const dates = currentMonthTxs.map(t => new Date(t.date).toLocaleString("id-ID", { month: "long", year: "numeric" }));
+				const dates = currentMonthTxs.map(t => parseDateSafe(t.date).toLocaleString("id-ID", { month: "long", year: "numeric" }));
 				const uniqueMonths = Array.from(new Set(dates));
 				const current = getCurrentMonthSheetName();
 				if (!uniqueMonths.includes(current)) {
@@ -285,7 +332,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		} finally {
 			setLoading(false);
 		}
-	}, [t]);
+	}, []);
 
 	const checkGoogleConnectionStatus = React.useCallback(async (sessionToken: string) => {
 		try {
@@ -317,7 +364,8 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	}, []);
 
 	const exportToCSV = () => {
-		if (transactions.length === 0) {
+		const txsToExport = isDemoMode ? demoTransactions : (allTransactions.length > 0 ? allTransactions : transactions);
+		if (txsToExport.length === 0) {
 			alert(t("noTransactions") || "No transactions to export");
 			return;
 		}
@@ -326,7 +374,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		const headersRow = [...CORE_HEADERS_DUAL, ...customFieldNames];
 		const csvRows = [headersRow.join(",")];
 
-		transactions.forEach(t => {
+		txsToExport.forEach(t => {
 			const isExpense = t.type === "expense" || t.type.toLowerCase().includes("expense") || t.type.toLowerCase().includes("pengeluaran");
 			const amountVal = isExpense ? -Math.abs(t.amount) : Math.abs(t.amount);
 			const row = [
@@ -336,6 +384,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				`"${t.type}"`,
 				`"${t.category}"`,
 				`"${(t.note || "").replace(/"/g, '""')}"`,
+				`"${(t.pocket || "Utama").replace(/"/g, '""')}"`,
 				...customFieldNames.map(name => {
 					let val = "";
 					if (t.raw) {
@@ -439,8 +488,15 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					const rawAmount = cleanNumber(row[amountIdx]);
 					const type = row[typeIdx] || "";
 					const isExpense = type.toLowerCase().includes("expense") || type.toLowerCase().includes("pengeluaran") || type.toLowerCase().includes("out");
+					const rawDateStr = row[dateIdx] || "";
+					let displayDate = rawDateStr;
+					try {
+						const dObj = parseDateSafe(rawDateStr);
+						displayDate = dObj.toLocaleString();
+					} catch(e) {}
 					return {
-						date: row[dateIdx] || "",
+						date: displayDate,
+						rawDate: rawDateStr,
 						name: row[nameIdx] || "",
 						amount: isExpense ? -rawAmount : rawAmount,
 						type: type,
@@ -847,6 +903,10 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			if (isDemoMode) return;
 			console.log("Initializing App State...");
 
+			// Reset database fallback flags on mount to re-evaluate database capabilities (e.g. after running SQL migrations)
+			localStorage.removeItem("supabase_missing_custom_pockets");
+			localStorage.removeItem("supabase_missing_pocket_id");
+
 			// Check URL parameters for google_sync status from server OAuth callback
 			const urlParams = new URLSearchParams(window.location.search);
 			const googleSyncStatus = urlParams.get("google_sync");
@@ -869,26 +929,20 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				window.history.replaceState({}, document.title, window.location.pathname);
 			}
 			
-			// 1. Check active Supabase Session
-			const sessionRes = await supabase.auth.getSession();
-			const session = sessionRes.data.session;
-			
-			if (session) {
-				setSupabaseUser(session.user);
-				await fetchSupabaseUserData(session.user.id);
-				await checkGoogleConnectionStatus(session.access_token);
-			} else {
-				// Fallback to local storage (Mode 1: No login sheets)
-				loadLocalData();
-			}
-
 			// Listen to Auth changes dynamically
+			let lastSessionToken = "";
 			const authChangeRes = supabase.auth.onAuthStateChange(async (event, session) => {
 				if (session) {
+					if (session.access_token === lastSessionToken) {
+						return;
+					}
+					lastSessionToken = session.access_token;
 					setSupabaseUser(session.user);
 					await fetchSupabaseUserData(session.user.id);
 					await checkGoogleConnectionStatus(session.access_token);
 				} else {
+					if (lastSessionToken === null) return;
+					lastSessionToken = "";
 					setSupabaseUser(null);
 					setAllTransactions([]);
 					setIsGoogleConnected(false);
@@ -908,10 +962,10 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			const savedPockets = localStorage.getItem("customPockets");
 			const savedTemplates = localStorage.getItem("recurringTemplates");
 
-			if (savedPockets) setPockets(JSON.parse(savedPockets));
+			if (savedPockets && JSON.parse(savedPockets).length > 0) setPockets(JSON.parse(savedPockets));
 			else {
-				setPockets([]);
-				localStorage.setItem("customPockets", JSON.stringify([]));
+				setPockets(DEFAULT_POCKETS);
+				localStorage.setItem("customPockets", JSON.stringify(DEFAULT_POCKETS));
 			}
 
 			if (savedTemplates) setRecurringTemplates(JSON.parse(savedTemplates));
@@ -1023,9 +1077,13 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 						}
 					};
 					doInit();
-				} else setHeaders([...CORE_HEADERS_DUAL, ...customFields.map(f => f.name)]);
+				} else {
+					setHeaders([...CORE_HEADERS_DUAL, ...customFields.map(f => f.name)]);
+					setLoading(false);
+				}
 			} else {
 				setHeaders([...CORE_HEADERS_DUAL, ...customFields.map(f => f.name)]);
+				setLoading(false);
 			}
 		};
 
@@ -1036,7 +1094,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				authSubscription.unsubscribe();
 			}
 		};
-	}, [t, isDemoMode]);
+	}, [isDemoMode]);
 
 	// Pre-seed Demo Mode settings and templates
 	React.useEffect(() => {
@@ -1093,7 +1151,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	React.useEffect(() => {
 		if (supabaseUser) {
 			const filtered = allTransactions.filter(t => {
-				const d = new Date(t.rawDate || t.date);
+				const d = parseDateSafe(t.rawDate || t.date);
 				const txMonth = d.toLocaleString("id-ID", { month: "long", year: "numeric" });
 				return txMonth === selectedMonth;
 			});
@@ -1213,7 +1271,8 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				});
 
 				const activePocket = pockets.length > 0 && activePocketIdx > 0 ? pockets[activePocketIdx - 1] : null;
-				const { error } = await supabase.from("transactions").insert({
+				const hasMissingPocketId = localStorage.getItem("supabase_missing_pocket_id") === "true";
+				const insertPayload: any = {
 					user_id: supabaseUser.id,
 					date: new Date().toISOString(),
 					name: activeFormData[nameHeader] || "",
@@ -1221,9 +1280,29 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					type: isExpense ? "expense" : "income",
 					category: activeFormData[catHeader] || "",
 					note: activeFormData[noteHeader] || "",
-					pocket_id: activePocket ? activePocket.id : "pocket_1",
 					custom_fields: customFieldValues
-				});
+				};
+				if (!hasMissingPocketId) {
+					insertPayload.pocket_id = activePocket ? activePocket.id : "pocket_1";
+				} else {
+					insertPayload.custom_fields = {
+						...insertPayload.custom_fields,
+						pocket_id: activePocket ? activePocket.id : "pocket_1"
+					};
+				}
+
+				let { error } = await supabase.from("transactions").insert(insertPayload);
+
+				if (error && error.message.includes("pocket_id")) {
+					localStorage.setItem("supabase_missing_pocket_id", "true");
+					delete insertPayload.pocket_id;
+					insertPayload.custom_fields = {
+						...insertPayload.custom_fields,
+						pocket_id: activePocket ? activePocket.id : "pocket_1"
+					};
+					const retryResult = await supabase.from("transactions").insert(insertPayload);
+					error = retryResult.error;
+				}
 
 				if (error) throw error;
 
@@ -1268,7 +1347,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			const activePocket = pockets.length > 0 && activePocketIdx > 0 ? pockets[activePocketIdx - 1] : null;
 			const values = headers.map((h) => {
 				const hL = h.toLowerCase();
-				if (hL.includes("tanggal") || hL.includes("date")) return new Date().toLocaleString();
+				if (hL.includes("tanggal") || hL.includes("date")) return new Date().toISOString();
 				if (hL.includes("pocket") || hL.includes("kantong")) return activePocket ? activePocket.name : "Utama";
 				let val = activeFormData[h] || "";
 				// Strip Rupiah formatting before persisting raw number
@@ -1300,14 +1379,28 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	) => {
 		if (!supabaseUser) return;
 		try {
-			const { error } = await supabase.from("user_settings").upsert({
+			const hasMissingColumn = localStorage.getItem("supabase_missing_custom_pockets") === "true";
+			const payload: any = {
 				user_id: supabaseUser.id,
 				custom_categories: cats,
 				custom_field_defs: fields,
 				custom_chart_configs: charts,
-				custom_pockets: pocketsList,
 				updated_at: new Date().toISOString()
-			});
+			};
+			if (!hasMissingColumn) {
+				payload.custom_pockets = pocketsList;
+			}
+			let { error } = await supabase.from("user_settings").upsert(payload);
+			if (error && error.message.includes("custom_pockets")) {
+				localStorage.setItem("supabase_missing_custom_pockets", "true");
+				delete payload.custom_pockets;
+				const retry = await supabase.from("user_settings").upsert(payload);
+				error = retry.error;
+				localStorage.setItem("customPockets", JSON.stringify(pocketsList));
+			}
+			if (hasMissingColumn) {
+				localStorage.setItem("customPockets", JSON.stringify(pocketsList));
+			}
 			if (error) throw error;
 		} catch (e) {
 			console.error("Failed to update user settings in Supabase:", e);
@@ -1536,20 +1629,53 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	};
 
 	const handleUpdatePockets = async (updatedList: PocketDef[]) => {
+		const deletedPockets = pockets.filter(p => !updatedList.some(up => up.id === p.id));
 		setPockets(updatedList);
+		
+		// ALWAYS backup/sync to localStorage to prevent stale state loading on page transition/refresh
+		localStorage.setItem("customPockets", JSON.stringify(updatedList));
+
 		if (isDemoMode) {
 			localStorage.setItem("demo_pockets", JSON.stringify(updatedList));
+			const storedDemoTxs = localStorage.getItem("demo_transactions");
+			if (storedDemoTxs) {
+				try {
+					const txs = JSON.parse(storedDemoTxs);
+					let changed = false;
+					txs.forEach((tx: any) => {
+						const isDeleted = deletedPockets.some(dp => dp.id === tx.pocket_id || dp.name === tx.pocket);
+						if (isDeleted) {
+							tx.pocket_id = "pocket_1";
+							tx.pocket = "Utama";
+							changed = true;
+						}
+					});
+					if (changed) {
+						localStorage.setItem("demo_transactions", JSON.stringify(txs));
+					}
+				} catch (e) {}
+			}
 			return;
 		}
 		if (supabaseUser) {
 			await updateSupabaseSettings(categories, customFields, customChartConfigs, updatedList);
+			for (const dp of deletedPockets) {
+				try {
+					await supabase
+						.from("transactions")
+						.update({ pocket_id: null })
+						.eq("pocket_id", dp.id);
+				} catch (e) {
+					console.error("Failed to clean up pocket transactions in DB:", e);
+				}
+			}
 		} else {
 			localStorage.setItem("customPockets", JSON.stringify(updatedList));
 		}
 	};
 
 	const getPocketBalance = (pocket: PocketDef) => {
-		if (pocket.id === "pocket_1" || pocket.id === "net_worth") {
+		if (pocket.id === "net_worth") {
 			return transactions.reduce((sum, t) => sum + t.amount, 0);
 		}
 		return transactions
@@ -1576,7 +1702,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					hasNew = true;
 					const isExpense = t.type === "expense";
 					const newTx = {
-						date: new Date().toLocaleString(),
+						date: new Date().toISOString(),
 						name: t.name,
 						amount: isExpense ? -Math.abs(t.amount) : Math.abs(t.amount),
 						type: isExpense ? "Pengeluaran / Expense" : "Pemasukan / Income",
@@ -1606,17 +1732,31 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				const activeMonth = getCurrentMonthSheetName();
 				
 				if (supabaseUser) {
+					const hasMissingPocketId = localStorage.getItem("supabase_missing_pocket_id") === "true";
 					for (const tx of newTxs) {
-						await supabase.from("transactions").insert({
+						const pocketId = pockets.find(p => p.name === tx.pocket)?.id || "pocket_1";
+						const insertPayload: any = {
 							user_id: supabaseUser.id,
 							date: new Date().toISOString(),
 							name: tx.name,
 							amount: Math.abs(tx.amount),
 							type: tx.amount < 0 ? "expense" : "income",
 							category: tx.category,
-							note: tx.note,
-							pocket_id: pockets.find(p => p.name === tx.pocket)?.id || "pocket_1"
-						});
+							note: tx.note
+						};
+						if (!hasMissingPocketId) {
+							insertPayload.pocket_id = pocketId;
+						} else {
+							insertPayload.custom_fields = { pocket_id: pocketId };
+						}
+						let { error } = await supabase.from("transactions").insert(insertPayload);
+						if (error && error.message.includes("pocket_id")) {
+							localStorage.setItem("supabase_missing_pocket_id", "true");
+							delete insertPayload.pocket_id;
+							insertPayload.custom_fields = { pocket_id: pocketId };
+							const retryResult = await supabase.from("transactions").insert(insertPayload);
+							error = retryResult.error;
+						}
 					}
 					await fetchSupabaseUserData(supabaseUser.id);
 				} else if (user?.accessToken && config.sheetId) {

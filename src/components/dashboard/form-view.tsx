@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { 
 	Plus, 
 	Link as LinkIcon, 
@@ -24,7 +24,8 @@ import {
 	ChevronRight,
 	CalendarDays,
 	ChevronUp,
-	ChevronDown
+	ChevronDown,
+	AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -183,7 +184,7 @@ export function FormView(props: FormViewProps) {
 		}
 	}, [mobileKbHeader, isMobile]);
 
-	const isInteractionDisabled = props.loading || props.isIntegrating || (!props.supabaseUser && !props.user && !props.isDemoMode);
+	const isInteractionDisabled = props.isIntegrating;
 	const isSyncing = props.loading || props.isIntegrating;
 
 	React.useEffect(() => {
@@ -293,6 +294,7 @@ export function FormView(props: FormViewProps) {
 
 	const [isPocketSettingsOpen, setIsPocketSettingsOpen] = React.useState(false);
 	const [localPockets, setLocalPockets] = React.useState<PocketDef[]>(props.pockets);
+	const [pocketToDeleteIdx, setPocketToDeleteIdx] = React.useState<number | null>(null);
 
 	React.useEffect(() => {
 		setLocalPockets(props.pockets);
@@ -368,6 +370,54 @@ export function FormView(props: FormViewProps) {
 			return Math.max(0, (balance / activePocket.target) * 100);
 		}
 	}, [activePocket, props.transactions, props.getPocketBalance]);
+	// Motion values for drag tracker
+	const dragX = useMotionValue(0);
+	const dragY = useMotionValue(0);
+
+	// Custom transforms for background cards stack peek effect
+	const leftPeekX = useTransform(dragX, (x) => x > 0 ? x * -0.15 : 0);
+	const leftPeekOpacity = useTransform(dragX, (x) => x > 0 ? Math.min(x / 30, 0.95) : 0);
+	
+	const rightPeekX = useTransform(dragX, (x) => x < 0 ? x * -0.15 : 0);
+	const rightPeekOpacity = useTransform(dragX, (x) => x < 0 ? Math.min(Math.abs(x) / 30, 0.95) : 0);
+
+	const horizontalPeekScale = useTransform(dragX, (x) => {
+		const absX = Math.abs(x);
+		return Math.min(0.90 + (absX / 600), 0.96);
+	});
+
+	const verticalStack1Y = useTransform(dragY, (y) => Math.max(0, y * 0.45));
+	const verticalStack1Scale = useTransform(dragY, (y) => Math.min(0.95, 0.90 + (y / 1000)));
+	const verticalStack1Opacity = useTransform(dragY, (y) => y > 0 ? Math.min(y / 40, 0.9) : 0);
+
+	const verticalStack2Y = useTransform(dragY, (y) => Math.max(0, y * 0.22));
+	const verticalStack2Scale = useTransform(dragY, (y) => Math.min(0.90, 0.84 + (y / 1500)));
+	const verticalStack2Opacity = useTransform(dragY, (y) => y > 0 ? Math.min(y / 60, 0.75) : 0);
+
+	// Pre-calculated target pocket colors
+	const prevPocket = carouselPockets[(props.activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length];
+	const prevColorKey = (prevPocket.color === "indigo" || prevPocket.color === "amber") ? prevPocket.color : "emerald";
+	const prevGradient = {
+		emerald: "from-emerald-500/80 to-teal-500/80",
+		indigo: "from-indigo-500/80 to-purple-500/80",
+		amber: "from-amber-500/80 to-rose-500/80"
+	}[prevColorKey];
+
+	const nextPocket = carouselPockets[(props.activePocketIdx + 1) % carouselPockets.length];
+	const nextColorKey = (nextPocket.color === "indigo" || nextPocket.color === "amber") ? nextPocket.color : "emerald";
+	const nextGradient = {
+		emerald: "from-emerald-500/80 to-teal-500/80",
+		indigo: "from-indigo-500/80 to-purple-500/80",
+		amber: "from-amber-500/80 to-rose-500/80"
+	}[nextColorKey];
+
+	const stack2Pocket = carouselPockets[(props.activePocketIdx + 2) % carouselPockets.length];
+	const stack2ColorKey = (stack2Pocket.color === "indigo" || stack2Pocket.color === "amber") ? stack2Pocket.color : "emerald";
+	const stack2Gradient = {
+		emerald: "from-emerald-500/60 to-teal-500/60",
+		indigo: "from-indigo-500/60 to-purple-500/60",
+		amber: "from-amber-500/60 to-rose-500/60"
+	}[stack2ColorKey];
 
 	return (
 		<motion.div 
@@ -375,10 +425,62 @@ export function FormView(props: FormViewProps) {
 			className="space-y-6"
 		>
 			{/* Pocket Total Amount Card with Swipe controls & navigations inside */}
-			<section className="mt-2 relative">
+			<section className="mt-2 relative z-0 isolate">
+				{/* Background Peek Card (Previous Pocket, peeks left) */}
+				{props.pockets.length > 0 && (
+					<motion.div
+						style={{
+							x: leftPeekX,
+							opacity: leftPeekOpacity,
+							scale: horizontalPeekScale,
+						}}
+						className={`absolute inset-0 bg-gradient-to-br ${prevGradient} rounded-3xl -z-10 pointer-events-none`}
+					/>
+				)}
+
+				{/* Background Peek Card (Next Pocket, peeks right) */}
+				{props.pockets.length > 0 && (
+					<motion.div
+						style={{
+							x: rightPeekX,
+							opacity: rightPeekOpacity,
+							scale: horizontalPeekScale,
+						}}
+						className={`absolute inset-0 bg-gradient-to-br ${nextGradient} rounded-3xl -z-10 pointer-events-none`}
+					/>
+				)}
+
+				{/* Vertical Stack Hint Cards (Swipe Down) */}
+				{props.pockets.length > 0 && (
+					<>
+						{/* Stack Card 1 (directly behind main card) */}
+						<motion.div
+							style={{
+								y: verticalStack1Y,
+								opacity: verticalStack1Opacity,
+								scale: verticalStack1Scale,
+								rotate: 1.5,
+							}}
+							className={`absolute inset-0 bg-gradient-to-br ${nextGradient} rounded-3xl -z-10 pointer-events-none`}
+						/>
+						{/* Stack Card 2 (further behind, slightly opposite rotate) */}
+						<motion.div
+							style={{
+								y: verticalStack2Y,
+								opacity: verticalStack2Opacity,
+								scale: verticalStack2Scale,
+								rotate: -1.5,
+							}}
+							className={`absolute inset-0 bg-gradient-to-br ${stack2Gradient} rounded-3xl -z-20 pointer-events-none`}
+						/>
+					</>
+				)}
+
 				<motion.div 
+					style={{ x: dragX, y: dragY }}
 					drag={props.pockets.length > 0 ? true : false}
-					dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+					dragConstraints={{ left: -120, right: 120, top: 0, bottom: 100 }}
+					dragElastic={0.15}
 					onDragEnd={(e, info) => {
 						if (props.pockets.length === 0) return;
 						const swipeThreshold = 50;
@@ -389,6 +491,9 @@ export function FormView(props: FormViewProps) {
 						} else if (info.offset.x > swipeThreshold) {
 							props.setActivePocketIdx((props.activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
 						}
+						// Snaps back to exactly 0,0 with smooth spring simulation
+						animate(dragX, 0, { type: "spring", stiffness: 350, damping: 25 });
+						animate(dragY, 0, { type: "spring", stiffness: 350, damping: 25 });
 					}}
 					className="w-full cursor-grab active:cursor-grabbing select-none"
 				>
@@ -588,8 +693,10 @@ export function FormView(props: FormViewProps) {
 								<button
 									key={p.id}
 									onClick={() => {
-										props.setActivePocketIdx(idx);
 										setIsPocketSelectOpen(false);
+										setTimeout(() => {
+											props.setActivePocketIdx(idx);
+										}, 150);
 									}}
 									className={`w-full text-left rounded-3xl p-5 bg-gradient-to-br ${pColors.gradient} text-black shadow-md ${pColors.shadow} relative overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-lg active:scale-[0.98] border-none flex flex-col justify-between min-h-[110px]`}
 								>
@@ -999,7 +1106,11 @@ export function FormView(props: FormViewProps) {
 										placeholder="e.g. 500.000"
 										value={recAmount}
 										onChange={(e) => setRecAmount(formatRupiah(stripRupiah(e.target.value)))}
-										className="h-10 pl-7 rounded-xl"
+										inputMode={isMobile ? "none" : "numeric"}
+										readOnly={isMobile}
+										onFocus={() => isMobile && setMobileKbHeader("auto_transaction_amount")}
+										onClick={() => isMobile && setMobileKbHeader("auto_transaction_amount")}
+										className="h-10 pl-7 rounded-xl w-full"
 									/>
 								</div>
 								
@@ -1012,6 +1123,18 @@ export function FormView(props: FormViewProps) {
 										<SelectItem value="income" className="cursor-pointer">{t("income")}</SelectItem>
 									</SelectContent>
 								</Select>
+
+								{isMobile && mobileKbHeader === "auto_transaction_amount" && (
+									<div className="col-span-2 mt-1">
+										<NumericKeyboard
+											value={recAmount}
+											onChange={(val) => setRecAmount(val)}
+											onSubmit={() => {
+												setMobileKbHeader(null);
+											}}
+										/>
+									</div>
+								)}
 							</div>
 
 							<div className="grid grid-cols-2 gap-2">
@@ -1019,7 +1142,7 @@ export function FormView(props: FormViewProps) {
 									<SelectTrigger className="h-10 rounded-xl cursor-pointer">
 										<SelectValue placeholder={t("category")} />
 									</SelectTrigger>
-									<SelectContent className="rounded-xl">
+									<SelectContent className="rounded-xl w-auto min-w-[240px]">
 										{props.categories.map((c) => (
 											<SelectItem key={c} value={c} className="cursor-pointer">{c}</SelectItem>
 										))}
@@ -1195,7 +1318,7 @@ export function FormView(props: FormViewProps) {
 													variant="ghost"
 													size="icon"
 													onClick={() => {
-														setLocalPockets(localPockets.filter((_, i) => i !== idx));
+														setPocketToDeleteIdx(idx);
 													}}
 													className="h-7 w-7 text-zinc-400 hover:text-red-500 hover:bg-red-500/10 cursor-pointer rounded-full flex items-center justify-center transition-colors border-none bg-transparent"
 													aria-label="Delete Pocket"
@@ -1294,6 +1417,45 @@ export function FormView(props: FormViewProps) {
 						>
 							{language === "en" ? "Cancel" : "Batal"}
 						</Button>
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			{/* Pocket Delete Confirmation Dialog */}
+			<Dialog open={pocketToDeleteIdx !== null} onOpenChange={(open) => { if (!open) setPocketToDeleteIdx(null); }}>
+				<DialogContent className="sm:max-w-[360px] rounded-3xl p-6">
+					<DialogHeader>
+						<DialogTitle className="text-red-500 flex items-center gap-2 font-black">
+							<AlertTriangle size={20} />
+							{language === "en" ? "Delete Pocket" : "Hapus Kantong"}
+						</DialogTitle>
+					</DialogHeader>
+					<div className="space-y-4 pt-2">
+						<p className="text-xs text-zinc-550 dark:text-zinc-400 font-semibold leading-relaxed">
+							{language === "en"
+								? `Are you sure you want to delete this pocket? All transactions associated with this pocket will be automatically unlinked and return to Total Worth (no pocket).`
+								: `Apakah Anda yakin ingin menghapus kantong ini? Semua transaksi yang terikat dengan kantong ini akan dilepas otomatis dan kembali ke Total Worth.`}
+						</p>
+						<div className="flex gap-2">
+							<Button
+								onClick={() => {
+									if (pocketToDeleteIdx !== null) {
+										setLocalPockets(localPockets.filter((_, i) => i !== pocketToDeleteIdx));
+										setPocketToDeleteIdx(null);
+									}
+								}}
+								className="flex-1 h-10 bg-red-500 hover:bg-red-650 text-white font-bold rounded-xl border-none cursor-pointer"
+							>
+								{language === "en" ? "Delete" : "Hapus"}
+							</Button>
+							<Button
+								variant="outline"
+								onClick={() => setPocketToDeleteIdx(null)}
+								className="flex-1 h-10 rounded-xl font-bold cursor-pointer bg-transparent"
+							>
+								{language === "en" ? "Cancel" : "Batal"}
+							</Button>
+						</div>
 					</div>
 				</DialogContent>
 			</Dialog>
@@ -1418,7 +1580,7 @@ export function FormView(props: FormViewProps) {
 									{(isCoreCat || (customField?.type === "dropdown")) ? (
 										<Select value={localFormData[header] || ""} disabled={isInteractionDisabled} onValueChange={(val) => handleLocalInputChange(header, val || "")}>
 											<SelectTrigger className={`h-12 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 cursor-pointer transition-colors ${themeColors.focusRingInput}`}><SelectValue placeholder={t("selectCategory")} /></SelectTrigger>
-											<SelectContent className="rounded-xl">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<SelectItem key={opt} value={opt} className="cursor-pointer">{opt}</SelectItem>))}</SelectContent>
+											<SelectContent className="rounded-xl w-auto min-w-[240px]">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<SelectItem key={opt} value={opt} className="cursor-pointer">{opt}</SelectItem>))}</SelectContent>
 										</Select>
 									) : isType ? (
 										<div className="flex bg-white/30 dark:bg-zinc-950/20 p-1.5 rounded-xl gap-1 border border-zinc-250 dark:border-zinc-850">

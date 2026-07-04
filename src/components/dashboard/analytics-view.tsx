@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { ArrowLeft, CalendarDays, TrendingUp, TrendingDown, PieChart as PieChartIcon, Wallet, Plus, Trash2, Loader2, ArrowRight, Settings, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,6 +89,23 @@ const CustomTooltip = ({ active, payload, label, formatCurrency }: any) => {
 	}
 	return null;
 };
+
+const CATEGORICAL_COLORS = [
+	"#10b981", // Emerald
+	"#6366f1", // Indigo
+	"#f59e0b", // Amber
+	"#ec4899", // Pink
+	"#06b6d4", // Cyan
+	"#8b5cf6", // Purple/Violet
+	"#f97316", // Orange
+	"#ef4444", // Red
+	"#3b82f6", // Blue
+	"#14b8a6", // Teal
+	"#fb7185", // Rose
+	"#34d399", // Mint
+	"#fbbf24", // Yellow
+	"#818cf8"  // Lavender
+];
 
 export function AnalyticsView({
 	headers,
@@ -239,6 +256,55 @@ export function AnalyticsView({
 		? (isManualOverride ? "Kustom (Manual Setup)" : "Otomatis (Carry-Over)")
 		: "Belum Ditentukan";
 	
+	// Motion values for drag tracker
+	const dragX = useMotionValue(0);
+	const dragY = useMotionValue(0);
+
+	// Custom transforms for background cards stack peek effect
+	const leftPeekX = useTransform(dragX, (x) => x > 0 ? x * -0.15 : 0);
+	const leftPeekOpacity = useTransform(dragX, (x) => x > 0 ? Math.min(x / 30, 0.95) : 0);
+	
+	const rightPeekX = useTransform(dragX, (x) => x < 0 ? x * -0.15 : 0);
+	const rightPeekOpacity = useTransform(dragX, (x) => x < 0 ? Math.min(Math.abs(x) / 30, 0.95) : 0);
+
+	const horizontalPeekScale = useTransform(dragX, (x) => {
+		const absX = Math.abs(x);
+		return Math.min(0.90 + (absX / 600), 0.96);
+	});
+
+	const verticalStack1Y = useTransform(dragY, (y) => Math.max(0, y * 0.45));
+	const verticalStack1Scale = useTransform(dragY, (y) => Math.min(0.95, 0.90 + (y / 1000)));
+	const verticalStack1Opacity = useTransform(dragY, (y) => y > 0 ? Math.min(y / 40, 0.9) : 0);
+
+	const verticalStack2Y = useTransform(dragY, (y) => Math.max(0, y * 0.22));
+	const verticalStack2Scale = useTransform(dragY, (y) => Math.min(0.90, 0.84 + (y / 1500)));
+	const verticalStack2Opacity = useTransform(dragY, (y) => y > 0 ? Math.min(y / 60, 0.75) : 0);
+
+	// Pre-calculated target pocket colors
+	const prevPocket = carouselPockets[(activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length];
+	const prevColorKey = (prevPocket.color === "indigo" || prevPocket.color === "amber") ? prevPocket.color : "emerald";
+	const prevGradient = {
+		emerald: "from-emerald-500/80 to-teal-500/80",
+		indigo: "from-indigo-500/80 to-purple-500/80",
+		amber: "from-amber-500/80 to-rose-500/80"
+	}[prevColorKey];
+
+	const nextPocket = carouselPockets[(activePocketIdx + 1) % carouselPockets.length];
+	const nextColorKey = (nextPocket.color === "indigo" || nextPocket.color === "amber") ? nextPocket.color : "emerald";
+	const nextGradient = {
+		emerald: "from-emerald-500/80 to-teal-500/80",
+		indigo: "from-indigo-500/80 to-purple-500/80",
+		amber: "from-amber-500/80 to-rose-500/80"
+	}[nextColorKey];
+
+	const stack2Pocket = carouselPockets[(activePocketIdx + 2) % carouselPockets.length];
+	const stack2ColorKey = (stack2Pocket.color === "indigo" || stack2Pocket.color === "amber") ? stack2Pocket.color : "emerald";
+	const stack2Gradient = {
+		emerald: "from-emerald-500/60 to-teal-500/60",
+		indigo: "from-indigo-500/60 to-purple-500/60",
+		amber: "from-amber-500/60 to-rose-500/60"
+	}[stack2ColorKey];
+
 	const monthlyTransactions = pocketTransactions.filter(t => t.category !== "Initial Balance");
 	const incomeTotal = monthlyTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
 	const expenseTotal = Math.abs(monthlyTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
@@ -541,71 +607,107 @@ export function AnalyticsView({
 						</Dialog>
 					</div>
 				</div>
-				<motion.div 
-					drag={pockets.length > 0 ? true : false}
-					dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-					onDragEnd={(e, info) => {
-						if (pockets.length === 0) return;
-						const swipeThreshold = 50;
-						if (info.offset.y > swipeThreshold) {
-							setIsPocketSelectOpen(true);
-						} else if (info.offset.x < -swipeThreshold) {
-							setActivePocketIdx((activePocketIdx + 1) % carouselPockets.length);
-						} else if (info.offset.x > swipeThreshold) {
-							setActivePocketIdx((activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
-						}
-					}}
-					className="md:col-span-2 w-full cursor-grab active:cursor-grabbing select-none"
-				>
-					<div className={`bg-gradient-to-br ${themeColors.gradient} p-6 rounded-3xl text-black shadow-lg ${themeColors.shadow} flex flex-col justify-between min-h-[140px] relative overflow-hidden transition-all duration-300`}>
-						<div className="absolute -right-4 -top-4 w-24 h-24 bg-black/5 rounded-full blur-2xl pointer-events-none" />
-						<div className="flex justify-between items-start">
-							<div className="flex flex-col max-w-[70%]">
-								<span className="text-[9px] font-black uppercase tracking-wider opacity-60">
-									{activePocket.id === "net_worth" ? (language === "en" ? "Total Worth" : "Total Kekayaan") : "Pocket"}
-								</span>
-								<h4 className="text-sm font-black uppercase tracking-wide flex items-center gap-1.5 mt-0.5 truncate text-ellipsis overflow-hidden whitespace-nowrap">
-									<Wallet size={14} className="opacity-70 shrink-0" />
-									<span className="truncate">{activePocket.name}</span>
-								</h4>
-							</div>
-							<div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
-								<Button 
-									size="icon" 
-									variant="ghost" 
-									onClick={(e) => { e.stopPropagation(); togglePrivacy(); }}
-									className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center bg-transparent"
-								>
-									{isPrivate ? <EyeOff size={14} /> : <Eye size={14} />}
-								</Button>
-							</div>
-						</div>
+				<div className="relative md:col-span-2 z-0 isolate">
+					{/* Background Peek Card (Previous Pocket, peeks left) */}
+					{pockets.length > 0 && (
+						<motion.div
+							style={{
+								x: leftPeekX,
+								opacity: leftPeekOpacity,
+								scale: horizontalPeekScale,
+							}}
+							className={`absolute inset-0 bg-gradient-to-br ${prevGradient} rounded-3xl -z-10 pointer-events-none`}
+						/>
+					)}
 
-						<div className="flex items-baseline justify-between mt-3 w-full">
-							<h2 className="text-3xl font-black tracking-tight text-left">
-								{maskValue(formatCurrency(netBalance))}
-							</h2>
-						</div>
+					{/* Background Peek Card (Next Pocket, peeks right) */}
+					{pockets.length > 0 && (
+						<motion.div
+							style={{
+								x: rightPeekX,
+								opacity: rightPeekOpacity,
+								scale: horizontalPeekScale,
+							}}
+							className={`absolute inset-0 bg-gradient-to-br ${nextGradient} rounded-3xl -z-10 pointer-events-none`}
+						/>
+					)}
 
-						{/* Static balance details directly inside card, no border */}
-						<div className="mt-2 flex items-center justify-between text-[10px] font-black opacity-80 flex-wrap gap-y-1.5 w-full">
-							<div className="flex items-center gap-1.5">
-								<Wallet size={12} className="opacity-50" />
-								<span>{maskValue(formatCurrency(startingBalance))}</span>
-							</div>
-							
-							<div className="flex items-center gap-3">
-								<div className="flex items-center gap-1 text-emerald-950/80">
-									<TrendingUp size={12} />
-									<span>{maskValue(formatCurrency(incomeTotal))}</span>
+					{/* Vertical Stack Hint Cards (Swipe Down) */}
+					{pockets.length > 0 && (
+						<>
+							{/* Stack Card 1 (directly behind main card) */}
+							<motion.div
+								style={{
+									y: verticalStack1Y,
+									opacity: verticalStack1Opacity,
+									scale: verticalStack1Scale,
+									rotate: 1.5,
+								}}
+								className={`absolute inset-0 bg-gradient-to-br ${nextGradient} rounded-3xl -z-10 pointer-events-none`}
+							/>
+							{/* Stack Card 2 (further behind, slightly opposite rotate) */}
+							<motion.div
+								style={{
+									y: verticalStack2Y,
+									opacity: verticalStack2Opacity,
+									scale: verticalStack2Scale,
+									rotate: -1.5,
+								}}
+								className={`absolute inset-0 bg-gradient-to-br ${stack2Gradient} rounded-3xl -z-20 pointer-events-none`}
+							/>
+						</>
+					)}
+
+					<motion.div 
+						style={{ x: dragX, y: dragY }}
+						drag={pockets.length > 0 ? true : false}
+						dragConstraints={{ left: -120, right: 120, top: 0, bottom: 100 }}
+						dragElastic={0.15}
+						onDragEnd={(e, info) => {
+							if (pockets.length === 0) return;
+							const swipeThreshold = 50;
+							if (info.offset.y > swipeThreshold) {
+								setIsPocketSelectOpen(true);
+							} else if (info.offset.x < -swipeThreshold) {
+								setActivePocketIdx((activePocketIdx + 1) % carouselPockets.length);
+							} else if (info.offset.x > swipeThreshold) {
+								setActivePocketIdx((activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
+							}
+							// Snaps back to exactly 0,0 with smooth spring simulation
+							animate(dragX, 0, { type: "spring", stiffness: 350, damping: 25 });
+							animate(dragY, 0, { type: "spring", stiffness: 350, damping: 25 });
+						}}
+						className="w-full cursor-grab active:cursor-grabbing select-none"
+					>
+						<div className={`bg-gradient-to-br ${themeColors.gradient} p-6 rounded-3xl text-black shadow-lg ${themeColors.shadow} flex flex-col justify-between min-h-[140px] relative overflow-hidden transition-all duration-300`}>
+							<div className="absolute -right-4 -top-4 w-24 h-24 bg-black/5 rounded-full blur-2xl pointer-events-none" />
+							<div className="flex justify-between items-start">
+								<div className="flex flex-col max-w-[70%]">
+									<span className="text-[9px] font-black uppercase tracking-wider opacity-60">
+										{activePocket.id === "net_worth" ? (language === "en" ? "Total Worth" : "Total Kekayaan") : "Pocket"}
+									</span>
+									<h4 className="text-sm font-black uppercase tracking-wide flex items-center gap-1.5 mt-0.5 truncate text-ellipsis overflow-hidden whitespace-nowrap">
+										<Wallet size={14} className="opacity-70 shrink-0" />
+										<span className="truncate">{activePocket.name}</span>
+									</h4>
 								</div>
-								<div className="w-1 h-1 rounded-full bg-black/10" />
-								<div className="flex items-center gap-1 text-red-950/80">
-									<TrendingDown size={12} />
-									<span>{maskValue(formatCurrency(expenseTotal))}</span>
+								<div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+									<Button 
+										size="icon" 
+										variant="ghost" 
+										onClick={(e) => { e.stopPropagation(); togglePrivacy(); }}
+										className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center bg-transparent"
+									>
+										{isPrivate ? <EyeOff size={14} /> : <Eye size={14} />}
+									</Button>
 								</div>
 							</div>
-						</div>
+
+							<div className="flex items-baseline justify-between mt-3 w-full">
+								<h2 className="text-3xl font-black tracking-tight text-left">
+									{maskValue(formatCurrency(netBalance))}
+								</h2>
+							</div>
 
 						{/* Navigation controls < ... > at the bottom of the card content */}
 						{pockets.length > 0 && (
@@ -652,6 +754,7 @@ export function AnalyticsView({
 					</div>
 				</motion.div>
 			</div>
+		</div>
 
 			<div className="grid grid-cols-2 gap-4">
 				<div className="glass-card p-4 rounded-3xl">
@@ -730,14 +833,14 @@ export function AnalyticsView({
 							<ResponsiveContainer width="100%" height="100%">
 								<PieChart>
 									<Pie data={getGroupedCategoryData(true)} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" nameKey="name">
-										{getGroupedCategoryData(true).map((entry, index) => (<Cell key={`cell-${index}`} fill={themeColors.chartPalette[index % themeColors.chartPalette.length]} />))}
+										{getGroupedCategoryData(true).map((entry, index) => (<Cell key={`cell-${index}`} fill={CATEGORICAL_COLORS[index % CATEGORICAL_COLORS.length]} />))}
 									</Pie>
 									<Tooltip content={<CustomTooltip formatCurrency={formatCurrency} />} />
 								</PieChart>
 							</ResponsiveContainer>
 							<div className="absolute"><TrendingDown className="text-red-500/20" size={32} /></div>
 						</div>
-						<div className="grid grid-cols-2 gap-2">{getGroupedCategoryData(true).map((entry, index) => (<div key={entry.name} className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: themeColors.chartPalette[index % themeColors.chartPalette.length] }} /><span className="text-[10px] font-bold text-zinc-500 truncate">{entry.name}</span></div>))}</div>
+						<div className="grid grid-cols-2 gap-2">{getGroupedCategoryData(true).map((entry, index) => (<div key={entry.name} className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: CATEGORICAL_COLORS[index % CATEGORICAL_COLORS.length] }} /><span className="text-[10px] font-bold text-zinc-500 truncate">{entry.name}</span></div>))}</div>
 					</section>
 
 					<section className="glass-card rounded-3xl p-6 space-y-4 h-full">
@@ -750,7 +853,7 @@ export function AnalyticsView({
 								<PieChart>
 									<Pie data={getGroupedCategoryData(false)} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" nameKey="name">
 										{getGroupedCategoryData(false).map((entry, index) => (
-											<Cell key={`cell-${index}`} fill={themeColors.chartPalette[index % themeColors.chartPalette.length]} />
+											<Cell key={`cell-${index}`} fill={CATEGORICAL_COLORS[index % CATEGORICAL_COLORS.length]} />
 										))}
 									</Pie>
 									<Tooltip content={<CustomTooltip formatCurrency={formatCurrency} />} />
@@ -761,7 +864,7 @@ export function AnalyticsView({
 						<div className="grid grid-cols-2 gap-2">
 							{getGroupedCategoryData(false).map((entry, index) => (
 								<div key={entry.name} className="flex items-center gap-2">
-									<div className="w-2 h-2 rounded-full" style={{ backgroundColor: themeColors.chartPalette[index % themeColors.chartPalette.length] }} />
+									<div className="w-2 h-2 rounded-full" style={{ backgroundColor: CATEGORICAL_COLORS[index % CATEGORICAL_COLORS.length] }} />
 									<span className="text-[10px] font-bold text-zinc-500 truncate">{entry.name}</span>
 								</div>
 							))}
@@ -784,7 +887,7 @@ export function AnalyticsView({
 											<XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
 											<Tooltip content={<CustomTooltip formatCurrency={formatCurrency} />} />
 											<Bar dataKey="value" radius={[10, 10, 0, 0]}>
-												{chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={themeColors.chartPalette[index % themeColors.chartPalette.length]} />))}
+												{chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={CATEGORICAL_COLORS[index % CATEGORICAL_COLORS.length]} />))}
 											</Bar>
 										</BarChart>
 									</ResponsiveContainer>
@@ -823,29 +926,27 @@ export function AnalyticsView({
 										{language === "en" ? "Transaction History" : "Riwayat Transaksi"}
 									</h4>
 								</div>
-								{(supabaseUser || user) && (
-									<div className="flex items-center gap-2">
+								<div className="flex items-center gap-2">
+									<Button 
+										size="sm" 
+										variant="outline" 
+										onClick={exportToCSV}
+										className="h-8 text-[10px] font-bold uppercase rounded-full border-zinc-200 dark:border-zinc-800 cursor-pointer"
+									>
+										Export CSV
+									</Button>
+									{supabaseUser && (
 										<Button 
 											size="sm" 
 											variant="outline" 
-											onClick={exportToCSV}
+											onClick={exportToGoogleSheets}
+											disabled={loading}
 											className="h-8 text-[10px] font-bold uppercase rounded-full border-zinc-200 dark:border-zinc-800 cursor-pointer"
 										>
-											Export CSV
+											Sync Sheets
 										</Button>
-										{supabaseUser && (
-											<Button 
-												size="sm" 
-												variant="outline" 
-												onClick={exportToGoogleSheets}
-												disabled={loading}
-												className="h-8 text-[10px] font-bold uppercase rounded-full border-zinc-200 dark:border-zinc-800 cursor-pointer"
-											>
-												Sync Sheets
-											</Button>
-										)}
-									</div>
-								)}
+									)}
+								</div>
 							</div>
 							<div className="overflow-x-auto max-h-[400px] overflow-y-auto">
 								<table className="w-full text-left text-sm whitespace-nowrap">
@@ -945,8 +1046,10 @@ export function AnalyticsView({
 								<button
 									key={p.id}
 									onClick={() => {
-										setActivePocketIdx(idx);
 										setIsPocketSelectOpen(false);
+										setTimeout(() => {
+											setActivePocketIdx(idx);
+										}, 150);
 									}}
 									className={`w-full text-left rounded-3xl p-5 bg-gradient-to-br ${pColors.gradient} text-black shadow-md ${pColors.shadow} relative overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-lg active:scale-[0.98] border-none flex flex-col justify-between min-h-[110px]`}
 								>

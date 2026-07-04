@@ -48,11 +48,16 @@ function DetailPageContent() {
 			);
 			const finalIdx = matchedIdx > 2 ? matchedIdx - 2 : (matchedIdx !== -1 ? 0 : -1);
 			if (finalIdx !== -1) {
-				logic.setActivePocketIdx(finalIdx);
+				if (logic.activePocketIdx === finalIdx) {
+					hasInitializedRef.current = true;
+				} else {
+					logic.setActivePocketIdx(finalIdx);
+				}
+			} else {
+				hasInitializedRef.current = true;
 			}
-			hasInitializedRef.current = true;
 		}
-	}, [initialPocketParam, logic.pockets, logic.setActivePocketIdx]);
+	}, [initialPocketParam, logic.pockets, logic.activePocketIdx, logic.setActivePocketIdx]);
 
 	// 2. Sync state saku balik ke URL query parameter saat berganti saku secara manual
 	React.useEffect(() => {
