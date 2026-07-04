@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowLeft, CalendarDays, TrendingUp, TrendingDown, PieChart as PieChartIcon, Wallet, Plus, Trash2, Loader2, ArrowRight, Settings } from "lucide-react";
+import { ArrowLeft, CalendarDays, TrendingUp, TrendingDown, PieChart as PieChartIcon, Wallet, Plus, Trash2, Loader2, ArrowRight, Settings, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,7 +39,7 @@ import {
 	AreaChart,
 	Area
 } from "recharts";
-import { Transaction, CustomFieldDef, CustomChartConfig } from "@/hooks/use-dashboard-logic";
+import { Transaction, CustomFieldDef, CustomChartConfig, PocketDef } from "@/hooks/use-dashboard-logic";
 
 interface AnalyticsViewProps {
 	headers: string[];
@@ -61,6 +61,12 @@ interface AnalyticsViewProps {
 	formatCurrency: (val: number) => string;
 	exportToCSV: () => void;
 	exportToGoogleSheets: () => void;
+
+	// Pocket props
+	pockets: PocketDef[];
+	activePocketIdx: number;
+	setActivePocketIdx: (idx: number) => void;
+	getPocketBalance: (pocket: PocketDef) => number;
 }
 
 const CustomTooltip = ({ active, payload, label, formatCurrency }: any) => {
@@ -103,7 +109,12 @@ export function AnalyticsView({
 	onGoogleLogin,
 	formatCurrency,
 	exportToCSV,
-	exportToGoogleSheets
+	exportToGoogleSheets,
+	
+	pockets,
+	activePocketIdx,
+	setActivePocketIdx,
+	getPocketBalance
 }: AnalyticsViewProps) {
 	const { t, language } = useLanguage();
 	const isMobile = useIsMobile();
@@ -112,6 +123,7 @@ export function AnalyticsView({
 	const [isSetupBalanceOpen, setIsSetupBalanceOpen] = React.useState(false);
 	const [isSyncModalOpen, setIsSyncModalOpen] = React.useState(false);
 	const [manualBalanceInput, setManualBalanceInput] = React.useState("");
+	const [isPocketSelectOpen, setIsPocketSelectOpen] = React.useState(false);
 
 	const handleManualBalanceChange = (raw: string) => {
 		const digits = stripRupiah(raw);
@@ -121,7 +133,76 @@ export function AnalyticsView({
 	const [newChartField, setNewChartField] = React.useState("");
 	const [newChartType, setNewChartType] = React.useState<"income" | "expense">("expense");
 
-	const initialBalanceEntry = transactions.find(t => t.category === "Initial Balance");
+	// Privacy State
+	const [isPrivate, setIsPrivate] = React.useState(false);
+	React.useEffect(() => {
+		setIsPrivate(localStorage.getItem("privacy_mode") === "true");
+	}, []);
+	const togglePrivacy = () => {
+		const newVal = !isPrivate;
+		setIsPrivate(newVal);
+		localStorage.setItem("privacy_mode", String(newVal));
+	};
+	const maskValue = (val: string) => isPrivate ? "******" : val;
+
+	const carouselPockets = React.useMemo<PocketDef[]>(() => [
+		{ id: "net_worth", name: language === "en" ? "Total Worth" : "Total Kekayaan", type: "default" as const, color: "emerald", target: undefined },
+		...pockets
+	], [pockets, language]);
+
+	const activePocket = carouselPockets[activePocketIdx] || carouselPockets[0];
+
+	const themeColors = {
+		emerald: {
+			gradient: "from-emerald-500 to-teal-500",
+			shadow: "shadow-emerald-500/25",
+			text: "text-emerald-500",
+			textDark: "text-emerald-600 dark:text-emerald-400",
+			bgLight: "bg-emerald-500/5 dark:bg-emerald-500/10",
+			border: "border-emerald-500/35 dark:border-emerald-500/25",
+			accentText: "text-emerald-700 dark:text-emerald-300",
+			accentBg: "bg-emerald-500/10 dark:bg-emerald-500/20",
+			accentHex: "#10b981",
+			chartPalette: ["#10b981", "#059669", "#047857", "#065f46", "#064e3b", "#022c22"],
+			navText: "text-emerald-950/50 hover:text-emerald-950/85",
+		},
+		indigo: {
+			gradient: "from-indigo-500 to-purple-500",
+			shadow: "shadow-indigo-500/25",
+			text: "text-indigo-500",
+			textDark: "text-indigo-600 dark:text-indigo-400",
+			bgLight: "bg-indigo-500/5 dark:bg-indigo-500/10",
+			border: "border-indigo-500/35 dark:border-indigo-500/25",
+			accentText: "text-indigo-700 dark:text-indigo-300",
+			accentBg: "bg-indigo-500/10 dark:bg-indigo-500/20",
+			accentHex: "#6366f1",
+			chartPalette: ["#6366f1", "#4f46e5", "#4338ca", "#3730a3", "#312e81", "#1e1b4b"],
+			navText: "text-indigo-950/50 hover:text-indigo-950/85",
+		},
+		amber: {
+			gradient: "from-amber-500 to-rose-500",
+			shadow: "shadow-amber-500/25",
+			text: "text-amber-500",
+			textDark: "text-amber-600 dark:text-amber-400",
+			bgLight: "bg-amber-500/5 dark:bg-amber-500/10",
+			border: "border-amber-500/35 dark:border-amber-500/25",
+			accentText: "text-amber-700 dark:text-amber-300",
+			accentBg: "bg-amber-500/10 dark:bg-amber-500/20",
+			accentHex: "#f59e0b",
+			chartPalette: ["#f59e0b", "#d97706", "#b45309", "#92400e", "#78350f", "#451a03"],
+			navText: "text-amber-950/50 hover:text-amber-950/85",
+		}
+	}[(activePocket.color === "indigo" || activePocket.color === "amber") ? activePocket.color : "emerald"];
+
+	const pocketTransactions = React.useMemo(() => {
+		if (activePocket.id === "net_worth") return transactions;
+		return transactions.filter(t => t.pocket === activePocket.name || t.pocket === activePocket.id);
+	}, [transactions, activePocket]);
+
+	const initialBalanceEntry = React.useMemo(() => {
+		return pocketTransactions.find(t => t.category === "Initial Balance");
+	}, [pocketTransactions]);
+
 	const startingBalance = initialBalanceEntry ? initialBalanceEntry.amount : 0;
 	
 	const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
@@ -158,7 +239,7 @@ export function AnalyticsView({
 		? (isManualOverride ? "Kustom (Manual Setup)" : "Otomatis (Carry-Over)")
 		: "Belum Ditentukan";
 	
-	const monthlyTransactions = transactions.filter(t => t.category !== "Initial Balance");
+	const monthlyTransactions = pocketTransactions.filter(t => t.category !== "Initial Balance");
 	const incomeTotal = monthlyTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
 	const expenseTotal = Math.abs(monthlyTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
 	
@@ -460,22 +541,123 @@ export function AnalyticsView({
 						</Dialog>
 					</div>
 				</div>
-				<div className="bg-gradient-to-br from-emerald-500 to-teal-500 p-6 rounded-[32px] text-black shadow-lg shadow-emerald-500/25 md:col-span-2 flex flex-col justify-between min-h-[140px]">
-					<div className="flex justify-between items-start">
-						<div>
-							<p className="text-[10px] uppercase font-bold opacity-70 tracking-widest text-black">Total {t("netBalance")}</p>
-							<h4 className="text-3xl font-black tracking-tight mt-1 text-black">{formatCurrency(netBalance)}</h4>
+				<motion.div 
+					drag={pockets.length > 0 ? true : false}
+					dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+					onDragEnd={(e, info) => {
+						if (pockets.length === 0) return;
+						const swipeThreshold = 50;
+						if (info.offset.y > swipeThreshold) {
+							setIsPocketSelectOpen(true);
+						} else if (info.offset.x < -swipeThreshold) {
+							setActivePocketIdx((activePocketIdx + 1) % carouselPockets.length);
+						} else if (info.offset.x > swipeThreshold) {
+							setActivePocketIdx((activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
+						}
+					}}
+					className="md:col-span-2 w-full cursor-grab active:cursor-grabbing select-none"
+				>
+					<div className={`bg-gradient-to-br ${themeColors.gradient} p-6 rounded-3xl text-black shadow-lg ${themeColors.shadow} flex flex-col justify-between min-h-[140px] relative overflow-hidden transition-all duration-300`}>
+						<div className="absolute -right-4 -top-4 w-24 h-24 bg-black/5 rounded-full blur-2xl pointer-events-none" />
+						<div className="flex justify-between items-start">
+							<div className="flex flex-col max-w-[70%]">
+								<span className="text-[9px] font-black uppercase tracking-wider opacity-60">
+									{activePocket.id === "net_worth" ? (language === "en" ? "Total Worth" : "Total Kekayaan") : "Pocket"}
+								</span>
+								<h4 className="text-sm font-black uppercase tracking-wide flex items-center gap-1.5 mt-0.5 truncate text-ellipsis overflow-hidden whitespace-nowrap">
+									<Wallet size={14} className="opacity-70 shrink-0" />
+									<span className="truncate">{activePocket.name}</span>
+								</h4>
+							</div>
+							<div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+								<Button 
+									size="icon" 
+									variant="ghost" 
+									onClick={(e) => { e.stopPropagation(); togglePrivacy(); }}
+									className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center bg-transparent"
+								>
+									{isPrivate ? <EyeOff size={14} /> : <Eye size={14} />}
+								</Button>
+							</div>
 						</div>
-						<Wallet className="opacity-20 text-black" size={32} />
+
+						<div className="flex items-baseline justify-between mt-3 w-full">
+							<h2 className="text-3xl font-black tracking-tight text-left">
+								{maskValue(formatCurrency(netBalance))}
+							</h2>
+						</div>
+
+						{/* Static balance details directly inside card, no border */}
+						<div className="mt-2 flex items-center justify-between text-[10px] font-black opacity-80 flex-wrap gap-y-1.5 w-full">
+							<div className="flex items-center gap-1.5">
+								<Wallet size={12} className="opacity-50" />
+								<span>{maskValue(formatCurrency(startingBalance))}</span>
+							</div>
+							
+							<div className="flex items-center gap-3">
+								<div className="flex items-center gap-1 text-emerald-950/80">
+									<TrendingUp size={12} />
+									<span>{maskValue(formatCurrency(incomeTotal))}</span>
+								</div>
+								<div className="w-1 h-1 rounded-full bg-black/10" />
+								<div className="flex items-center gap-1 text-red-950/80">
+									<TrendingDown size={12} />
+									<span>{maskValue(formatCurrency(expenseTotal))}</span>
+								</div>
+							</div>
+						</div>
+
+						{/* Navigation controls < ... > at the bottom of the card content */}
+						{pockets.length > 0 && (
+							<div className="pt-2 border-t border-black/5 flex items-center justify-between mt-4" onClick={(e) => e.stopPropagation()}>
+								<button
+									type="button"
+									onClick={(e) => {
+										e.stopPropagation();
+										setActivePocketIdx((activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
+									}}
+									className={`w-8 h-8 bg-transparent hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer transition-all border-none ${themeColors.navText}`}
+									aria-label="Previous Pocket"
+								>
+									<ChevronLeft size={16} />
+								</button>
+								
+								{/* Titik 3 Button to open direct selection dialog */}
+								<button
+									type="button"
+									onClick={(e) => {
+										e.stopPropagation();
+										setIsPocketSelectOpen(true);
+									}}
+									className={`px-4 py-1.5 bg-transparent hover:scale-105 active:scale-95 text-[11px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center justify-center gap-1 border-none ${themeColors.navText}`}
+								>
+									<span className="w-1.5 h-1.5 rounded-full bg-current" />
+									<span className="w-1.5 h-1.5 rounded-full bg-current" />
+									<span className="w-1.5 h-1.5 rounded-full bg-current" />
+								</button>
+								
+								<button
+									type="button"
+									onClick={(e) => {
+										e.stopPropagation();
+										setActivePocketIdx((activePocketIdx + 1) % carouselPockets.length);
+									}}
+									className={`w-8 h-8 bg-transparent hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer transition-all border-none ${themeColors.navText}`}
+									aria-label="Next Pocket"
+								>
+									<ChevronRight size={16} />
+								</button>
+							</div>
+						)}
 					</div>
-				</div>
+				</motion.div>
 			</div>
 
 			<div className="grid grid-cols-2 gap-4">
 				<div className="glass-card p-4 rounded-3xl">
-					<div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-2"><TrendingUp size={16} /></div>
+					<div className={`w-8 h-8 rounded-full ${themeColors.bgLight} ${themeColors.text} flex items-center justify-center mb-2`}><TrendingUp size={16} /></div>
 					<p className="text-[10px] uppercase font-bold text-zinc-400">{t("incomeTotal")}</p>
-					<p className="text-sm font-black text-emerald-600">{formatCurrency(incomeTotal)}</p>
+					<p className={`text-sm font-black ${themeColors.text}`}>{formatCurrency(incomeTotal)}</p>
 				</div>
 				<div className="glass-card p-4 rounded-3xl">
 					<div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-500/10 text-red-600 flex items-center justify-center mb-2"><TrendingDown size={16} /></div>
@@ -514,15 +696,16 @@ export function AnalyticsView({
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 					<section className="glass-card rounded-3xl p-6 space-y-4 lg:col-span-2">
 						<div className="flex items-center gap-2">
-							<div className="w-1.5 h-5 bg-emerald-500 rounded-full" /><h4 className="font-bold text-sm uppercase tracking-tight">{t("transactionTrend")}</h4>
+							<div className={`w-1.5 h-5 bg-gradient-to-b ${themeColors.gradient} rounded-full`} />
+							<h4 className="font-bold text-sm uppercase tracking-tight">{t("transactionTrend")}</h4>
 						</div>
 						<div className="h-[250px] w-full">
 							<ResponsiveContainer width="100%" height="100%">
 								<AreaChart data={getDailyData()}>
 									<defs>
 										<linearGradient id="colorIncome" x1="0" x2="0" y2="1">
-											<stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-											<stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+											<stop offset="5%" stopColor={themeColors.accentHex} stopOpacity={0.3}/>
+											<stop offset="95%" stopColor={themeColors.accentHex} stopOpacity={0}/>
 										</linearGradient>
 										<linearGradient id="colorExpense" x1="0" x2="0" y2="1">
 											<stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
@@ -532,9 +715,9 @@ export function AnalyticsView({
 									<CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
 									<XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#71717a', fontSize: 10, fontWeight: 'bold' }} />
 									<Tooltip content={<CustomTooltip formatCurrency={formatCurrency} />} />
-									<Area type="monotone" name="Income" dataKey="income" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
+									<Area type="monotone" name="Income" dataKey="income" stroke={themeColors.accentHex} strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
 									<Area type="monotone" name="Expense" dataKey="expense" stroke="#ef4444" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />
-										</AreaChart>
+								</AreaChart>
 							</ResponsiveContainer>
 						</div>
 					</section>
@@ -547,37 +730,38 @@ export function AnalyticsView({
 							<ResponsiveContainer width="100%" height="100%">
 								<PieChart>
 									<Pie data={getGroupedCategoryData(true)} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" nameKey="name">
-										{getGroupedCategoryData(true).map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
+										{getGroupedCategoryData(true).map((entry, index) => (<Cell key={`cell-${index}`} fill={themeColors.chartPalette[index % themeColors.chartPalette.length]} />))}
 									</Pie>
 									<Tooltip content={<CustomTooltip formatCurrency={formatCurrency} />} />
 								</PieChart>
 							</ResponsiveContainer>
 							<div className="absolute"><TrendingDown className="text-red-500/20" size={32} /></div>
 						</div>
-						<div className="grid grid-cols-2 gap-2">{getGroupedCategoryData(true).map((entry, index) => (<div key={entry.name} className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} /><span className="text-[10px] font-bold text-zinc-500 truncate">{entry.name}</span></div>))}</div>
+						<div className="grid grid-cols-2 gap-2">{getGroupedCategoryData(true).map((entry, index) => (<div key={entry.name} className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: themeColors.chartPalette[index % themeColors.chartPalette.length] }} /><span className="text-[10px] font-bold text-zinc-500 truncate">{entry.name}</span></div>))}</div>
 					</section>
 
 					<section className="glass-card rounded-3xl p-6 space-y-4 h-full">
 						<div className="flex items-center gap-2">
-							<div className="w-1.5 h-5 bg-emerald-500 rounded-full" /><h4 className="font-bold text-sm uppercase tracking-tight">Income by Category</h4>
+							<div className={`w-1.5 h-5 bg-gradient-to-b ${themeColors.gradient} rounded-full`} />
+							<h4 className="font-bold text-sm uppercase tracking-tight">Income by Category</h4>
 						</div>
 						<div className="h-[200px] w-full flex items-center justify-center relative">
 							<ResponsiveContainer width="100%" height="100%">
 								<PieChart>
 									<Pie data={getGroupedCategoryData(false)} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" nameKey="name">
 										{getGroupedCategoryData(false).map((entry, index) => (
-											<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+											<Cell key={`cell-${index}`} fill={themeColors.chartPalette[index % themeColors.chartPalette.length]} />
 										))}
 									</Pie>
 									<Tooltip content={<CustomTooltip formatCurrency={formatCurrency} />} />
 								</PieChart>
 							</ResponsiveContainer>
-							<div className="absolute"><TrendingUp className="text-emerald-500/20" size={32} /></div>
+							<div className="absolute"><TrendingUp className={`${themeColors.text} opacity-20`} size={32} /></div>
 						</div>
 						<div className="grid grid-cols-2 gap-2">
 							{getGroupedCategoryData(false).map((entry, index) => (
 								<div key={entry.name} className="flex items-center gap-2">
-									<div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+									<div className="w-2 h-2 rounded-full" style={{ backgroundColor: themeColors.chartPalette[index % themeColors.chartPalette.length] }} />
 									<span className="text-[10px] font-bold text-zinc-500 truncate">{entry.name}</span>
 								</div>
 							))}
@@ -590,7 +774,7 @@ export function AnalyticsView({
 							<section key={idx} className="glass-card rounded-3xl p-6 space-y-4 relative group/chart h-full">
 								<Button variant="ghost" size="sm" onClick={() => onDeleteCustomChart(idx)} className="absolute top-4 right-4 opacity-0 group-hover/chart:opacity-100 transition-opacity text-destructive h-8 w-8 p-0 cursor-pointer"><Trash2 size={14} /></Button>
 								<div className="flex items-center gap-2">
-									<div className={`w-1.5 h-5 rounded-full ${config.type === 'expense' ? 'bg-red-500' : 'bg-emerald-500'}`} />
+									<div className={`w-1.5 h-5 rounded-full ${config.type === 'expense' ? 'bg-red-500' : 'bg-gradient-to-b ' + themeColors.gradient}`} />
 									<h4 className="font-bold text-sm uppercase tracking-tight">{config.fieldName} ({config.type === 'expense' ? t("expense") : t("income")})</h4>
 								</div>
 								<div className="h-[200px] w-full">
@@ -600,7 +784,7 @@ export function AnalyticsView({
 											<XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
 											<Tooltip content={<CustomTooltip formatCurrency={formatCurrency} />} />
 											<Bar dataKey="value" radius={[10, 10, 0, 0]}>
-												{chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
+												{chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={themeColors.chartPalette[index % themeColors.chartPalette.length]} />))}
 											</Bar>
 										</BarChart>
 									</ResponsiveContainer>
@@ -613,7 +797,7 @@ export function AnalyticsView({
 						<div className="lg:col-span-2">
 							<Dialog open={isAddChartOpen} onOpenChange={setIsAddCustomChartOpen}>
 								<DialogTrigger render={
-									<Button className="w-full h-16 rounded-2xl border-dashed border-2 border-emerald-500/30 bg-emerald-50/10 hover:bg-emerald-50/20 text-emerald-600 font-bold flex items-center justify-center gap-2 cursor-pointer">
+									<Button className={`w-full h-16 rounded-2xl border-dashed border-2 ${themeColors.border} ${themeColors.bgLight} hover:opacity-90 ${themeColors.text} font-bold flex items-center justify-center gap-2 cursor-pointer`}>
 										<Plus size={20} /> {t("addCustomChart")}
 									</Button>
 								} />
@@ -622,7 +806,7 @@ export function AnalyticsView({
 									<div className="space-y-4 py-4">
 										<div className="space-y-2"><Label className="text-xs">{t("selectField")}</Label><Select value={newChartField} onValueChange={(v) => setNewChartField(v || "")}><SelectTrigger className="rounded-xl cursor-pointer"><SelectValue placeholder="Choose a custom field" /></SelectTrigger><SelectContent className="rounded-xl">{customFields.map(f => (<SelectItem key={f.name} value={f.name} className="cursor-pointer">{f.name}</SelectItem>))}</SelectContent></Select></div>
 										<div className="space-y-2"><Label className="text-xs">{t("chartType")}</Label><Select value={newChartType} onValueChange={(v: any) => setNewChartType(v || "expense")}><SelectTrigger className="rounded-xl cursor-pointer"><SelectValue /></SelectTrigger><SelectContent className="rounded-xl"><SelectItem value="expense" className="cursor-pointer">{t("expense")}</SelectItem><SelectItem value="income" className="cursor-pointer">{t("income")}</SelectItem></SelectContent></Select></div>
-										<Button disabled={!newChartField} onClick={() => { onAddCustomChart({ fieldName: newChartField, type: newChartType }); setIsAddCustomChartOpen(false); setNewChartField(""); }} className="w-full bg-emerald-500 text-black font-black h-12 rounded-xl mt-4 cursor-pointer">{t("add")}</Button>
+										<Button disabled={!newChartField} onClick={() => { onAddCustomChart({ fieldName: newChartField, type: newChartType }); setIsAddCustomChartOpen(false); setNewChartField(""); }} className={`w-full bg-gradient-to-r ${themeColors.gradient} text-black font-black h-12 rounded-xl mt-4 cursor-pointer`}>{t("add")}</Button>
 									</div>
 								</DialogContent>
 							</Dialog>
@@ -634,7 +818,7 @@ export function AnalyticsView({
 						<section className="glass-card rounded-3xl p-6 space-y-4">
 							<div className="flex items-center justify-between gap-4 flex-wrap mb-4">
 								<div className="flex items-center gap-2">
-									<div className="w-1.5 h-5 bg-gradient-to-b from-emerald-500 to-teal-500 rounded-full" />
+									<div className={`w-1.5 h-5 bg-gradient-to-b ${themeColors.gradient} rounded-full`} />
 									<h4 className="font-bold text-sm uppercase tracking-tight">
 										{language === "en" ? "Transaction History" : "Riwayat Transaksi"}
 									</h4>
@@ -712,6 +896,102 @@ export function AnalyticsView({
 					<p className="font-bold text-[10px] uppercase tracking-widest text-zinc-400">{t("noDataFound")}</p>
 				</div>
 			)}
+			{/* Direct Pocket Selector Dialog */}
+			<Dialog open={isPocketSelectOpen} onOpenChange={setIsPocketSelectOpen}>
+				<DialogContent className="sm:max-w-[400px] rounded-3xl p-6 duration-200 data-open:slide-in-from-top-12 data-open:zoom-in-100 data-closed:slide-out-to-top-12 data-closed:zoom-out-100">
+					<DialogHeader className="flex flex-row items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3 gap-4">
+						<DialogTitle className="font-black text-left">
+							{language === "en" ? "Select Pocket" : "Pilih Kantong"}
+						</DialogTitle>
+						<div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+							{/* Eye Toggle button */}
+							<Button 
+								size="icon" 
+								variant="ghost" 
+								onClick={() => togglePrivacy()}
+								className="h-8 w-8 text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-150 rounded-full cursor-pointer flex items-center justify-center border-none bg-transparent"
+							>
+								{isPrivate ? <EyeOff size={15} /> : <Eye size={15} />}
+							</Button>
+						</div>
+					</DialogHeader>
+					
+					<div className="grid grid-cols-1 gap-3 pt-3 max-h-[380px] overflow-y-auto pr-1">
+						{carouselPockets.map((p, idx) => {
+							const pColors = {
+								emerald: {
+									gradient: "from-emerald-500 to-teal-500",
+									shadow: "shadow-emerald-500/10",
+									text: "text-emerald-950/80"
+								},
+								indigo: {
+									gradient: "from-indigo-500 to-purple-500",
+									shadow: "shadow-indigo-500/10",
+									text: "text-indigo-950/80"
+								},
+								amber: {
+									gradient: "from-amber-500 to-rose-500",
+									shadow: "shadow-amber-500/10",
+									text: "text-amber-950/80"
+								}
+							}[(p.color === "indigo" || p.color === "amber") ? p.color : "emerald"];
+
+							const pBalance = getPocketBalance(p);
+							const pInitial = transactions.find(t => t.category === "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id))?.amount || 0;
+							const pIncome = transactions.filter(t => t.category !== "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+							const pExpense = Math.abs(transactions.filter(t => t.category !== "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
+
+							return (
+								<button
+									key={p.id}
+									onClick={() => {
+										setActivePocketIdx(idx);
+										setIsPocketSelectOpen(false);
+									}}
+									className={`w-full text-left rounded-3xl p-5 bg-gradient-to-br ${pColors.gradient} text-black shadow-md ${pColors.shadow} relative overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-lg active:scale-[0.98] border-none flex flex-col justify-between min-h-[110px]`}
+								>
+									<div className="flex justify-between items-start w-full">
+										<div className="flex flex-col max-w-[75%]">
+											<span className="text-[8px] font-black uppercase tracking-wider opacity-60">
+												{p.id === "net_worth" ? (language === "en" ? "Total Worth" : "Total Kekayaan") : "Pocket"}
+											</span>
+											<h4 className="text-xs font-black uppercase tracking-wide flex items-center gap-1 mt-0.5 truncate text-ellipsis overflow-hidden whitespace-nowrap">
+												<Wallet size={12} className="opacity-70 shrink-0" />
+												<span className="truncate">{p.name}</span>
+											</h4>
+										</div>
+										<span className="opacity-70 text-[8px] uppercase font-black tracking-widest shrink-0">
+											{p.id === "net_worth" ? (language === "en" ? "Overview" : "Semua") : p.type}
+										</span>
+									</div>
+
+									<div className="mt-2 w-full">
+										<h2 className="text-xl font-black tracking-tight">{maskValue(formatCurrency(pBalance))}</h2>
+									</div>
+
+									<div className="mt-1 pt-2 border-t border-black/5 flex items-center justify-between text-[9px] font-black opacity-80 w-full">
+										<div className="flex items-center gap-1">
+											<Wallet size={10} className="opacity-50" />
+											<span>{maskValue(formatCurrency(pInitial))}</span>
+										</div>
+										<div className="flex items-center gap-2">
+											<div className={`flex items-center gap-0.5 ${pColors.text}`}>
+												<TrendingUp size={10} />
+												<span>{maskValue(formatCurrency(pIncome))}</span>
+											</div>
+											<div className="w-0.5 h-0.5 rounded-full bg-black/10" />
+											<div className="flex items-center gap-0.5 text-red-950/80">
+												<TrendingDown size={10} />
+												<span>{maskValue(formatCurrency(pExpense))}</span>
+											</div>
+										</div>
+									</div>
+								</button>
+							);
+						})}
+					</div>
+				</DialogContent>
+			</Dialog>
 		</motion.div>
 	);
 }

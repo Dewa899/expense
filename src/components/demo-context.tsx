@@ -83,21 +83,66 @@ const DemoContext = React.createContext<DemoContextType | undefined>(undefined);
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function DemoProvider({ children }: { children: React.ReactNode }) {
-	const [isDemoMode, setIsDemoMode] = React.useState(false);
-	const [demoTransactions, setDemoTransactions] = React.useState<Transaction[]>([]);
+	const [isDemoMode, setIsDemoMode] = React.useState(() => {
+		if (typeof window !== "undefined") {
+			return localStorage.getItem("is_demo_mode") === "true";
+		}
+		return false;
+	});
+	const [demoTransactions, setDemoTransactions] = React.useState<Transaction[]>(() => {
+		if (typeof window !== "undefined") {
+			const stored = localStorage.getItem("demo_transactions");
+			if (stored) {
+				try {
+					return JSON.parse(stored);
+				} catch (e) {
+					console.error("Failed to parse demo transactions", e);
+				}
+			}
+		}
+		return [];
+	});
+
+	React.useEffect(() => {
+		const isDemo = localStorage.getItem("is_demo_mode") === "true";
+		if (isDemo && demoTransactions.length === 0) {
+			const storedTxs = localStorage.getItem("demo_transactions");
+			if (storedTxs) {
+				try {
+					setDemoTransactions(JSON.parse(storedTxs));
+				} catch (e) {
+					setDemoTransactions([...DEMO_TRANSACTIONS]);
+				}
+			} else {
+				setDemoTransactions([...DEMO_TRANSACTIONS]);
+				localStorage.setItem("demo_transactions", JSON.stringify(DEMO_TRANSACTIONS));
+			}
+		}
+	}, [demoTransactions.length]);
 
 	const enterDemo = React.useCallback(() => {
 		setDemoTransactions([...DEMO_TRANSACTIONS]);
 		setIsDemoMode(true);
+		localStorage.setItem("is_demo_mode", "true");
+		localStorage.setItem("demo_transactions", JSON.stringify(DEMO_TRANSACTIONS));
 	}, []);
 
 	const exitDemo = React.useCallback(() => {
 		setIsDemoMode(false);
 		setDemoTransactions([]);
+		localStorage.removeItem("is_demo_mode");
+		localStorage.removeItem("demo_transactions");
+		localStorage.removeItem("demo_pockets");
+		localStorage.removeItem("demo_customChartConfigs");
+		window.location.href = "/";
 	}, []);
 
 	const addDemoTransaction = React.useCallback((tx: Transaction) => {
-		setDemoTransactions((prev) => [tx, ...prev]);
+		setDemoTransactions((prev) => {
+			const next = [tx, ...prev];
+			localStorage.setItem("demo_transactions", JSON.stringify(next));
+			return next;
+		});
 	}, []);
 
 	return (

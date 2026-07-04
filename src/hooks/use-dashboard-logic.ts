@@ -86,14 +86,48 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	const [headers, setHeaders] = React.useState<string[]>([]);
 	const [categories, setCategories] = React.useState<string[]>([]);
 	const [customFields, setCustomFields] = React.useState<CustomFieldDef[]>([]);
-	const [customChartConfigs, setCustomChartConfigs] = React.useState<CustomChartConfig[]>([]);
+	const [customChartConfigs, setCustomChartConfigs] = React.useState<CustomChartConfig[]>(() => {
+		if (typeof window !== "undefined") {
+			const isDemo = localStorage.getItem("is_demo_mode") === "true";
+			if (isDemo) {
+				const stored = localStorage.getItem("demo_customChartConfigs");
+				if (stored) {
+					try {
+						return JSON.parse(stored);
+					} catch (e) {
+						console.error("Failed to parse demo charts", e);
+					}
+				}
+			}
+		}
+		return [];
+	});
 	const [transactions, setTransactions] = React.useState<Transaction[]>([]);
 	const [allTransactions, setAllTransactions] = React.useState<any[]>([]);
 	const [availableMonths, setAvailableMonths] = React.useState<string[]>([]);
 	const [selectedMonth, setSelectedMonth] = React.useState<string>("");
 	const [newCategoryInput, setNewCategoryInput] = React.useState("");
 	const [formData, setFormData] = React.useState<Record<string, string>>({});
-	const [pockets, setPockets] = React.useState<PocketDef[]>([]);
+	const [pockets, setPockets] = React.useState<PocketDef[]>(() => {
+		if (typeof window !== "undefined") {
+			const isDemo = localStorage.getItem("is_demo_mode") === "true";
+			if (isDemo) {
+				const stored = localStorage.getItem("demo_pockets");
+				if (stored) {
+					try {
+						return JSON.parse(stored);
+					} catch (e) {
+						console.error("Failed to parse demo pockets", e);
+					}
+				}
+				return [
+					{ id: "pocket_2", name: "Jajan", type: "budget", target: 1000000, color: "indigo" },
+					{ id: "pocket_3", name: "Tabungan", type: "saving", target: 50000000, color: "amber" }
+				] as PocketDef[];
+			}
+		}
+		return [];
+	});
 	const [activePocketIdx, setActivePocketIdx] = React.useState<number>(0);
 	const [recurringTemplates, setRecurringTemplates] = React.useState<any[]>([]);
 	const [loading, setLoading] = React.useState(false);
@@ -810,6 +844,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		let authSubscription: any = null;
 
 		const init = async () => {
+			if (isDemoMode) return;
 			console.log("Initializing App State...");
 
 			// Check URL parameters for google_sync status from server OAuth callback
@@ -1001,16 +1036,27 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				authSubscription.unsubscribe();
 			}
 		};
-	}, [t]);
+	}, [t, isDemoMode]);
 
 	// Pre-seed Demo Mode settings and templates
 	React.useEffect(() => {
 		if (isDemoMode) {
-			const demoPockets = [
-				{ id: "pocket_2", name: "Jajan", type: "budget", target: 1000000, color: "indigo" },
-				{ id: "pocket_3", name: "Tabungan", type: "saving", target: 50000000, color: "amber" }
-			] as PocketDef[];
-			setPockets(demoPockets);
+			const storedPockets = localStorage.getItem("demo_pockets");
+			if (storedPockets) {
+				setPockets(JSON.parse(storedPockets));
+			} else {
+				const demoPockets = [
+					{ id: "pocket_2", name: "Jajan", type: "budget", target: 1000000, color: "indigo" },
+					{ id: "pocket_3", name: "Tabungan", type: "saving", target: 50000000, color: "amber" }
+				] as PocketDef[];
+				setPockets(demoPockets);
+				localStorage.setItem("demo_pockets", JSON.stringify(demoPockets));
+			}
+
+			const storedCharts = localStorage.getItem("demo_customChartConfigs");
+			if (storedCharts) {
+				setCustomChartConfigs(JSON.parse(storedCharts));
+			}
 
 			const demoTemplates = [
 				{
@@ -1464,7 +1510,10 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		if (customChartConfigs.length >= 2) return;
 		const updated = [...customChartConfigs, config];
 		setCustomChartConfigs(updated);
-		if (isDemoMode) return;
+		if (isDemoMode) {
+			localStorage.setItem("demo_customChartConfigs", JSON.stringify(updated));
+			return;
+		}
 		if (supabaseUser) {
 			await updateSupabaseSettings(categories, customFields, updated);
 		} else {
@@ -1475,7 +1524,10 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	const handleDeleteCustomChart = async (idx: number) => {
 		const updated = customChartConfigs.filter((_, i) => i !== idx);
 		setCustomChartConfigs(updated);
-		if (isDemoMode) return;
+		if (isDemoMode) {
+			localStorage.setItem("demo_customChartConfigs", JSON.stringify(updated));
+			return;
+		}
 		if (supabaseUser) {
 			await updateSupabaseSettings(categories, customFields, updated);
 		} else {
@@ -1485,7 +1537,10 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 
 	const handleUpdatePockets = async (updatedList: PocketDef[]) => {
 		setPockets(updatedList);
-		if (isDemoMode) return;
+		if (isDemoMode) {
+			localStorage.setItem("demo_pockets", JSON.stringify(updatedList));
+			return;
+		}
 		if (supabaseUser) {
 			await updateSupabaseSettings(categories, customFields, customChartConfigs, updatedList);
 		} else {

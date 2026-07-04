@@ -2,22 +2,9 @@
 
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { useDashboardLogic } from "@/hooks/use-dashboard-logic";
 import { FormView } from "./dashboard/form-view";
-import dynamic from "next/dynamic";
-
-const AnalyticsView = dynamic(
-	() => import("./dashboard/analytics-view").then((mod) => mod.AnalyticsView),
-	{
-		ssr: false,
-		loading: () => (
-			<div className="h-[400px] flex flex-col items-center justify-center text-zinc-400 gap-4">
-				<Loader2 className="animate-spin text-emerald-500" size={32} />
-				<p className="font-bold uppercase tracking-widest text-[10px]">Processing Data...</p>
-			</div>
-		)
-	}
-);
 import { StatusModal } from "./dashboard/status-modal";
 import { DisconnectModal } from "./dashboard/disconnect-modal";
 import { DeleteFieldModal } from "./dashboard/delete-field-modal";
@@ -49,6 +36,7 @@ export function DashboardView({
 }: DashboardViewProps) {
 	const { t, language } = useLanguage();
 	const { isDemoMode, demoTransactions, demoCategories, exitDemo, addDemoTransaction } = useDemo();
+	const router = useRouter();
 	
 	const logic = useDashboardLogic(
 		isDemoMode
@@ -64,11 +52,9 @@ export function DashboardView({
 	const totalAmount = logic.totalAmount;
 	
 	// OCR States
-	const ocrInputRef = React.useRef<HTMLInputElement>(null);
 	const ocrGalleryInputRef = React.useRef<HTMLInputElement>(null);
 	const [ocrLoading, setOcrLoading] = React.useState(false);
 	const [ocrMessage, setOcrMessage] = React.useState("");
-	const [isOcrPrivacyOpen, setIsOcrPrivacyOpen] = React.useState(false);
 
 	const handleOcrScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
@@ -97,7 +83,6 @@ export function DashboardView({
 			setOcrMessage(t("ocrFailed"));
 		} finally {
 			setOcrLoading(false);
-			if (ocrInputRef.current) ocrInputRef.current.value = "";
 			if (ocrGalleryInputRef.current) ocrGalleryInputRef.current.value = "";
 		}
 	};
@@ -145,66 +130,42 @@ export function DashboardView({
 						description={logic.statusModal.description} 
 					/>
 				)}
-			</AnimatePresence>
-
-			<AnimatePresence mode="wait">
-				{logic.view === "form" ? (
-					<div key="form-container" className="max-w-md mx-auto w-full space-y-6">
-						<FormView 
-							{...logic}
-							transactions={transactions}
-							categories={categories}
-							totalAmount={totalAmount}
-							isIntegrating={logic.isIntegrating}
-							isManageFieldsOpen={logic.isManageFieldsOpen}
-							setIsManageFieldsOpen={logic.setIsManageFieldsOpen}
-							onViewDetail={() => logic.setView("analytics")}
-							onInputChange={logic.handleInputChange}
-							onSubmit={logic.handleSubmit}
-							onAddCategory={logic.handleAddCategory}
-							onDeleteCategory={logic.handleDeleteCategory}
-							onAddField={logic.handleAddField}
-							onDeleteField={handleDeleteFieldTrigger}
-							onRenameField={logic.handleUpdateField}
-							onAddOption={logic.handleAddOptionToField}
-							onDeleteOption={logic.handleDeleteOptionFromField}
-							onGoogleLogin={logic.handleGoogleLogin}
-							currentMonth={logic.selectedMonth || "..."}
-							onDisconnect={() => setIsDisconnectModalOpen(true)}
-							isDemoMode={isDemoMode}
-							onLoginClick={onLoginClick}
-							ocrLoading={ocrLoading}
-							ocrMessage={ocrMessage}
-							onOcrClick={() => setIsOcrPrivacyOpen(true)}
-						/>
-					</div>
-				) : (
-					<div key="analytics-container" className="max-w-5xl mx-auto w-full">
-						<AnalyticsView 
-							headers={logic.headers}
-							transactions={transactions}
-							availableMonths={logic.availableMonths}
-							selectedMonth={logic.selectedMonth}
-							loading={logic.loading}
-							user={logic.user}
-							supabaseUser={logic.supabaseUser}
-							customFields={logic.customFields}
-							customChartConfigs={logic.customChartConfigs}
-							onBack={() => { logic.resetToCurrentMonth(); logic.setView("form"); }}
-							onMonthChange={logic.handleMonthChange}
-							onAddCustomChart={logic.handleAddCustomChart}
-							onDeleteCustomChart={logic.handleDeleteCustomChart}
-							onSetInitialBalance={logic.handleSetInitialBalance}
-							onSyncPreviousBalance={logic.handleSyncPreviousBalance}
-							onGoogleLogin={logic.handleGoogleLogin}
-							formatCurrency={logic.formatCurrency}
-							exportToCSV={logic.exportToCSV}
-							exportToGoogleSheets={logic.exportToGoogleSheets}
-						/>
-					</div>
-				)}
-			</AnimatePresence>
-
+			</AnimatePresence>			<div className="max-w-md mx-auto w-full space-y-6">
+				<FormView 
+					{...logic}
+					transactions={transactions}
+					categories={categories}
+					totalAmount={totalAmount}
+					isIntegrating={logic.isIntegrating}
+					isManageFieldsOpen={logic.isManageFieldsOpen}
+					setIsManageFieldsOpen={logic.setIsManageFieldsOpen}
+					onViewDetail={() => {
+						const carouselPockets = [
+							{ id: "net_worth", name: "Total Worth" },
+							...logic.pockets
+						];
+						const activePocket = carouselPockets[logic.activePocketIdx] || carouselPockets[0];
+						router.push(`/detail?pocket=${encodeURIComponent(activePocket.name)}`);
+					}}
+					onInputChange={logic.handleInputChange}
+					onSubmit={logic.handleSubmit}
+					onAddCategory={logic.handleAddCategory}
+					onDeleteCategory={logic.handleDeleteCategory}
+					onAddField={logic.handleAddField}
+					onDeleteField={handleDeleteFieldTrigger}
+					onRenameField={logic.handleUpdateField}
+					onAddOption={logic.handleAddOptionToField}
+					onDeleteOption={logic.handleDeleteOptionFromField}
+					onGoogleLogin={logic.handleGoogleLogin}
+					currentMonth={logic.selectedMonth || "..."}
+					onDisconnect={() => setIsDisconnectModalOpen(true)}
+					isDemoMode={isDemoMode}
+					onLoginClick={onLoginClick}
+					ocrLoading={ocrLoading}
+					ocrMessage={ocrMessage}
+					onOcrClick={() => ocrGalleryInputRef.current?.click()}
+				/>
+			</div>
 			{/* Common Modals */}
 			<StatusModal 
 				state={logic.statusModal} 
@@ -258,64 +219,7 @@ export function DashboardView({
 			/>
 
 			{/* Hidden OCR Inputs */}
-			<input ref={ocrInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleOcrScan} />
 			<input ref={ocrGalleryInputRef} type="file" accept="image/*" className="hidden" onChange={handleOcrScan} />
-
-			{/* OCR Privacy Choice Dialog */}
-			<Dialog open={isOcrPrivacyOpen} onOpenChange={setIsOcrPrivacyOpen}>
-				<DialogContent className="sm:max-w-[420px] rounded-3xl">
-					<DialogHeader>
-						<DialogTitle className="flex items-center gap-2">
-							<Camera size={20} className="text-emerald-500" />
-							{language === "en" ? "Receipt Scan Privacy Policy" : "Kebijakan Privasi Pemindaian Struk"}
-						</DialogTitle>
-					</DialogHeader>
-					<div className="py-4 space-y-4 text-sm text-zinc-550 dark:text-zinc-400 leading-relaxed text-left">
-						<p>
-							{language === "en" 
-								? "To scan your receipt, the image will be sent to our AI-powered OCR service. The photo is processed instantly and is NOT stored on any server."
-								: "Untuk memindai struk Anda, foto struk akan dikirim ke layanan OCR bertenaga AI kami. Foto diproses secara instan dan TIDAK disimpan di server mana pun."}
-						</p>
-						<p className="text-xs text-zinc-450 dark:text-zinc-500 font-medium">
-							{language === "en"
-								? "By continuing, you agree to this privacy policy."
-								: "Dengan melanjutkan, Anda menyetujui kebijakan privasi ini."}
-						</p>
-					</div>
-					<div className="flex flex-col gap-2 mt-2">
-						<Button
-							onClick={() => {
-								setIsOcrPrivacyOpen(false);
-								ocrInputRef.current?.click();
-							}}
-							disabled={ocrLoading}
-							className="w-full h-12 bg-emerald-500 hover:bg-emerald-600 text-black font-black rounded-xl flex items-center justify-center gap-2 cursor-pointer border-none"
-						>
-							<Camera size={16} />
-							{language === "en" ? "Take Photo (Camera)" : "Ambil Foto (Kamera)"}
-						</Button>
-						<Button
-							variant="outline"
-							onClick={() => {
-								setIsOcrPrivacyOpen(false);
-								ocrGalleryInputRef.current?.click();
-							}}
-							disabled={ocrLoading}
-							className="w-full h-12 rounded-xl font-bold flex items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-800 cursor-pointer bg-transparent"
-						>
-							<svg className="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
-							{language === "en" ? "Choose from Gallery" : "Pilih dari Galeri"}
-						</Button>
-						<Button
-							variant="ghost"
-							onClick={() => setIsOcrPrivacyOpen(false)}
-							className="w-full h-10 text-xs font-semibold text-zinc-400 hover:text-zinc-650 cursor-pointer"
-						>
-							{language === "en" ? "Cancel" : "Batal"}
-						</Button>
-					</div>
-				</DialogContent>
-			</Dialog>
 		</div>
 	);
 }

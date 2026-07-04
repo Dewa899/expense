@@ -22,7 +22,9 @@ import {
 	Camera,
 	Loader2,
 	ChevronRight,
-	CalendarDays
+	CalendarDays,
+	ChevronUp,
+	ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,6 +148,13 @@ export function FormView(props: FormViewProps) {
 	
 	// Privacy State
 	const [isPrivate, setIsPrivate] = React.useState(false);
+	
+	// Clean Display & Pocket direct selector state
+	const [isCleanDisplay, setIsCleanDisplay] = React.useState(false);
+	const [isPocketSelectOpen, setIsPocketSelectOpen] = React.useState(false);
+	React.useEffect(() => {
+		setIsCleanDisplay(localStorage.getItem("clean_display") === "true");
+	}, []);
 
 	// Local form data state for performance optimization (stops full parent re-renders on keystroke)
 	const [localFormData, setLocalFormData] = React.useState<Record<string, string>>(props.formData);
@@ -231,7 +240,7 @@ export function FormView(props: FormViewProps) {
 	const displayHeaders = props.headers.length > 0 ? props.headers : ["Nama Pengeluaran", "Jumlah", "Tipe", "Kategori", "Catatan"];
 
 	const carouselPockets = React.useMemo<PocketDef[]>(() => [
-		{ id: "net_worth", name: language === "en" ? "Total Net Worth" : "Total Kekayaan", type: "default", color: "emerald", target: undefined } as PocketDef,
+		{ id: "net_worth", name: language === "en" ? "Total Worth" : "Total Kekayaan", type: "default", color: "emerald", target: undefined } as PocketDef,
 		...props.pockets
 	], [props.pockets, language]);
 
@@ -250,6 +259,7 @@ export function FormView(props: FormViewProps) {
 			focusRing: "focus-visible:outline-emerald-500",
 			focusRingInput: "focus:border-emerald-500 focus:ring-emerald-500 dark:focus:border-emerald-400 dark:focus:ring-emerald-400",
 			accentText: "text-emerald-700 dark:text-emerald-300",
+			navText: "text-emerald-950/50 hover:text-emerald-950/85",
 		},
 		indigo: {
 			gradient: "from-indigo-500 to-purple-500",
@@ -263,6 +273,7 @@ export function FormView(props: FormViewProps) {
 			focusRing: "focus-visible:outline-indigo-500",
 			focusRingInput: "focus:border-indigo-500 focus:ring-indigo-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400",
 			accentText: "text-indigo-700 dark:text-indigo-300",
+			navText: "text-indigo-950/50 hover:text-indigo-950/85",
 		},
 		amber: {
 			gradient: "from-amber-500 to-rose-500",
@@ -276,8 +287,9 @@ export function FormView(props: FormViewProps) {
 			focusRing: "focus-visible:outline-amber-500",
 			focusRingInput: "focus:border-amber-500 focus:ring-amber-500 dark:focus:border-amber-400 dark:focus:ring-amber-400",
 			accentText: "text-amber-700 dark:text-amber-300",
+			navText: "text-amber-950/50 hover:text-amber-950/85",
 		}
-	}[activePocket.color || "emerald"];
+	}[(activePocket.color === "indigo" || activePocket.color === "amber") ? activePocket.color : "emerald"];
 
 	const [isPocketSettingsOpen, setIsPocketSettingsOpen] = React.useState(false);
 	const [localPockets, setLocalPockets] = React.useState<PocketDef[]>(props.pockets);
@@ -362,15 +374,17 @@ export function FormView(props: FormViewProps) {
 			initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
 			className="space-y-6"
 		>
-			{/* Pocket Total Amount Card with Swipe controls & Floating panah indicator inside */}
+			{/* Pocket Total Amount Card with Swipe controls & navigations inside */}
 			<section className="mt-2 relative">
 				<motion.div 
-					drag={props.pockets.length > 0 ? "x" : false}
-					dragConstraints={{ left: 0, right: 0 }}
+					drag={props.pockets.length > 0 ? true : false}
+					dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
 					onDragEnd={(e, info) => {
 						if (props.pockets.length === 0) return;
 						const swipeThreshold = 50;
-						if (info.offset.x < -swipeThreshold) {
+						if (info.offset.y > swipeThreshold) {
+							setIsPocketSelectOpen(true);
+						} else if (info.offset.x < -swipeThreshold) {
 							props.setActivePocketIdx((props.activePocketIdx + 1) % carouselPockets.length);
 						} else if (info.offset.x > swipeThreshold) {
 							props.setActivePocketIdx((props.activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
@@ -383,7 +397,7 @@ export function FormView(props: FormViewProps) {
 							e.stopPropagation();
 							props.onViewDetail();
 						}}
-						className={`bg-gradient-to-br ${themeColors.gradient} rounded-3xl p-6 text-black shadow-lg ${themeColors.shadow} relative overflow-hidden group flex flex-col justify-between transition-all duration-300 cursor-pointer hover:shadow-xl active:scale-[0.99] ${props.pockets.length > 0 ? "pr-14" : ""}`}
+						className={`bg-gradient-to-br ${themeColors.gradient} rounded-3xl p-6 text-black shadow-lg ${themeColors.shadow} relative overflow-hidden group flex flex-col justify-between transition-all duration-300 cursor-pointer hover:shadow-xl active:scale-[0.99]`}
 					>
 						<div className="absolute -right-4 -top-4 w-24 h-24 bg-black/5 rounded-full blur-2xl pointer-events-none" />
 						
@@ -398,13 +412,13 @@ export function FormView(props: FormViewProps) {
 							>
 								<div>
 									<div className="flex justify-between items-start">
-										<div className="flex flex-col">
+										<div className="flex flex-col max-w-[70%]">
 											<span className="text-[9px] font-black uppercase tracking-wider opacity-60">
-												{activePocket.id === "net_worth" ? (language === "en" ? "Net Worth" : "Total Kekayaan") : "Pocket"}
+												{activePocket.id === "net_worth" ? (language === "en" ? "Total Worth" : "Total Kekayaan") : "Pocket"}
 											</span>
-											<h4 className="text-sm font-black uppercase tracking-wide flex items-center gap-1.5 mt-0.5">
-												<Wallet size={14} className="opacity-70" />
-												{activePocket.name}
+											<h4 className="text-sm font-black uppercase tracking-wide flex items-center gap-1.5 mt-0.5 truncate text-ellipsis overflow-hidden whitespace-nowrap">
+												<Wallet size={14} className="opacity-70 shrink-0" />
+												<span className="truncate">{activePocket.name}</span>
 											</h4>
 										</div>
 										<div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -418,18 +432,6 @@ export function FormView(props: FormViewProps) {
 												{isPrivate ? <EyeOff size={14} /> : <Eye size={14} />}
 											</Button>
 											
-											{/* Tombol Detail Transaksi (Ikon charts naik turun) */}
-											<Button 
-												size="icon" 
-												variant="ghost" 
-												onClick={(e) => { e.stopPropagation(); props.onViewDetail(); }}
-												disabled={isSyncing}
-												className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center"
-												aria-label="Detail Transaksi"
-											>
-												<TrendingUp size={14} />
-											</Button>
-
 											{/* Settings icon button inside card */}
 											<Button 
 												size="icon" 
@@ -444,79 +446,259 @@ export function FormView(props: FormViewProps) {
 										</div>
 									</div>
 
-									<div className="flex items-center justify-between mt-2">
-										<h2 className="text-3xl font-black tracking-tight">{maskValue(props.formatCurrency(props.totalAmount))}</h2>
+									<div className="flex items-baseline justify-between mt-3 w-full">
+										<h2 className="text-3xl font-black tracking-tight text-left">
+											{maskValue(props.formatCurrency(props.totalAmount))}
+										</h2>
+										<span className="text-[9px] font-black uppercase tracking-widest opacity-40 select-none pointer-events-none shrink-0 text-right">
+											{language === "en" ? "Click for details" : "Klik untuk detail"}
+										</span>
+									</div>
+
+									{/* Static balance details directly inside card, no border */}
+									<div className="mt-2 flex items-center justify-between text-[10px] font-black opacity-80 flex-wrap gap-y-1.5 w-full">
+										<div className="flex items-center gap-1.5">
+											<Wallet size={12} className="opacity-50" />
+											<span>{maskValue(props.formatCurrency(props.transactions.find(t => t.category === "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id))?.amount || 0))}</span>
+										</div>
+										
+										<div className="flex items-center gap-3">
+											<div className="flex items-center gap-1 text-emerald-950/80">
+												<TrendingUp size={12} />
+												<span>{maskValue(props.formatCurrency(props.transactions.filter(t => t.category !== "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0)))}</span>
+											</div>
+											<div className="w-1 h-1 rounded-full bg-black/10" />
+											<div className="flex items-center gap-1 text-red-950/80">
+												<TrendingDown size={12} />
+												<span>{maskValue(props.formatCurrency(Math.abs(props.transactions.filter(t => t.category !== "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0))))}</span>
+											</div>
+										</div>
 									</div>
 								</div>
 
-								{/* Progress target bar for Budget or Saving pocket */}
-								{activePocket.type !== "default" && activePocket.target && (
-									<div className="space-y-1">
-										<div className="flex justify-between text-[9px] font-black opacity-85">
-											<span>
-												{activePocket.type === "budget" 
-													? `${language === "en" ? "Monthly Limit" : "Batas Bulanan"}: ${props.formatCurrency(activePocket.target)}`
-													: `${language === "en" ? "Savings Goal" : "Target Tabungan"}: ${props.formatCurrency(activePocket.target)}`}
-											</span>
-											<span>{Math.round(progressBarPercent)}%</span>
-										</div>
-										<div className="w-full h-1.5 bg-black/10 rounded-full overflow-hidden">
-											<motion.div 
-												initial={{ width: 0 }}
-												animate={{ width: `${Math.min(progressBarPercent, 100)}%` }}
-												className={`h-full rounded-full ${
-													activePocket.type === "budget"
-														? progressBarPercent > 90
-															? "bg-red-650"
-															: progressBarPercent > 70
-																? "bg-amber-605"
-																: "bg-emerald-700"
-														: "bg-teal-700"
-												}`}
-											/>
-										</div>
+								{/* Navigation controls < ... > at the bottom of the card content */}
+								{props.pockets.length > 0 && (
+									<div className="pt-2 border-t border-black/5 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
+										<button
+											type="button"
+											onClick={(e) => {
+												e.stopPropagation();
+												props.setActivePocketIdx((props.activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
+											}}
+											className={`w-8 h-8 bg-transparent hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer transition-all border-none ${themeColors.navText}`}
+											aria-label="Previous Pocket"
+										>
+											<ChevronLeft size={16} />
+										</button>
+										
+										{/* Titik 3 Button to open direct selection dialog */}
+										<button
+											type="button"
+											onClick={(e) => {
+												e.stopPropagation();
+												setIsPocketSelectOpen(true);
+											}}
+											className={`px-4 py-1.5 bg-transparent hover:scale-105 active:scale-95 text-[11px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center justify-center gap-1 border-none ${themeColors.navText}`}
+										>
+											<span className="w-1.5 h-1.5 rounded-full bg-current" />
+											<span className="w-1.5 h-1.5 rounded-full bg-current" />
+											<span className="w-1.5 h-1.5 rounded-full bg-current" />
+										</button>
+										
+										<button
+											type="button"
+											onClick={(e) => {
+												e.stopPropagation();
+												props.setActivePocketIdx((props.activePocketIdx + 1) % carouselPockets.length);
+											}}
+											className={`w-8 h-8 bg-transparent hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer transition-all border-none ${themeColors.navText}`}
+											aria-label="Next Pocket"
+										>
+											<ChevronRight size={16} />
+										</button>
 									</div>
 								)}
-
-								{/* Static balance details directly inside card */}
-								<div className="pt-3 border-t border-black/5 flex items-center justify-between text-[10px] font-black opacity-80 flex-wrap gap-y-2">
-									<div className="flex items-center gap-1.5">
-										<Wallet size={12} className="opacity-50" />
-										<span>{maskValue(props.formatCurrency(props.transactions.find(t => t.category === "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id))?.amount || 0))}</span>
-									</div>
-									
-									<div className="flex items-center gap-3">
-										<div className="flex items-center gap-1 text-emerald-900">
-											<TrendingUp size={12} />
-											<span>{maskValue(props.formatCurrency(props.transactions.filter(t => t.category !== "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0)))}</span>
-										</div>
-										<div className="w-1 h-1 rounded-full bg-black/10" />
-										<div className="flex items-center gap-1 text-red-900">
-											<TrendingDown size={12} />
-											<span>{maskValue(props.formatCurrency(Math.abs(props.transactions.filter(t => t.category !== "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0))))}</span>
-										</div>
-									</div>
-								</div>
 							</motion.div>
 						</AnimatePresence>
-
-						{/* Floating Panah indicator on middle right */}
-						{props.pockets.length > 0 && (
-							<button
-								type="button"
-								onClick={(e) => {
-									e.stopPropagation();
-									props.setActivePocketIdx((props.activePocketIdx + 1) % carouselPockets.length);
-								}}
-								className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/10 hover:bg-black/20 text-black flex items-center justify-center cursor-pointer transition-all active:scale-90 z-20 border-none"
-								aria-label="Next Pocket"
-							>
-								<ChevronRight size={20} />
-							</button>
-						)}
 					</div>
 				</motion.div>
 			</section>
+
+			{/* Direct Pocket Selector Dialog */}
+			<Dialog open={isPocketSelectOpen} onOpenChange={setIsPocketSelectOpen}>
+				<DialogContent className="sm:max-w-[400px] rounded-3xl p-6 duration-200 data-open:slide-in-from-top-12 data-open:zoom-in-100 data-closed:slide-out-to-top-12 data-closed:zoom-out-100">
+					<DialogHeader className="flex flex-row items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3 gap-4">
+						<DialogTitle className="font-black text-left">
+							{language === "en" ? "Select Pocket" : "Pilih Kantong"}
+						</DialogTitle>
+						<div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+							{/* Eye Toggle button */}
+							<Button 
+								size="icon" 
+								variant="ghost" 
+								onClick={() => togglePrivacy()}
+								disabled={isSyncing}
+								className="h-8 w-8 text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-150 rounded-full cursor-pointer flex items-center justify-center border-none bg-transparent"
+							>
+								{isPrivate ? <EyeOff size={15} /> : <Eye size={15} />}
+							</Button>
+							{/* Manage pocket button */}
+							<Button 
+								size="icon" 
+								variant="ghost" 
+								onClick={() => {
+									setIsPocketSelectOpen(false);
+									setIsPocketSettingsOpen(true);
+								}}
+								disabled={isSyncing}
+								className="h-8 w-8 text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-150 rounded-full cursor-pointer flex items-center justify-center border-none bg-transparent"
+								aria-label="Manage Pockets"
+							>
+								<Plus size={15} />
+							</Button>
+						</div>
+					</DialogHeader>
+					
+					<div className="grid grid-cols-1 gap-3 pt-3 max-h-[380px] overflow-y-auto pr-1">
+						{carouselPockets.map((p, idx) => {
+							const pColors = {
+								emerald: {
+									gradient: "from-emerald-500 to-teal-500",
+									shadow: "shadow-emerald-500/10",
+									text: "text-emerald-950/80"
+								},
+								indigo: {
+									gradient: "from-indigo-500 to-purple-500",
+									shadow: "shadow-indigo-500/10",
+									text: "text-indigo-950/80"
+								},
+								amber: {
+									gradient: "from-amber-500 to-rose-500",
+									shadow: "shadow-amber-500/10",
+									text: "text-amber-950/80"
+								}
+							}[p.color || "emerald"];
+
+							const pBalance = props.getPocketBalance ? props.getPocketBalance(p) : props.totalAmount;
+							const pInitial = props.transactions.find(t => t.category === "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id))?.amount || 0;
+							const pIncome = props.transactions.filter(t => t.category !== "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+							const pExpense = Math.abs(props.transactions.filter(t => t.category !== "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
+
+							return (
+								<button
+									key={p.id}
+									onClick={() => {
+										props.setActivePocketIdx(idx);
+										setIsPocketSelectOpen(false);
+									}}
+									className={`w-full text-left rounded-3xl p-5 bg-gradient-to-br ${pColors.gradient} text-black shadow-md ${pColors.shadow} relative overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-lg active:scale-[0.98] border-none flex flex-col justify-between min-h-[110px]`}
+								>
+									<div className="flex justify-between items-start w-full">
+										<div className="flex flex-col max-w-[75%]">
+											<span className="text-[8px] font-black uppercase tracking-wider opacity-60">
+												{p.id === "net_worth" ? (language === "en" ? "Total Worth" : "Total Kekayaan") : "Pocket"}
+											</span>
+											<h4 className="text-xs font-black uppercase tracking-wide flex items-center gap-1 mt-0.5 truncate text-ellipsis overflow-hidden whitespace-nowrap">
+												<Wallet size={12} className="opacity-70 shrink-0" />
+												<span className="truncate">{p.name}</span>
+											</h4>
+										</div>
+										<span className="opacity-70 text-[8px] uppercase font-black tracking-widest shrink-0">
+											{p.id === "net_worth" ? (language === "en" ? "Overview" : "Semua") : p.type}
+										</span>
+									</div>
+
+									<div className="mt-2 w-full">
+										<h2 className="text-xl font-black tracking-tight">{maskValue(props.formatCurrency(pBalance))}</h2>
+									</div>
+
+									<div className="mt-1 pt-2 border-t border-black/5 flex items-center justify-between text-[9px] font-black opacity-80 w-full">
+										<div className="flex items-center gap-1">
+											<Wallet size={10} className="opacity-50" />
+											<span>{maskValue(props.formatCurrency(pInitial))}</span>
+										</div>
+										<div className="flex items-center gap-2">
+											<div className={`flex items-center gap-0.5 ${pColors.text}`}>
+												<TrendingUp size={10} />
+												<span>{maskValue(props.formatCurrency(pIncome))}</span>
+											</div>
+											<div className="w-0.5 h-0.5 rounded-full bg-black/10" />
+											<div className="flex items-center gap-0.5 text-red-950/80">
+												<TrendingDown size={10} />
+												<span>{maskValue(props.formatCurrency(pExpense))}</span>
+											</div>
+										</div>
+									</div>
+								</button>
+							);
+						})}
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			{/* Separated Progress Bar Card */}
+			<AnimatePresence>
+				{activePocket.type !== "default" && activePocket.target && (
+					<motion.div
+						initial={{ opacity: 0, height: 0, marginTop: 0 }}
+						animate={{ opacity: 1, height: "auto", marginTop: 12 }}
+						exit={{ opacity: 0, height: 0, marginTop: 0 }}
+						transition={{ duration: 0.2, ease: "easeInOut" }}
+						className="overflow-hidden w-full"
+					>
+						<div className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200/60 dark:border-zinc-850 rounded-[28px] p-5 shadow-sm space-y-2 transition-all duration-300">
+							<div className="flex justify-between text-[11px] font-black text-zinc-650 dark:text-zinc-350">
+								<span className="flex items-center gap-1.5">
+									<Wallet size={13} className={themeColors.text} />
+									{activePocket.type === "budget" 
+										? `${language === "en" ? "Monthly Limit" : "Batas Bulanan"}: ${props.formatCurrency(activePocket.target)}`
+										: `${language === "en" ? "Savings Goal" : "Target Tabungan"}: ${props.formatCurrency(activePocket.target)}`}
+								</span>
+								<span className={themeColors.textDark}>{Math.round(progressBarPercent)}%</span>
+							</div>
+							<div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+								<motion.div 
+									initial={{ width: 0 }}
+									animate={{ width: `${Math.min(progressBarPercent, 100)}%` }}
+									className={`h-full rounded-full ${
+										activePocket.type === "budget"
+											? progressBarPercent > 90
+												? "bg-red-500"
+												: progressBarPercent > 70
+													? "bg-amber-500"
+													: "bg-emerald-500"
+											: "bg-teal-500"
+									}`}
+								/>
+							</div>
+						</div>
+					</motion.div>
+				)}
+			</AnimatePresence>
+
+			{/* Bottom Action Shortcut Buttons (Visible only under Worth overview & if Clean Display is off) */}
+			{props.activePocketIdx === 0 && !isCleanDisplay && (
+				<div className="grid grid-cols-2 gap-3 mt-4">
+					<Button
+						variant="outline"
+						onClick={() => setIsRecurringModalOpen(true)}
+						disabled={isSyncing}
+						className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-950/25 hover:bg-zinc-50 dark:hover:bg-zinc-950 cursor-pointer text-zinc-800 dark:text-zinc-200 text-xs shadow-sm transition-all"
+					>
+						<CalendarDays size={16} className={themeColors.text} />
+						<span>{language === "en" ? "Auto Transactions" : "Transaksi Otomatis"}</span>
+					</Button>
+					<Button
+						variant="outline"
+						onClick={() => setIsPocketSettingsOpen(true)}
+						disabled={isSyncing}
+						className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-950/25 hover:bg-zinc-50 dark:hover:bg-zinc-950 cursor-pointer text-zinc-800 dark:text-zinc-200 text-xs shadow-sm transition-all"
+					>
+						<Plus size={16} className={themeColors.text} />
+						<span>{language === "en" ? "Manage Pockets" : "Kelola Kantong"}</span>
+					</Button>
+				</div>
+			)}
 
 			{/* PWA Downloader modal */}
 			<Dialog open={props.isAddToHomeOpen} onOpenChange={props.setIsAddToHomeOpen}>
@@ -756,6 +938,30 @@ export function FormView(props: FormViewProps) {
 								)}
 							</div>
 						)}
+						{/* Item 7: Clean Display Mode preference */}
+						<div className="flex flex-col gap-2 p-4 bg-zinc-550/5 dark:bg-zinc-950/40 rounded-2xl border border-zinc-150 dark:border-zinc-850 mt-2">
+							<div className="flex items-center justify-between">
+								<Label htmlFor="cleanDisplay" className="text-xs font-bold cursor-pointer text-zinc-800 dark:text-zinc-200">
+									{language === "en" ? "Clean Display Mode" : "Mode Tampilan Bersih"}
+								</Label>
+								<input 
+									type="checkbox" 
+									id="cleanDisplay" 
+									checked={isCleanDisplay}
+									onChange={(e) => {
+										const checked = e.target.checked;
+										setIsCleanDisplay(checked);
+										localStorage.setItem("clean_display", String(checked));
+									}}
+									className="w-4 h-4 rounded cursor-pointer accent-emerald-500"
+								/>
+							</div>
+							<p className="text-[10px] text-zinc-450 dark:text-zinc-500 font-bold leading-normal">
+								{language === "en" 
+									? "Hide 'Auto Transactions' and 'Manage Pockets' shortcut buttons from the main screen. They remain accessible here anytime." 
+									: "Sembunyikan tombol pintasan 'Transaksi Otomatis' dan 'Kelola Kantong' dari layar utama. Fitur ini tetap dapat diakses dari menu ini."}
+							</p>
+						</div>
 					</div>
 				</DialogContent>
 			</Dialog>
@@ -946,16 +1152,57 @@ export function FormView(props: FormViewProps) {
 											}`}>
 												Kantong {idx + 1}
 											</span>
-											<Button
-												variant="ghost"
-												size="sm"
-												onClick={() => {
-													setLocalPockets(localPockets.filter((_, i) => i !== idx));
-												}}
-												className="h-6 text-destructive text-[10px] font-bold hover:bg-destructive/15 cursor-pointer px-2 rounded-lg"
-											>
-												{language === "en" ? "Delete" : "Hapus"}
-											</Button>
+											<div className="flex items-center gap-1">
+												{/* Up arrow */}
+												<Button
+													variant="ghost"
+													size="icon"
+													disabled={idx === 0}
+													onClick={() => {
+														if (idx === 0) return;
+														const nextList = [...localPockets];
+														const temp = nextList[idx];
+														nextList[idx] = nextList[idx - 1];
+														nextList[idx - 1] = temp;
+														setLocalPockets(nextList);
+													}}
+													className="h-7 w-7 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer rounded-full flex items-center justify-center transition-colors border-none bg-transparent"
+													aria-label="Move Up"
+												>
+													<ChevronUp size={14} />
+												</Button>
+												{/* Down arrow */}
+												<Button
+													variant="ghost"
+													size="icon"
+													disabled={idx === localPockets.length - 1}
+													onClick={() => {
+														if (idx === localPockets.length - 1) return;
+														const nextList = [...localPockets];
+														const temp = nextList[idx];
+														nextList[idx] = nextList[idx + 1];
+														nextList[idx + 1] = temp;
+														setLocalPockets(nextList);
+													}}
+													className="h-7 w-7 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer rounded-full flex items-center justify-center transition-colors border-none bg-transparent"
+													aria-label="Move Down"
+												>
+													<ChevronDown size={14} />
+												</Button>
+												
+												{/* Trash delete button */}
+												<Button
+													variant="ghost"
+													size="icon"
+													onClick={() => {
+														setLocalPockets(localPockets.filter((_, i) => i !== idx));
+													}}
+													className="h-7 w-7 text-zinc-400 hover:text-red-500 hover:bg-red-500/10 cursor-pointer rounded-full flex items-center justify-center transition-colors border-none bg-transparent"
+													aria-label="Delete Pocket"
+												>
+													<Trash2 size={14} />
+												</Button>
+											</div>
 										</div>
 										
 										<div className="space-y-2">
