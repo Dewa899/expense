@@ -6,7 +6,7 @@ import { ArrowLeft, Moon, Sun, Languages, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/components/language-provider";
-import { SupportModal } from "@/components/dashboard/bug-report-modal";
+import { SupportModal } from "@/components/dashboard/modals/bug-report-modal";
 import { Logo } from "@/app/page";
 
 import { useRouter } from "next/navigation";

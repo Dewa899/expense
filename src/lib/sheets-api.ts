@@ -460,7 +460,7 @@ export async function handleInitialBalanceCarryForward(
 				typeVal,
 				"Initial Balance",
 				fromPreviousMonthText,
-				"Utama"
+				""
 			];
 
 			await fetch(

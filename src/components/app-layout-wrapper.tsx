@@ -9,9 +9,9 @@ import { useDemo } from "@/components/demo-context";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, HelpCircle, Info, Languages, MessageSquare, Moon, Sun } from "lucide-react";
 import { Logo } from "@/app/page";
-import { SupportModal } from "@/components/dashboard/bug-report-modal";
+import { SupportModal } from "@/components/dashboard/modals/bug-report-modal";
 import { OnboardingTutorial } from "@/components/dashboard/onboarding-tutorial";
-import { PatchNotesModal } from "@/components/dashboard/patch-notes-modal";
+import { PatchNotesModal } from "@/components/dashboard/modals/patch-notes-modal";
 
 export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();

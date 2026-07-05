@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useLanguage } from "@/components/language-provider";
-import { stripRupiah } from "@/components/dashboard/numeric-keyboard";
+import { stripRupiah } from "@/components/dashboard/cards/numeric-keyboard";
 import { supabase } from "@/lib/supabase-client";
 import { usePWAInstall } from "@/hooks/use-pwa-install";
 import {
@@ -91,7 +91,7 @@ interface DashboardLogicOptions {
 
 export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	const { isDemoMode = false, demoTransactions = [], addDemoTransaction } = options;
-	const { t } = useLanguage();
+	const { t, language } = useLanguage();
 	const [view, setView] = React.useState<"form" | "analytics">("form");
 	const [headers, setHeaders] = React.useState<string[]>([]);
 	const [categories, setCategories] = React.useState<string[]>([]);
@@ -298,7 +298,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				const parsedTxs = currentMonthTxs.map(t => {
 					const isExpense = t.type === "expense" || t.type.toLowerCase().includes("expense") || t.type.toLowerCase().includes("pengeluaran");
 					const pocketId = t.pocket_id || (t.custom_fields && typeof t.custom_fields === "object" ? (t.custom_fields as any).pocket_id : null);
-					const pObj = dbPockets.find((p: any) => p.id === pocketId) || { name: "Utama", id: "pocket_1" };
+					const pObj = dbPockets.find((p: any) => p.id === pocketId) || { name: "", id: "" };
 					return {
 						id: t.id,
 						date: parseDateSafe(t.date).toLocaleString(),
@@ -384,7 +384,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				`"${t.type}"`,
 				`"${t.category}"`,
 				`"${(t.note || "").replace(/"/g, '""')}"`,
-				`"${(t.pocket || "Utama").replace(/"/g, '""')}"`,
+				`"${(t.pocket || "").replace(/"/g, '""')}"`,
 				...customFieldNames.map(name => {
 					let val = "";
 					if (t.raw) {
@@ -502,7 +502,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 						type: type,
 						category: row[catIdx] || "",
 						note: row[noteIdx] || "",
-						pocket: pocketIdx !== -1 ? row[pocketIdx] || "Utama" : "Utama",
+						pocket: pocketIdx !== -1 ? row[pocketIdx] || "" : "",
 						raw: row
 					};
 				});
@@ -1227,7 +1227,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				type: typeVal,
 				category: activeFormData[catHeader] || "",
 				note: activeFormData[noteHeader] || "",
-				pocket: activePocket ? activePocket.name : "Utama",
+				pocket: activePocket ? activePocket.name : "",
 				raw: customFieldValues,
 			});
 			setFormData({});
@@ -1283,11 +1283,11 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					custom_fields: customFieldValues
 				};
 				if (!hasMissingPocketId) {
-					insertPayload.pocket_id = activePocket ? activePocket.id : "pocket_1";
+					insertPayload.pocket_id = activePocket ? activePocket.id : null;
 				} else {
 					insertPayload.custom_fields = {
 						...insertPayload.custom_fields,
-						pocket_id: activePocket ? activePocket.id : "pocket_1"
+						pocket_id: activePocket ? activePocket.id : null
 					};
 				}
 
@@ -1298,7 +1298,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					delete insertPayload.pocket_id;
 					insertPayload.custom_fields = {
 						...insertPayload.custom_fields,
-						pocket_id: activePocket ? activePocket.id : "pocket_1"
+						pocket_id: activePocket ? activePocket.id : null
 					};
 					const retryResult = await supabase.from("transactions").insert(insertPayload);
 					error = retryResult.error;
@@ -1348,7 +1348,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			const values = headers.map((h) => {
 				const hL = h.toLowerCase();
 				if (hL.includes("tanggal") || hL.includes("date")) return new Date().toISOString();
-				if (hL.includes("pocket") || hL.includes("kantong")) return activePocket ? activePocket.name : "Utama";
+				if (hL.includes("pocket") || hL.includes("kantong")) return activePocket ? activePocket.name : "";
 				let val = activeFormData[h] || "";
 				// Strip Rupiah formatting before persisting raw number
 				if (hL.includes("jumlah") || hL.includes("amount")) {
@@ -1368,6 +1368,171 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			setStatusModal({ isOpen: true, type: "error", title: "Submission Failed", description: error.message }); 
 		} finally { 
 			setLoading(false); 
+		}
+	};
+
+	const handleMoveFunds = async (sourcePocketName: string, targetPocketName: string, amount: number) => {
+		if (amount <= 0) return;
+
+		// ─── Demo Mode ────────────────────────────────────────────────────────
+		if (isDemoMode && addDemoTransaction) {
+			const dateStr = new Date().toLocaleString();
+			// Source Deduction
+			addDemoTransaction({
+				date: dateStr,
+				name: `${sourcePocketName || "Total Worth"} -> ${targetPocketName}`,
+				amount: -amount,
+				type: "expense",
+				category: "Move Funds",
+				note: "Pocket balance transfer",
+				pocket: sourcePocketName,
+				raw: {},
+			});
+			// Target Addition
+			addDemoTransaction({
+				date: dateStr,
+				name: `${sourcePocketName || "Total Worth"} -> ${targetPocketName}`,
+				amount: amount,
+				type: "income",
+				category: "Move Funds",
+				note: "Pocket balance transfer",
+				pocket: targetPocketName,
+				raw: {},
+			});
+			setStatusModal({
+				isOpen: true,
+				type: "success",
+				title: language === "en" ? "Funds Moved Successfully" : "Dana Berhasil Dipindahkan",
+				description: language === "en" 
+					? `Successfully moved Rp ${formatCurrency(amount)} to "${targetPocketName}".`
+					: `Berhasil memindahkan Rp ${formatCurrency(amount)} ke "${targetPocketName}".`
+			});
+			return;
+		}
+
+		// ─── Supabase Mode ────────────────────────────────────────────────────
+		if (supabaseUser) {
+			setLoading(true);
+			try {
+				const hasMissingPocketId = localStorage.getItem("supabase_missing_pocket_id") === "true";
+				
+				// Find pocket IDs
+				const sourcePocketObj = pockets.find(p => p.name === sourcePocketName);
+				const targetPocketObj = pockets.find(p => p.name === targetPocketName);
+
+				const payloadSource: any = {
+					user_id: supabaseUser.id,
+					date: new Date().toISOString(),
+					name: `${sourcePocketName || "Total Worth"} -> ${targetPocketName}`,
+					amount: amount,
+					type: "expense",
+					category: "Move Funds",
+					note: "Pocket balance transfer",
+					custom_fields: {},
+				};
+				if (!hasMissingPocketId) {
+					payloadSource.pocket_id = sourcePocketObj ? sourcePocketObj.id : null;
+				} else {
+					payloadSource.custom_fields = { pocket_id: sourcePocketObj ? sourcePocketObj.id : null };
+				}
+
+				const payloadTarget: any = {
+					user_id: supabaseUser.id,
+					date: new Date().toISOString(),
+					name: `${sourcePocketName || "Total Worth"} -> ${targetPocketName}`,
+					amount: amount,
+					type: "income",
+					category: "Move Funds",
+					note: "Pocket balance transfer",
+					custom_fields: {},
+				};
+				if (!hasMissingPocketId) {
+					payloadTarget.pocket_id = targetPocketObj ? targetPocketObj.id : null;
+				} else {
+					payloadTarget.custom_fields = { pocket_id: targetPocketObj ? targetPocketObj.id : null };
+				}
+
+				const { error: err1 } = await supabase.from("transactions").insert(payloadSource);
+				if (err1) throw err1;
+				const { error: err2 } = await supabase.from("transactions").insert(payloadTarget);
+				if (err2) throw err2;
+
+				await fetchSupabaseUserData(supabaseUser.id);
+				setStatusModal({
+					isOpen: true,
+					type: "success",
+					title: language === "en" ? "Funds Moved Successfully" : "Dana Berhasil Dipindahkan",
+					description: language === "en" 
+						? `Successfully moved Rp ${formatCurrency(amount)} to "${targetPocketName}".`
+						: `Berhasil memindahkan Rp ${formatCurrency(amount)} ke "${targetPocketName}".`
+				});
+			} catch (err: any) {
+				setStatusModal({ isOpen: true, type: "error", title: "Move Funds Failed", description: err.message });
+			} finally {
+				setLoading(false);
+			}
+			return;
+		}
+
+		// ─── Google Sheets Mode ───────────────────────────────────────────────
+		const activeSheetId = config.sheetId || localStorage.getItem("sheetId");
+		const activeToken = user?.accessToken || JSON.parse(localStorage.getItem("googleUser") || "{}").accessToken;
+
+		if (!activeToken || !activeSheetId) {
+			setStatusModal({ isOpen: true, type: "error", title: "Connection Error", description: "Please sync your Google account first." });
+			return;
+		}
+
+		const currentMonth = getCurrentMonthSheetName();
+		setLoading(true);
+		try {
+			const internalSheetId = await ensureAndGetSheetId(activeSheetId, currentMonth, activeToken, handleAuthError);
+			await initializeSheetFormatting(activeSheetId, activeToken, currentMonth, internalSheetId, customFields);
+
+			// Source row
+			const sourceValues = headers.map((h) => {
+				const hL = h.toLowerCase();
+				if (hL.includes("tanggal") || hL.includes("date")) return new Date().toISOString();
+				if (hL.includes("nama") || hL.includes("name")) return `${sourcePocketName || "Total Worth"} -> ${targetPocketName}`;
+				if (hL.includes("jumlah") || hL.includes("amount")) return amount.toString();
+				if (hL.includes("tipe") || hL.includes("type")) return "expense";
+				if (hL.includes("kategori") || hL.includes("category")) return "Move Funds";
+				if (hL.includes("pocket") || hL.includes("kantong")) return sourcePocketName;
+				if (hL.includes("catatan") || hL.includes("note")) return "Pocket balance transfer";
+				return "";
+			});
+
+			// Target row
+			const targetValues = headers.map((h) => {
+				const hL = h.toLowerCase();
+				if (hL.includes("tanggal") || hL.includes("date")) return new Date().toISOString();
+				if (hL.includes("nama") || hL.includes("name")) return `${sourcePocketName || "Total Worth"} -> ${targetPocketName}`;
+				if (hL.includes("jumlah") || hL.includes("amount")) return amount.toString();
+				if (hL.includes("tipe") || hL.includes("type")) return "income";
+				if (hL.includes("kategori") || hL.includes("category")) return "Move Funds";
+				if (hL.includes("pocket") || hL.includes("kantong")) return targetPocketName;
+				if (hL.includes("catatan") || hL.includes("note")) return "Pocket balance transfer";
+				return "";
+			});
+
+			await appendRowToSheet(activeSheetId, currentMonth, activeToken, sourceValues);
+			await appendRowToSheet(activeSheetId, currentMonth, activeToken, targetValues);
+
+			setSelectedMonth(currentMonth);
+			await fetchSheetData(activeSheetId, activeToken, currentMonth);
+			fetchAvailableMonths(activeSheetId, activeToken);
+			setStatusModal({
+				isOpen: true,
+				type: "success",
+				title: language === "en" ? "Funds Moved Successfully" : "Dana Berhasil Dipindahkan",
+				description: language === "en" 
+					? `Successfully moved Rp ${formatCurrency(amount)} to "${targetPocketName}".`
+					: `Berhasil memindahkan Rp ${formatCurrency(amount)} ke "${targetPocketName}".`
+			});
+		} catch (err: any) {
+			setStatusModal({ isOpen: true, type: "error", title: "Move Funds Failed", description: err.message });
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -1645,8 +1810,8 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					txs.forEach((tx: any) => {
 						const isDeleted = deletedPockets.some(dp => dp.id === tx.pocket_id || dp.name === tx.pocket);
 						if (isDeleted) {
-							tx.pocket_id = "pocket_1";
-							tx.pocket = "Utama";
+							tx.pocket_id = null;
+							tx.pocket = "";
 							changed = true;
 						}
 					});
@@ -1708,7 +1873,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 						type: isExpense ? "Pengeluaran / Expense" : "Pemasukan / Income",
 						category: t.category,
 						note: t.note || "Automated Recurring",
-						pocket: t.pocket || "Utama"
+						pocket: t.pocket || ""
 					};
 					newTxs.push(newTx);
 					
@@ -1834,7 +1999,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		supabaseUser, isGoogleConnected, googleEmail,
 		exportToCSV, exportToGoogleSheets,
 		isAddToHomeOpen, setIsAddToHomeOpen, deferredPrompt, isInstallable, triggerInstall, isStandaloneMode,
-		pockets, activePocketIdx, setActivePocketIdx, handleUpdatePockets, getPocketBalance,
+		pockets, activePocketIdx, setActivePocketIdx, handleUpdatePockets, getPocketBalance, handleMoveFunds,
 		recurringTemplates, handleAddRecurringTemplate, handleDeleteRecurringTemplate,
 		translateHeader: (header: string) => {
 			const h = header.toLowerCase();

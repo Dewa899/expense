@@ -32,7 +32,7 @@ const DEMO_TRANSACTIONS: Transaction[] = [
 		type: "Pemasukan / Income",
 		category: "Lainnya",
 		note: "Transfer dari kantor",
-		pocket: "Utama",
+		pocket: "",
 		raw: [],
 	},
 	{
@@ -42,7 +42,7 @@ const DEMO_TRANSACTIONS: Transaction[] = [
 		type: "Pengeluaran / Expense",
 		category: "Transportasi",
 		note: "",
-		pocket: "Utama",
+		pocket: "",
 		raw: [],
 	},
 	{
@@ -52,7 +52,7 @@ const DEMO_TRANSACTIONS: Transaction[] = [
 		type: "Pengeluaran / Expense",
 		category: "Belanja",
 		note: "Diskon 20%",
-		pocket: "Utama",
+		pocket: "",
 		raw: [],
 	},
 	{

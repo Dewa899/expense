@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Delete } from "lucide-react";
 import { useLanguage } from "@/components/language-provider";
@@ -89,6 +90,12 @@ export function NumericKeyboard({
 	actionLabel,
 }: NumericKeyboardProps) {
 	const { t } = useLanguage();
+	const [mounted, setMounted] = React.useState(false);
+
+	React.useEffect(() => {
+		setMounted(true);
+		return () => setMounted(false);
+	}, []);
 
 	const handleDigit = (digit: string) => {
 		if (disabled) return;
@@ -224,7 +231,9 @@ export function NumericKeyboard({
 	
 	const selesaiKeyClass = "row-span-2 h-full rounded-lg bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-black font-black text-sm uppercase tracking-wider transition-all shadow-[0_1px_3px_rgba(16,185,129,0.3)] active:scale-[0.98] flex items-center justify-center disabled:opacity-40 select-none cursor-pointer";
 
-	return (
+	if (!mounted) return null;
+
+	return createPortal(
 		<AnimatePresence>
 			<motion.div
 				key="numeric-keyboard"
@@ -232,7 +241,7 @@ export function NumericKeyboard({
 				animate={{ y: 0, opacity: 1 }}
 				exit={{ y: "100%", opacity: 0 }}
 				transition={{ type: "spring", damping: 28, stiffness: 300 }}
-				className="fixed bottom-0 left-0 right-0 z-[70] bg-[#e3e4e6] dark:bg-zinc-950 border-t border-zinc-300 dark:border-zinc-800 pb-safe shadow-2xl"
+				className="fixed bottom-0 left-0 right-0 z-[120] bg-[#e3e4e6] dark:bg-zinc-950 border-t border-zinc-300 dark:border-zinc-800 pb-safe shadow-2xl"
 			>
 				{showPreview && (
 					<div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 py-2.5 flex items-center justify-between gap-3 shadow-inner">
@@ -311,6 +320,7 @@ export function NumericKeyboard({
 					</button>
 				</div>
 			</motion.div>
-		</AnimatePresence>
+		</AnimatePresence>,
+		document.body
 	);
 }

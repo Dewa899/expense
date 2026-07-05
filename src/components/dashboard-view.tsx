@@ -5,9 +5,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useDashboardLogic } from "@/hooks/use-dashboard-logic";
 import { FormView } from "./dashboard/form-view";
-import { StatusModal } from "./dashboard/status-modal";
-import { DisconnectModal } from "./dashboard/disconnect-modal";
-import { DeleteFieldModal } from "./dashboard/delete-field-modal";
+import { StatusModal } from "./dashboard/modals/status-modal";
+import { DisconnectModal } from "./dashboard/modals/disconnect-modal";
+import { DeleteFieldModal } from "./dashboard/modals/delete-field-modal";
 import { OnboardingTutorial } from "./dashboard/onboarding-tutorial";
 import { IntegrationLoading } from "./dashboard/integration-loading";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -142,9 +142,10 @@ export function DashboardView({
 					isIntegrating={logic.isIntegrating}
 					isManageFieldsOpen={logic.isManageFieldsOpen}
 					setIsManageFieldsOpen={logic.setIsManageFieldsOpen}
+					onMoveFunds={logic.handleMoveFunds}
 					onViewDetail={() => {
 						const carouselPockets = [
-							{ id: "net_worth", name: "Total Worth" },
+							{ id: "net_worth", name: language === "en" ? "Total Balance" : "Total Saldo" },
 							...logic.pockets
 						];
 						const activePocket = carouselPockets[logic.activePocketIdx] || carouselPockets[0];

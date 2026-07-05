@@ -7,10 +7,12 @@ import { AnalyticsView } from "@/components/dashboard/analytics-view";
 import { AppLayoutWrapper } from "@/components/app-layout-wrapper";
 import { useDemo } from "@/components/demo-context";
 import { Loader2 } from "lucide-react";
+import { useLanguage } from "@/components/language-provider";
 
 function DetailPageContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
+	const { language } = useLanguage();
 	const initialPocketParam = searchParams.get("pocket") || "";
 
 	const { isDemoMode, demoTransactions, demoCategories, addDemoTransaction } = useDemo();
@@ -32,27 +34,24 @@ function DetailPageContent() {
 				hasInitializedRef.current = true;
 				return;
 			}
-			const carouselPockets = [
-				{ id: "net_worth", name: "Total Worth" },
-				{ id: "net_worth", name: "Total Kekayaan" },
-				{ id: "net_worth", name: "Total Net Worth" },
-				...logic.pockets
-			];
-			const matchedIdx = carouselPockets.findIndex(
-				p => p.name.toLowerCase() === initialPocketParam.toLowerCase() || 
-				     (p.id === "net_worth" && (
-				         initialPocketParam.toLowerCase() === "total worth" || 
-				         initialPocketParam.toLowerCase() === "total net worth" || 
-				         initialPocketParam.toLowerCase() === "total kekayaan"
-				     ))
+			const matchedIdx = logic.pockets.findIndex(
+				p => p.name.toLowerCase() === initialPocketParam.toLowerCase()
 			);
-			const finalIdx = matchedIdx > 2 ? matchedIdx - 2 : (matchedIdx !== -1 ? 0 : -1);
-			if (finalIdx !== -1) {
-				if (logic.activePocketIdx === finalIdx) {
-					hasInitializedRef.current = true;
-				} else {
+			const isNetWorthParam = [
+				"total worth", "total kekayaan", "total net worth", "total balance", "total saldo"
+			].includes(initialPocketParam.toLowerCase());
+
+			if (isNetWorthParam) {
+				if (logic.activePocketIdx !== 0) {
+					logic.setActivePocketIdx(0);
+				}
+				hasInitializedRef.current = true;
+			} else if (matchedIdx !== -1) {
+				const finalIdx = matchedIdx + 1;
+				if (logic.activePocketIdx !== finalIdx) {
 					logic.setActivePocketIdx(finalIdx);
 				}
+				hasInitializedRef.current = true;
 			} else {
 				hasInitializedRef.current = true;
 			}
@@ -63,7 +62,7 @@ function DetailPageContent() {
 	React.useEffect(() => {
 		if (hasInitializedRef.current && logic.pockets.length > 0) {
 			const carouselPockets = [
-				{ id: "net_worth", name: "Total Worth" },
+				{ id: "net_worth", name: language === "en" ? "Total Balance" : "Total Saldo" },
 				...logic.pockets
 			];
 			const activePocket = carouselPockets[logic.activePocketIdx] || carouselPockets[0];
@@ -103,6 +102,9 @@ function DetailPageContent() {
 				activePocketIdx={logic.activePocketIdx}
 				setActivePocketIdx={logic.setActivePocketIdx}
 				getPocketBalance={logic.getPocketBalance}
+				handleUpdatePockets={logic.handleUpdatePockets}
+				setStatusModal={logic.setStatusModal}
+				onMoveFunds={logic.handleMoveFunds}
 			/>
 		</div>
 	);

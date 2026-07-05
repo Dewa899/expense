@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/components/language-provider";
 import { supabase } from "@/lib/supabase-client";
 import { useRouter } from "next/navigation";
-import { StatusModal } from "./dashboard/status-modal";
-import { SupportModal } from "./dashboard/bug-report-modal";
+import { StatusModal } from "./dashboard/modals/status-modal";
+import { SupportModal } from "./dashboard/modals/bug-report-modal";
 
 interface LoginViewProps {
 	onLoginSuccess: () => void;

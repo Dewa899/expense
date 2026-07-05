@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase-client";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LanguageProvider, useLanguage } from "@/components/language-provider";
-import { StatusModal } from "@/components/dashboard/status-modal";
-import { SupportModal } from "@/components/dashboard/bug-report-modal";
+import { StatusModal } from "@/components/dashboard/modals/status-modal";
+import { SupportModal } from "@/components/dashboard/modals/bug-report-modal";
 
 function ResetPasswordInner() {
 	const { t, language } = useLanguage();

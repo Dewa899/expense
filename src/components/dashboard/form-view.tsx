@@ -45,18 +45,21 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/components/language-provider";
-import { CustomFieldDef, PocketDef } from "@/hooks/use-dashboard-logic";
-import { NumericKeyboard, formatRupiah, stripRupiah, evaluateExpression } from "@/components/dashboard/numeric-keyboard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDemo } from "@/components/demo-context";
 import { supabase } from "@/lib/supabase-client";
-
-const cleanNumber = (val: string | number) => {
-	if (typeof val === "number") return val;
-	if (!val) return 0;
-	const cleaned = val.toString().replace(/\./g, "").replace(/,/g, "").replace(/\s/g, "");
-	return parseFloat(cleaned) || 0;
-};
+import { CustomFieldDef, PocketDef } from "@/hooks/use-dashboard-logic";
+import { NumericKeyboard, formatRupiah, stripRupiah, evaluateExpression } from "@/components/dashboard/cards/numeric-keyboard";
+import { PocketSelectModal } from "@/components/dashboard/modals/pocket-select-modal";
+import { PocketSettingsModal } from "@/components/dashboard/modals/pocket-settings-modal";
+import { RecurringTemplatesModal } from "@/components/dashboard/modals/recurring-templates-modal";
+import { ManageFieldsModal } from "@/components/dashboard/modals/manage-fields-modal";
+import { PocketCarouselCard } from "@/components/dashboard/cards/pocket-carousel-card";
+import { MoveFundsModal } from "@/components/dashboard/modals/move-funds-modal";
+import { SeparatedProgressBarCard } from "@/components/dashboard/cards/separated-progress-bar-card";
+import { ProfileConnectionModal } from "@/components/dashboard/modals/profile-connection-modal";
+import { PwaDownloaderModal } from "@/components/dashboard/modals/pwa-downloader-modal";
+import { cleanNumber } from "@/lib/sheets-api";
 
 interface FormViewProps {
 	totalAmount: number;
@@ -113,6 +116,7 @@ interface FormViewProps {
 	setActivePocketIdx: (idx: number) => void;
 	getPocketBalance: (pocket: PocketDef) => number;
 	handleUpdatePockets: (list: PocketDef[]) => void;
+	setStatusModal: (state: any) => void;
 
 	// Recurring Props
 	recurringTemplates: any[];
@@ -125,6 +129,7 @@ interface FormViewProps {
 	isInstallable: boolean;
 	triggerInstall: () => void;
 	isStandaloneMode: boolean;
+	onMoveFunds: (source: string, target: string, amount: number) => void;
 }
 
 export function FormView(props: FormViewProps) {
@@ -132,12 +137,7 @@ export function FormView(props: FormViewProps) {
 	const isMobile = useIsMobile();
 	const { enterDemo } = useDemo();
 
-	const [editingOptionsIdx, setEditingOptionsIdx] = React.useState<number>(-1);
 	const [showManualInstruction, setShowManualInstruction] = React.useState(false);
-	const [renamingIdx, setRenamingIdx] = React.useState<number>(-1);
-	const [renamingInput, setRenamingInput] = React.useState("");
-	const [renamingType, setRenamingType] = React.useState<"text" | "dropdown">("text");
-	const [renamingRequired, setRenamingRequired] = React.useState(true);
 
 	const os = React.useMemo(() => {
 		if (typeof window === "undefined") return "desktop";
@@ -153,6 +153,7 @@ export function FormView(props: FormViewProps) {
 	// Clean Display & Pocket direct selector state
 	const [isCleanDisplay, setIsCleanDisplay] = React.useState(false);
 	const [isPocketSelectOpen, setIsPocketSelectOpen] = React.useState(false);
+	const [isMoveFundsOpen, setIsMoveFundsOpen] = React.useState(false);
 	React.useEffect(() => {
 		setIsCleanDisplay(localStorage.getItem("clean_display") === "true");
 	}, []);
@@ -218,8 +219,9 @@ export function FormView(props: FormViewProps) {
 
 	const handleManageFieldsClick = (e: React.MouseEvent) => {
 		if (!props.user && !props.supabaseUser && !props.isDemoMode) {
-			e.preventDefault();
 			props.onLoginClick?.();
+		} else {
+			props.setIsManageFieldsOpen(true);
 		}
 	};
 
@@ -241,7 +243,7 @@ export function FormView(props: FormViewProps) {
 	const displayHeaders = props.headers.length > 0 ? props.headers : ["Nama Pengeluaran", "Jumlah", "Tipe", "Kategori", "Catatan"];
 
 	const carouselPockets = React.useMemo<PocketDef[]>(() => [
-		{ id: "net_worth", name: language === "en" ? "Total Worth" : "Total Kekayaan", type: "default", color: "emerald", target: undefined } as PocketDef,
+		{ id: "net_worth", name: language === "en" ? "Total Balance" : "Total Saldo", type: "default", color: "emerald", target: undefined } as PocketDef,
 		...props.pockets
 	], [props.pockets, language]);
 
@@ -293,69 +295,9 @@ export function FormView(props: FormViewProps) {
 	}[(activePocket.color === "indigo" || activePocket.color === "amber") ? activePocket.color : "emerald"];
 
 	const [isPocketSettingsOpen, setIsPocketSettingsOpen] = React.useState(false);
-	const [localPockets, setLocalPockets] = React.useState<PocketDef[]>(props.pockets);
-	const [pocketToDeleteIdx, setPocketToDeleteIdx] = React.useState<number | null>(null);
-
-	React.useEffect(() => {
-		setLocalPockets(props.pockets);
-	}, [props.pockets]);
-
-	const handleLocalPocketFieldChange = (idx: number, field: string, value: any) => {
-		setLocalPockets((prev) => {
-			const updated = [...prev];
-			updated[idx] = { ...updated[idx], [field]: value };
-			return updated;
-		});
-	};
-
-	const savePocketSettings = () => {
-		props.handleUpdatePockets(localPockets);
-		setIsPocketSettingsOpen(false);
-	};
 
 	// ─── Manage Recurring Templates Modal ──────────────────────────────────────
 	const [isRecurringModalOpen, setIsRecurringModalOpen] = React.useState(false);
-	const [recName, setRecName] = React.useState("");
-	const [recAmount, setRecAmount] = React.useState("");
-	const [recType, setRecType] = React.useState<"income" | "expense">("expense");
-	const [recCategory, setRecCategory] = React.useState("");
-	const [recPocket, setRecPocket] = React.useState("Utama");
-	const [recInterval, setRecInterval] = React.useState<"daily" | "weekly" | "monthly">("monthly");
-
-	React.useEffect(() => {
-		if (props.categories.length > 0 && !recCategory) {
-			setRecCategory(props.categories[0]);
-		}
-	}, [props.categories, recCategory]);
-
-	const handleCreateRecurring = () => {
-		if (!recName.trim() || !recAmount) return;
-		const rawAmt = cleanNumber(stripRupiah(recAmount));
-		if (rawAmt <= 0) return;
-
-		const targetRun = new Date();
-		// Schedule for tomorrow/next run
-		if (recInterval === "daily") targetRun.setDate(targetRun.getDate() + 1);
-		else if (recInterval === "weekly") targetRun.setDate(targetRun.getDate() + 7);
-		else if (recInterval === "monthly") targetRun.setMonth(targetRun.getMonth() + 1);
-
-		const template = {
-			id: Math.random().toString(36).substring(2, 9),
-			name: recName.trim(),
-			amount: rawAmt,
-			type: recType,
-			category: recCategory || props.categories[0] || "Lainnya",
-			pocket: recPocket,
-			interval_unit: recInterval,
-			interval_value: 1,
-			next_execution_at: targetRun.toISOString(),
-			last_executed_at: null
-		};
-
-		props.handleAddRecurringTemplate(template);
-		setRecName("");
-		setRecAmount("");
-	};
 
 	// Calculate target progress percentage
 	const progressBarPercent = React.useMemo(() => {
@@ -370,418 +312,58 @@ export function FormView(props: FormViewProps) {
 			return Math.max(0, (balance / activePocket.target) * 100);
 		}
 	}, [activePocket, props.transactions, props.getPocketBalance]);
-	// Motion values for drag tracker
-	const dragX = useMotionValue(0);
-	const dragY = useMotionValue(0);
 
-	// Custom transforms for background cards stack peek effect
-	const leftPeekX = useTransform(dragX, (x) => x > 0 ? x * -0.15 : 0);
-	const leftPeekOpacity = useTransform(dragX, (x) => x > 0 ? Math.min(x / 30, 0.95) : 0);
-	
-	const rightPeekX = useTransform(dragX, (x) => x < 0 ? x * -0.15 : 0);
-	const rightPeekOpacity = useTransform(dragX, (x) => x < 0 ? Math.min(Math.abs(x) / 30, 0.95) : 0);
-
-	const horizontalPeekScale = useTransform(dragX, (x) => {
-		const absX = Math.abs(x);
-		return Math.min(0.90 + (absX / 600), 0.96);
-	});
-
-	const verticalStack1Y = useTransform(dragY, (y) => Math.max(0, y * 0.45));
-	const verticalStack1Scale = useTransform(dragY, (y) => Math.min(0.95, 0.90 + (y / 1000)));
-	const verticalStack1Opacity = useTransform(dragY, (y) => y > 0 ? Math.min(y / 40, 0.9) : 0);
-
-	const verticalStack2Y = useTransform(dragY, (y) => Math.max(0, y * 0.22));
-	const verticalStack2Scale = useTransform(dragY, (y) => Math.min(0.90, 0.84 + (y / 1500)));
-	const verticalStack2Opacity = useTransform(dragY, (y) => y > 0 ? Math.min(y / 60, 0.75) : 0);
-
-	// Pre-calculated target pocket colors
-	const prevPocket = carouselPockets[(props.activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length];
-	const prevColorKey = (prevPocket.color === "indigo" || prevPocket.color === "amber") ? prevPocket.color : "emerald";
-	const prevGradient = {
-		emerald: "from-emerald-500/80 to-teal-500/80",
-		indigo: "from-indigo-500/80 to-purple-500/80",
-		amber: "from-amber-500/80 to-rose-500/80"
-	}[prevColorKey];
-
-	const nextPocket = carouselPockets[(props.activePocketIdx + 1) % carouselPockets.length];
-	const nextColorKey = (nextPocket.color === "indigo" || nextPocket.color === "amber") ? nextPocket.color : "emerald";
-	const nextGradient = {
-		emerald: "from-emerald-500/80 to-teal-500/80",
-		indigo: "from-indigo-500/80 to-purple-500/80",
-		amber: "from-amber-500/80 to-rose-500/80"
-	}[nextColorKey];
-
-	const stack2Pocket = carouselPockets[(props.activePocketIdx + 2) % carouselPockets.length];
-	const stack2ColorKey = (stack2Pocket.color === "indigo" || stack2Pocket.color === "amber") ? stack2Pocket.color : "emerald";
-	const stack2Gradient = {
-		emerald: "from-emerald-500/60 to-teal-500/60",
-		indigo: "from-indigo-500/60 to-purple-500/60",
-		amber: "from-amber-500/60 to-rose-500/60"
-	}[stack2ColorKey];
 
 	return (
 		<motion.div 
 			initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
 			className="space-y-6"
 		>
-			{/* Pocket Total Amount Card with Swipe controls & navigations inside */}
-			<section className="mt-2 relative z-0 isolate">
-				{/* Background Peek Card (Previous Pocket, peeks left) */}
-				{props.pockets.length > 0 && (
-					<motion.div
-						style={{
-							x: leftPeekX,
-							opacity: leftPeekOpacity,
-							scale: horizontalPeekScale,
-						}}
-						className={`absolute inset-0 bg-gradient-to-br ${prevGradient} rounded-3xl -z-10 pointer-events-none`}
-					/>
-				)}
-
-				{/* Background Peek Card (Next Pocket, peeks right) */}
-				{props.pockets.length > 0 && (
-					<motion.div
-						style={{
-							x: rightPeekX,
-							opacity: rightPeekOpacity,
-							scale: horizontalPeekScale,
-						}}
-						className={`absolute inset-0 bg-gradient-to-br ${nextGradient} rounded-3xl -z-10 pointer-events-none`}
-					/>
-				)}
-
-				{/* Vertical Stack Hint Cards (Swipe Down) */}
-				{props.pockets.length > 0 && (
-					<>
-						{/* Stack Card 1 (directly behind main card) */}
-						<motion.div
-							style={{
-								y: verticalStack1Y,
-								opacity: verticalStack1Opacity,
-								scale: verticalStack1Scale,
-								rotate: 1.5,
-							}}
-							className={`absolute inset-0 bg-gradient-to-br ${nextGradient} rounded-3xl -z-10 pointer-events-none`}
-						/>
-						{/* Stack Card 2 (further behind, slightly opposite rotate) */}
-						<motion.div
-							style={{
-								y: verticalStack2Y,
-								opacity: verticalStack2Opacity,
-								scale: verticalStack2Scale,
-								rotate: -1.5,
-							}}
-							className={`absolute inset-0 bg-gradient-to-br ${stack2Gradient} rounded-3xl -z-20 pointer-events-none`}
-						/>
-					</>
-				)}
-
-				<motion.div 
-					style={{ x: dragX, y: dragY }}
-					drag={props.pockets.length > 0 ? true : false}
-					dragConstraints={{ left: -120, right: 120, top: 0, bottom: 100 }}
-					dragElastic={0.15}
-					onDragEnd={(e, info) => {
-						if (props.pockets.length === 0) return;
-						const swipeThreshold = 50;
-						if (info.offset.y > swipeThreshold) {
-							setIsPocketSelectOpen(true);
-						} else if (info.offset.x < -swipeThreshold) {
-							props.setActivePocketIdx((props.activePocketIdx + 1) % carouselPockets.length);
-						} else if (info.offset.x > swipeThreshold) {
-							props.setActivePocketIdx((props.activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
-						}
-						// Snaps back to exactly 0,0 with smooth spring simulation
-						animate(dragX, 0, { type: "spring", stiffness: 350, damping: 25 });
-						animate(dragY, 0, { type: "spring", stiffness: 350, damping: 25 });
-					}}
-					className="w-full cursor-grab active:cursor-grabbing select-none"
-				>
-					<div 
-						onClick={(e) => {
-							e.stopPropagation();
-							props.onViewDetail();
-						}}
-						className={`bg-gradient-to-br ${themeColors.gradient} rounded-3xl p-6 text-black shadow-lg ${themeColors.shadow} relative overflow-hidden group flex flex-col justify-between transition-all duration-300 cursor-pointer hover:shadow-xl active:scale-[0.99]`}
-					>
-						<div className="absolute -right-4 -top-4 w-24 h-24 bg-black/5 rounded-full blur-2xl pointer-events-none" />
-						
-						<AnimatePresence mode="wait">
-							<motion.div
-								key={activePocket.id}
-								initial={{ x: 20, opacity: 0 }}
-								animate={{ x: 0, opacity: 1 }}
-								exit={{ x: -20, opacity: 0 }}
-								transition={{ duration: 0.15 }}
-								className="w-full flex flex-col justify-between gap-y-4"
-							>
-								<div>
-									<div className="flex justify-between items-start">
-										<div className="flex flex-col max-w-[70%]">
-											<span className="text-[9px] font-black uppercase tracking-wider opacity-60">
-												{activePocket.id === "net_worth" ? (language === "en" ? "Total Worth" : "Total Kekayaan") : "Pocket"}
-											</span>
-											<h4 className="text-sm font-black uppercase tracking-wide flex items-center gap-1.5 mt-0.5 truncate text-ellipsis overflow-hidden whitespace-nowrap">
-												<Wallet size={14} className="opacity-70 shrink-0" />
-												<span className="truncate">{activePocket.name}</span>
-											</h4>
-										</div>
-										<div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
-											<Button 
-												size="icon" 
-												variant="ghost" 
-												onClick={(e) => { e.stopPropagation(); togglePrivacy(); }}
-												disabled={isSyncing}
-												className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center"
-											>
-												{isPrivate ? <EyeOff size={14} /> : <Eye size={14} />}
-											</Button>
-											
-											{/* Settings icon button inside card */}
-											<Button 
-												size="icon" 
-												variant="ghost" 
-												onClick={(e) => { e.stopPropagation(); setIsDashboardSettingsOpen(true); }}
-												disabled={isSyncing}
-												className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center"
-												aria-label="Pengaturan Dasbor"
-											>
-												<Settings size={14} />
-											</Button>
-										</div>
-									</div>
-
-									<div className="flex items-baseline justify-between mt-3 w-full">
-										<h2 className="text-3xl font-black tracking-tight text-left">
-											{maskValue(props.formatCurrency(props.totalAmount))}
-										</h2>
-										<span className="text-[9px] font-black uppercase tracking-widest opacity-40 select-none pointer-events-none shrink-0 text-right">
-											{language === "en" ? "Click for details" : "Klik untuk detail"}
-										</span>
-									</div>
-
-									{/* Static balance details directly inside card, no border */}
-									<div className="mt-2 flex items-center justify-between text-[10px] font-black opacity-80 flex-wrap gap-y-1.5 w-full">
-										<div className="flex items-center gap-1.5">
-											<Wallet size={12} className="opacity-50" />
-											<span>{maskValue(props.formatCurrency(props.transactions.find(t => t.category === "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id))?.amount || 0))}</span>
-										</div>
-										
-										<div className="flex items-center gap-3">
-											<div className="flex items-center gap-1 text-emerald-950/80">
-												<TrendingUp size={12} />
-												<span>{maskValue(props.formatCurrency(props.transactions.filter(t => t.category !== "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0)))}</span>
-											</div>
-											<div className="w-1 h-1 rounded-full bg-black/10" />
-											<div className="flex items-center gap-1 text-red-950/80">
-												<TrendingDown size={12} />
-												<span>{maskValue(props.formatCurrency(Math.abs(props.transactions.filter(t => t.category !== "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0))))}</span>
-											</div>
-										</div>
-									</div>
-								</div>
-
-								{/* Navigation controls < ... > at the bottom of the card content */}
-								{props.pockets.length > 0 && (
-									<div className="pt-2 border-t border-black/5 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
-										<button
-											type="button"
-											onClick={(e) => {
-												e.stopPropagation();
-												props.setActivePocketIdx((props.activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
-											}}
-											className={`w-8 h-8 bg-transparent hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer transition-all border-none ${themeColors.navText}`}
-											aria-label="Previous Pocket"
-										>
-											<ChevronLeft size={16} />
-										</button>
-										
-										{/* Titik 3 Button to open direct selection dialog */}
-										<button
-											type="button"
-											onClick={(e) => {
-												e.stopPropagation();
-												setIsPocketSelectOpen(true);
-											}}
-											className={`px-4 py-1.5 bg-transparent hover:scale-105 active:scale-95 text-[11px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center justify-center gap-1 border-none ${themeColors.navText}`}
-										>
-											<span className="w-1.5 h-1.5 rounded-full bg-current" />
-											<span className="w-1.5 h-1.5 rounded-full bg-current" />
-											<span className="w-1.5 h-1.5 rounded-full bg-current" />
-										</button>
-										
-										<button
-											type="button"
-											onClick={(e) => {
-												e.stopPropagation();
-												props.setActivePocketIdx((props.activePocketIdx + 1) % carouselPockets.length);
-											}}
-											className={`w-8 h-8 bg-transparent hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer transition-all border-none ${themeColors.navText}`}
-											aria-label="Next Pocket"
-										>
-											<ChevronRight size={16} />
-										</button>
-									</div>
-								)}
-							</motion.div>
-						</AnimatePresence>
-					</div>
-				</motion.div>
-			</section>
+			<PocketCarouselCard
+				pockets={props.pockets}
+				activePocket={activePocket}
+				activePocketIdx={props.activePocketIdx}
+				setActivePocketIdx={props.setActivePocketIdx}
+				themeColors={themeColors}
+				isPrivate={isPrivate}
+				togglePrivacy={togglePrivacy}
+				isSyncing={isSyncing}
+				formatCurrency={props.formatCurrency}
+				totalAmount={props.totalAmount}
+				transactions={props.transactions}
+				variant="form"
+				onSettingsClick={() => setIsDashboardSettingsOpen(true)}
+				onPocketSelectClick={() => setIsPocketSelectOpen(true)}
+				onCardClick={() => props.onViewDetail()}
+				onMoveFundsClick={() => setIsMoveFundsOpen(true)}
+			/>
 
 			{/* Direct Pocket Selector Dialog */}
-			<Dialog open={isPocketSelectOpen} onOpenChange={setIsPocketSelectOpen}>
-				<DialogContent className="sm:max-w-[400px] rounded-3xl p-6 duration-200 data-open:slide-in-from-top-12 data-open:zoom-in-100 data-closed:slide-out-to-top-12 data-closed:zoom-out-100">
-					<DialogHeader className="flex flex-row items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3 gap-4">
-						<DialogTitle className="font-black text-left">
-							{language === "en" ? "Select Pocket" : "Pilih Kantong"}
-						</DialogTitle>
-						<div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-							{/* Eye Toggle button */}
-							<Button 
-								size="icon" 
-								variant="ghost" 
-								onClick={() => togglePrivacy()}
-								disabled={isSyncing}
-								className="h-8 w-8 text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-150 rounded-full cursor-pointer flex items-center justify-center border-none bg-transparent"
-							>
-								{isPrivate ? <EyeOff size={15} /> : <Eye size={15} />}
-							</Button>
-							{/* Manage pocket button */}
-							<Button 
-								size="icon" 
-								variant="ghost" 
-								onClick={() => {
-									setIsPocketSelectOpen(false);
-									setIsPocketSettingsOpen(true);
-								}}
-								disabled={isSyncing}
-								className="h-8 w-8 text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-150 rounded-full cursor-pointer flex items-center justify-center border-none bg-transparent"
-								aria-label="Manage Pockets"
-							>
-								<Plus size={15} />
-							</Button>
-						</div>
-					</DialogHeader>
-					
-					<div className="grid grid-cols-1 gap-3 pt-3 max-h-[380px] overflow-y-auto pr-1">
-						{carouselPockets.map((p, idx) => {
-							const pColors = {
-								emerald: {
-									gradient: "from-emerald-500 to-teal-500",
-									shadow: "shadow-emerald-500/10",
-									text: "text-emerald-950/80"
-								},
-								indigo: {
-									gradient: "from-indigo-500 to-purple-500",
-									shadow: "shadow-indigo-500/10",
-									text: "text-indigo-950/80"
-								},
-								amber: {
-									gradient: "from-amber-500 to-rose-500",
-									shadow: "shadow-amber-500/10",
-									text: "text-amber-950/80"
-								}
-							}[p.color || "emerald"];
-
-							const pBalance = props.getPocketBalance ? props.getPocketBalance(p) : props.totalAmount;
-							const pInitial = props.transactions.find(t => t.category === "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id))?.amount || 0;
-							const pIncome = props.transactions.filter(t => t.category !== "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-							const pExpense = Math.abs(props.transactions.filter(t => t.category !== "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
-
-							return (
-								<button
-									key={p.id}
-									onClick={() => {
-										setIsPocketSelectOpen(false);
-										setTimeout(() => {
-											props.setActivePocketIdx(idx);
-										}, 150);
-									}}
-									className={`w-full text-left rounded-3xl p-5 bg-gradient-to-br ${pColors.gradient} text-black shadow-md ${pColors.shadow} relative overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-lg active:scale-[0.98] border-none flex flex-col justify-between min-h-[110px]`}
-								>
-									<div className="flex justify-between items-start w-full">
-										<div className="flex flex-col max-w-[75%]">
-											<span className="text-[8px] font-black uppercase tracking-wider opacity-60">
-												{p.id === "net_worth" ? (language === "en" ? "Total Worth" : "Total Kekayaan") : "Pocket"}
-											</span>
-											<h4 className="text-xs font-black uppercase tracking-wide flex items-center gap-1 mt-0.5 truncate text-ellipsis overflow-hidden whitespace-nowrap">
-												<Wallet size={12} className="opacity-70 shrink-0" />
-												<span className="truncate">{p.name}</span>
-											</h4>
-										</div>
-										<span className="opacity-70 text-[8px] uppercase font-black tracking-widest shrink-0">
-											{p.id === "net_worth" ? (language === "en" ? "Overview" : "Semua") : p.type}
-										</span>
-									</div>
-
-									<div className="mt-2 w-full">
-										<h2 className="text-xl font-black tracking-tight">{maskValue(props.formatCurrency(pBalance))}</h2>
-									</div>
-
-									<div className="mt-1 pt-2 border-t border-black/5 flex items-center justify-between text-[9px] font-black opacity-80 w-full">
-										<div className="flex items-center gap-1">
-											<Wallet size={10} className="opacity-50" />
-											<span>{maskValue(props.formatCurrency(pInitial))}</span>
-										</div>
-										<div className="flex items-center gap-2">
-											<div className={`flex items-center gap-0.5 ${pColors.text}`}>
-												<TrendingUp size={10} />
-												<span>{maskValue(props.formatCurrency(pIncome))}</span>
-											</div>
-											<div className="w-0.5 h-0.5 rounded-full bg-black/10" />
-											<div className="flex items-center gap-0.5 text-red-950/80">
-												<TrendingDown size={10} />
-												<span>{maskValue(props.formatCurrency(pExpense))}</span>
-											</div>
-										</div>
-									</div>
-								</button>
-							);
-						})}
-					</div>
-				</DialogContent>
-			</Dialog>
+			<PocketSelectModal
+				isOpen={isPocketSelectOpen}
+				onOpenChange={setIsPocketSelectOpen}
+				pockets={props.pockets}
+				activePocketIdx={props.activePocketIdx}
+				setActivePocketIdx={props.setActivePocketIdx}
+				getPocketBalance={props.getPocketBalance}
+				transactions={props.transactions}
+				formatCurrency={props.formatCurrency}
+				isPrivate={isPrivate}
+				togglePrivacy={togglePrivacy}
+				onManagePockets={() => {
+					setIsPocketSelectOpen(false);
+					setIsPocketSettingsOpen(true);
+				}}
+			/>
 
 			{/* Separated Progress Bar Card */}
-			<AnimatePresence>
-				{activePocket.type !== "default" && activePocket.target && (
-					<motion.div
-						initial={{ opacity: 0, height: 0, marginTop: 0 }}
-						animate={{ opacity: 1, height: "auto", marginTop: 12 }}
-						exit={{ opacity: 0, height: 0, marginTop: 0 }}
-						transition={{ duration: 0.2, ease: "easeInOut" }}
-						className="overflow-hidden w-full"
-					>
-						<div className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200/60 dark:border-zinc-850 rounded-[28px] p-5 shadow-sm space-y-2 transition-all duration-300">
-							<div className="flex justify-between text-[11px] font-black text-zinc-650 dark:text-zinc-350">
-								<span className="flex items-center gap-1.5">
-									<Wallet size={13} className={themeColors.text} />
-									{activePocket.type === "budget" 
-										? `${language === "en" ? "Monthly Limit" : "Batas Bulanan"}: ${props.formatCurrency(activePocket.target)}`
-										: `${language === "en" ? "Savings Goal" : "Target Tabungan"}: ${props.formatCurrency(activePocket.target)}`}
-								</span>
-								<span className={themeColors.textDark}>{Math.round(progressBarPercent)}%</span>
-							</div>
-							<div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-								<motion.div 
-									initial={{ width: 0 }}
-									animate={{ width: `${Math.min(progressBarPercent, 100)}%` }}
-									className={`h-full rounded-full ${
-										activePocket.type === "budget"
-											? progressBarPercent > 90
-												? "bg-red-500"
-												: progressBarPercent > 70
-													? "bg-amber-500"
-													: "bg-emerald-500"
-											: "bg-teal-500"
-									}`}
-								/>
-							</div>
-						</div>
-					</motion.div>
-				)}
-			</AnimatePresence>
+			<SeparatedProgressBarCard
+				activePocket={activePocket}
+				progressBarPercent={progressBarPercent}
+				formatCurrency={props.formatCurrency}
+				language={language}
+				themeColors={themeColors}
+			/>
 
 			{/* Bottom Action Shortcut Buttons (Visible only under Worth overview & if Clean Display is off) */}
 			{props.activePocketIdx === 0 && !isCleanDisplay && (
@@ -808,128 +390,27 @@ export function FormView(props: FormViewProps) {
 			)}
 
 			{/* PWA Downloader modal */}
-			<Dialog open={props.isAddToHomeOpen} onOpenChange={props.setIsAddToHomeOpen}>
-				<DialogContent className="sm:max-w-[420px] rounded-3xl overflow-hidden p-6">
-					<DialogHeader>
-						<DialogTitle className="flex items-center gap-2">
-							<Home size={20} className="text-emerald-500" />
-							{t("addToHomeTitle")}
-						</DialogTitle>
-					</DialogHeader>
-					<div className="space-y-4 pt-2">
-						<p className="text-xs text-zinc-550 dark:text-zinc-400 leading-relaxed font-semibold">
-							{t("addToHomeDesc")}
-						</p>
-						
-						<Button 
-							onClick={() => {
-								if (props.isInstallable) {
-									props.triggerInstall();
-								} else {
-									setShowManualInstruction(true);
-								}
-							}}
-							className={`w-full bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black h-12 rounded-xl shadow-lg ${themeColors.buttonShadow} flex items-center justify-center gap-2 transition-all cursor-pointer border-none`}
-						>
-							<Download size={18} />
-							{props.isInstallable ? t("installApp") : t("addToHomepage")}
-						</Button>
-
-						{showManualInstruction && (
-							<motion.div 
-								initial={{ opacity: 0, height: 0 }}
-								animate={{ opacity: 1, height: "auto" }}
-								className="bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-400 p-4 rounded-2xl text-xs font-semibold leading-relaxed space-y-1.5"
-							>
-								{(os === "ios" ? t("iosShortInstruction") : os === "android" ? t("chromeInstructions") : t("desktopInstructions")).split("\n").map((line, idx) => (
-									<p key={idx}>{line}</p>
-								))}
-							</motion.div>
-						)}
-					</div>
-				</DialogContent>
-			</Dialog>
+			<PwaDownloaderModal
+				isOpen={props.isAddToHomeOpen}
+				onOpenChange={props.setIsAddToHomeOpen}
+				isInstallable={!!props.isInstallable}
+				triggerInstall={props.triggerInstall}
+				themeColors={themeColors}
+			/>
 
 			{/* Profile Connection Modal */}
-			<Dialog open={isProfileModalOpen} onOpenChange={setIsProfileModalOpen}>
-				<DialogContent className="sm:max-w-[425px] rounded-3xl">
-					<DialogHeader>
-						<DialogTitle>{t("profileAndAccount")}</DialogTitle>
-					</DialogHeader>
-					<div className="py-6 flex flex-col items-center text-center gap-4">
-						{props.supabaseUser && (props.supabaseUser.user_metadata?.avatar_url || props.supabaseUser.user_metadata?.picture) ? (
-							<img 
-								src={props.supabaseUser.user_metadata.avatar_url || props.supabaseUser.user_metadata.picture} 
-								className="w-16 h-16 rounded-full object-cover border-2 border-emerald-500 shadow-md mb-2" 
-								alt="Profile Photo" 
-							/>
-						) : props.user && props.user.photo ? (
-							<img 
-								src={props.user.photo} 
-								className="w-16 h-16 rounded-full object-cover border-2 border-emerald-500 shadow-md mb-2" 
-								referrerPolicy="no-referrer"
-								alt="Profile Photo" 
-							/>
-						) : (
-							<div className={`w-16 h-16 rounded-full ${themeColors.bgLight} flex items-center justify-center mb-2`}>
-								<User className={themeColors.text} size={32} />
-							</div>
-						)}
-						
-						{props.supabaseUser ? (
-							<div className="space-y-4 w-full px-4">
-								<div className="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 text-left space-y-1">
-									<p className="text-[10px] uppercase font-bold text-zinc-400">Account Profile</p>
-									<p className="text-sm font-bold text-zinc-800 dark:text-zinc-200 truncate">{props.supabaseUser.email}</p>
-								</div>
-								
-								<div className="border-t border-zinc-100 dark:border-zinc-800/60 pt-4 w-full flex flex-col items-center">
-									<button
-										onClick={async () => {
-											await supabase.auth.signOut();
-											localStorage.removeItem("googleUser");
-											localStorage.removeItem("sheetId");
-											localStorage.removeItem("customPockets");
-											window.location.reload();
-										}}
-										className="text-xs font-bold text-destructive hover:underline cursor-pointer bg-transparent border-none"
-									>
-										Log Out Account
-									</button>
-								</div>
-							</div>
-						) : props.user ? (
-							<div className="space-y-4 w-full px-4">
-								<div className="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 text-left space-y-1">
-									<p className="text-[10px] uppercase font-bold text-zinc-400">Sync Status</p>
-									<p className="text-sm font-bold text-emerald-650 dark:text-emerald-450">{t("googleSyncActive")}</p>
-									<p className="text-[10px] text-zinc-500 truncate mt-0.5">Account: {props.user.name}</p>
-								</div>
-								
-								<div className="flex flex-col gap-2 w-full">
-									{props.headers.length > 0 && (
-										<Button 
-											variant="outline" 
-											className="w-full h-11 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border-zinc-200 dark:border-zinc-800 cursor-pointer bg-transparent"
-											onClick={() => window.open(`https://docs.google.com/spreadsheets/d/${localStorage.getItem("sheetId")}/edit`, "_blank")}
-										>
-											<LinkIcon size={14} />
-											Open Spreadsheet
-										</Button>
-									)}
-									<Button 
-										variant="ghost" 
-										className="w-full h-11 text-destructive hover:bg-destructive/10 font-bold text-xs rounded-xl cursor-pointer" 
-										onClick={props.onDisconnect}
-									>
-										{t("googleSyncDisconnect")}
-									</Button>
-								</div>
-							</div>
-						) : null}
-					</div>
-				</DialogContent>
-			</Dialog>
+			<ProfileConnectionModal
+				isOpen={isProfileModalOpen}
+				onOpenChange={setIsProfileModalOpen}
+				user={props.user}
+				supabaseUser={props.supabaseUser}
+				isGoogleConnected={!!props.isGoogleConnected}
+				googleEmail={props.googleEmail || ""}
+				onGoogleLogin={props.onGoogleLogin}
+				onDisconnect={props.onDisconnect}
+				isSyncing={!!isSyncing}
+				themeColors={themeColors}
+			/>
 
 			{/* Dashboard Settings Modal (Central Control Center) */}
 			<Dialog open={isDashboardSettingsOpen} onOpenChange={setIsDashboardSettingsOpen}>
@@ -1005,7 +486,11 @@ export function FormView(props: FormViewProps) {
 							variant="outline"
 							onClick={(e) => {
 								setIsDashboardSettingsOpen(false);
-								handleManageFieldsClick(e);
+								if (!props.user && !props.supabaseUser && !props.isDemoMode) {
+									props.onLoginClick?.();
+								} else {
+									props.setIsManageFieldsOpen(true);
+								}
 							}}
 							className="h-14 rounded-2xl justify-start px-5 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
 						>
@@ -1073,471 +558,74 @@ export function FormView(props: FormViewProps) {
 				</DialogContent>
 			</Dialog>
 
-			{/* Recurring Transactions Manager Modal */}
-			<Dialog open={isRecurringModalOpen} onOpenChange={setIsRecurringModalOpen}>
-				<DialogContent className="sm:max-w-[450px] rounded-3xl p-6">
-					<DialogHeader>
-						<DialogTitle className="flex items-center gap-2">
-							<CalendarDays className={themeColors.text} size={20} />
-							{language === "en" ? "Recurring Transaction Templates" : "Template Transaksi Otomatis"}
-						</DialogTitle>
-					</DialogHeader>
+			<RecurringTemplatesModal
+				isOpen={isRecurringModalOpen}
+				onOpenChange={setIsRecurringModalOpen}
+				categories={props.categories}
+				pockets={props.pockets}
+				recurringTemplates={props.recurringTemplates}
+				handleAddRecurringTemplate={props.handleAddRecurringTemplate}
+				handleDeleteRecurringTemplate={props.handleDeleteRecurringTemplate}
+				themeColors={themeColors}
+			/>
 
-					<div className="space-y-4 pt-3 overflow-y-auto max-h-[480px] pr-1">
-						{/* Section 1: Create new template */}
-						<div className="p-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-850 rounded-2xl space-y-3">
-							<p className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
-								{language === "en" ? "Create Auto-Transaction" : "Buat Transaksi Otomatis"}
-							</p>
-							
-							<div className="space-y-2">
-								<Input
-									placeholder={language === "en" ? "Transaction Name (e.g. Salary)" : "Nama Transaksi (misal: Uang Jajan)"}
-									value={recName}
-									onChange={(e) => setRecName(e.target.value)}
-									className="h-10 rounded-xl"
-								/>
-							</div>
+			<PocketSettingsModal
+				isOpen={isPocketSettingsOpen}
+				onOpenChange={setIsPocketSettingsOpen}
+				pockets={props.pockets}
+				handleUpdatePockets={props.handleUpdatePockets}
+				setStatusModal={props.setStatusModal}
+			/>
 
-							<div className="grid grid-cols-2 gap-2">
-								<div className="relative flex items-center">
-									<span className="absolute left-3 text-[10px] font-black text-zinc-400 select-none">Rp</span>
-									<Input
-										placeholder="e.g. 500.000"
-										value={recAmount}
-										onChange={(e) => setRecAmount(formatRupiah(stripRupiah(e.target.value)))}
-										inputMode={isMobile ? "none" : "numeric"}
-										readOnly={isMobile}
-										onFocus={() => isMobile && setMobileKbHeader("auto_transaction_amount")}
-										onClick={() => isMobile && setMobileKbHeader("auto_transaction_amount")}
-										className="h-10 pl-7 rounded-xl w-full"
-									/>
-								</div>
-								
-								<Select value={recType} onValueChange={(val: any) => setRecType(val)}>
-									<SelectTrigger className="h-10 rounded-xl cursor-pointer">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent className="rounded-xl">
-										<SelectItem value="expense" className="cursor-pointer">{t("expense")}</SelectItem>
-										<SelectItem value="income" className="cursor-pointer">{t("income")}</SelectItem>
-									</SelectContent>
-								</Select>
-
-								{isMobile && mobileKbHeader === "auto_transaction_amount" && (
-									<div className="col-span-2 mt-1">
-										<NumericKeyboard
-											value={recAmount}
-											onChange={(val) => setRecAmount(val)}
-											onSubmit={() => {
-												setMobileKbHeader(null);
-											}}
-										/>
-									</div>
-								)}
-							</div>
-
-							<div className="grid grid-cols-2 gap-2">
-								<Select value={recCategory} onValueChange={(val) => setRecCategory(val || "")}>
-									<SelectTrigger className="h-10 rounded-xl cursor-pointer">
-										<SelectValue placeholder={t("category")} />
-									</SelectTrigger>
-									<SelectContent className="rounded-xl w-auto min-w-[240px]">
-										{props.categories.map((c) => (
-											<SelectItem key={c} value={c} className="cursor-pointer">{c}</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-
-								<Select value={recInterval} onValueChange={(val: any) => setRecInterval(val || "monthly")}>
-									<SelectTrigger className="h-10 rounded-xl cursor-pointer">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent className="rounded-xl">
-										<SelectItem value="daily" className="cursor-pointer">{language === "en" ? "Daily" : "Harian"}</SelectItem>
-										<SelectItem value="weekly" className="cursor-pointer">{language === "en" ? "Weekly" : "Mingguan"}</SelectItem>
-										<SelectItem value="monthly" className="cursor-pointer">{language === "en" ? "Monthly" : "Bulanan"}</SelectItem>
-									</SelectContent>
-								</Select>
-							</div>
-
-							{props.pockets.length > 0 && (
-								<div className="space-y-1">
-									<Label className="text-[10px] text-zinc-400 font-bold">{language === "en" ? "Select Pocket" : "Pilih Kantong"}</Label>
-									<Select value={recPocket} onValueChange={(val) => setRecPocket(val || "Utama")}>
-										<SelectTrigger className="h-10 rounded-xl cursor-pointer">
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent className="rounded-xl">
-											<SelectItem value="Utama" className="cursor-pointer">Utama</SelectItem>
-											{props.pockets.map((p) => (
-												<SelectItem key={p.id} value={p.name} className="cursor-pointer">{p.name}</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-							)}
-
-							<Button
-								onClick={handleCreateRecurring}
-								disabled={!recName.trim() || !recAmount}
-								className={`w-full h-10 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black rounded-xl border-none shadow-md cursor-pointer`}
-							>
-								{language === "en" ? "Schedule Transaction" : "Jadwalkan Transaksi"}
-							</Button>
-						</div>
-
-						{/* Section 2: Active list */}
-						<div className="space-y-2">
-							<p className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
-								{language === "en" ? "Active Automations" : "Daftar Transaksi Otomatis"}
-							</p>
-							{props.recurringTemplates.length === 0 ? (
-								<div className="py-6 text-center text-zinc-450 dark:text-zinc-500 text-xs font-semibold">
-									{language === "en" ? "No scheduled transactions" : "Belum ada transaksi otomatis yang dijadwalkan"}
-								</div>
-							) : (
-								<div className="space-y-2">
-									{props.recurringTemplates.map((t) => (
-										<div key={t.id} className="p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 rounded-xl flex items-center justify-between">
-											<div className="space-y-0.5">
-												<div className="flex items-center gap-1.5">
-													<p className="text-sm font-bold">{t.name}</p>
-													<span className={`text-[8px] font-black uppercase px-1 rounded-sm ${
-														t.type === "expense" ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"
-													}`}>
-														{t.type}
-													</span>
-												</div>
-												<p className="text-[10px] text-zinc-500 font-medium">
-													Rp {formatRupiah(t.amount.toString())} • {t.category} {props.pockets.length > 0 && `• Saku: ${t.pocket}`}
-												</p>
-												<p className="text-[8px] uppercase tracking-wider text-zinc-400 font-bold">
-													Interval: {t.interval_unit} (Next: {new Date(t.next_execution_at).toLocaleDateString()})
-												</p>
-											</div>
-											<Button
-												variant="ghost"
-												size="sm"
-												onClick={() => props.handleDeleteRecurringTemplate(t.id)}
-												className="text-destructive cursor-pointer hover:bg-destructive/15 h-8 w-8 p-0 rounded-full"
-											>
-												<Trash2 size={14} />
-											</Button>
-										</div>
-									))}
-								</div>
-							)}
-						</div>
-					</div>
-				</DialogContent>
-			</Dialog>
-
-			{/* Pocket Settings Dialog */}
-			<Dialog open={isPocketSettingsOpen} onOpenChange={setIsPocketSettingsOpen}>
-				<DialogContent className="sm:max-w-[420px] rounded-3xl overflow-hidden p-6">
-					<DialogHeader>
-						<DialogTitle className="flex items-center gap-2">
-							<Settings className={themeColors.text} size={20} />
-							{language === "en" ? "Manage Pockets" : "Kelola Kantong"}
-						</DialogTitle>
-					</DialogHeader>
-					<div className="space-y-4 pt-2 max-h-[350px] overflow-y-auto pr-1">
-						{localPockets.length === 0 ? (
-							<div className="text-center py-6 text-zinc-500 text-xs font-semibold space-y-3">
-								<p>{language === "en" ? "You haven't added any custom pockets." : "Anda belum menambahkan kantong kustom."}</p>
-								<Button
-									onClick={() => {
-										const newId = `pocket_${localPockets.length + 2}`;
-										const colors: ("indigo" | "amber")[] = ["indigo", "amber", "indigo"];
-										const newPocket: PocketDef = {
-											id: newId,
-											name: `Kantong ${localPockets.length + 1}`,
-											type: "default",
-											color: colors[localPockets.length] || "indigo"
-										};
-										setLocalPockets([...localPockets, newPocket]);
-									}}
-									className={`bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black rounded-xl border-none cursor-pointer`}
-								>
-									{language === "en" ? "Add First Pocket" : "Tambah Kantong Pertama"}
-								</Button>
-							</div>
-						) : (
-							<div className="space-y-4">
-								{localPockets.map((pocket, idx) => (
-									<div key={pocket.id} className="p-4 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800 space-y-3 relative">
-										<div className="flex items-center justify-between">
-											<span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
-												pocket.color === "indigo"
-													? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
-													: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-											}`}>
-												Kantong {idx + 1}
-											</span>
-											<div className="flex items-center gap-1">
-												{/* Up arrow */}
-												<Button
-													variant="ghost"
-													size="icon"
-													disabled={idx === 0}
-													onClick={() => {
-														if (idx === 0) return;
-														const nextList = [...localPockets];
-														const temp = nextList[idx];
-														nextList[idx] = nextList[idx - 1];
-														nextList[idx - 1] = temp;
-														setLocalPockets(nextList);
-													}}
-													className="h-7 w-7 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer rounded-full flex items-center justify-center transition-colors border-none bg-transparent"
-													aria-label="Move Up"
-												>
-													<ChevronUp size={14} />
-												</Button>
-												{/* Down arrow */}
-												<Button
-													variant="ghost"
-													size="icon"
-													disabled={idx === localPockets.length - 1}
-													onClick={() => {
-														if (idx === localPockets.length - 1) return;
-														const nextList = [...localPockets];
-														const temp = nextList[idx];
-														nextList[idx] = nextList[idx + 1];
-														nextList[idx + 1] = temp;
-														setLocalPockets(nextList);
-													}}
-													className="h-7 w-7 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer rounded-full flex items-center justify-center transition-colors border-none bg-transparent"
-													aria-label="Move Down"
-												>
-													<ChevronDown size={14} />
-												</Button>
-												
-												{/* Trash delete button */}
-												<Button
-													variant="ghost"
-													size="icon"
-													onClick={() => {
-														setPocketToDeleteIdx(idx);
-													}}
-													className="h-7 w-7 text-zinc-400 hover:text-red-500 hover:bg-red-500/10 cursor-pointer rounded-full flex items-center justify-center transition-colors border-none bg-transparent"
-													aria-label="Delete Pocket"
-												>
-													<Trash2 size={14} />
-												</Button>
-											</div>
-										</div>
-										
-										<div className="space-y-2">
-											<Label className="text-xs text-zinc-500 font-bold">{language === "en" ? "Pocket Name" : "Nama Kantong"}</Label>
-											<Input
-												value={pocket.name}
-												onChange={(e) => handleLocalPocketFieldChange(idx, "name", e.target.value)}
-												className={`h-10 rounded-xl focus:border-${pocket.color}-500 focus:ring-1 focus:ring-${pocket.color}-500`}
-												placeholder="e.g. Jajan / Tabungan"
-											/>
-										</div>
-
-										<div className="space-y-2">
-											<Label className="text-xs text-zinc-500 font-bold">{language === "en" ? "Pocket Type" : "Tipe Kantong"}</Label>
-											<Select
-												value={pocket.type}
-												onValueChange={(val: any) => handleLocalPocketFieldChange(idx, "type", val)}
-											>
-												<SelectTrigger className="h-10 rounded-xl cursor-pointer">
-													<SelectValue />
-												</SelectTrigger>
-												<SelectContent className="rounded-xl">
-													<SelectItem value="default" className="cursor-pointer">{language === "en" ? "Regular (No Target)" : "Biasa (Tanpa Target)"}</SelectItem>
-													<SelectItem value="budget" className="cursor-pointer">{language === "en" ? "Monthly Budget Limit" : "Limit Anggaran Bulanan"}</SelectItem>
-													<SelectItem value="saving" className="cursor-pointer">{language === "en" ? "Savings Goal" : "Target Tabungan"}</SelectItem>
-												</SelectContent>
-											</Select>
-										</div>
-
-										{pocket.type !== "default" && (
-											<div className="space-y-2">
-												<Label className="text-xs text-zinc-500 font-bold">
-													{pocket.type === "budget" 
-														? (language === "en" ? "Monthly Limit (Rp)" : "Batas Bulanan (Rp)")
-														: (language === "en" ? "Target Amount (Rp)" : "Target Saldo (Rp)")}
-												</Label>
-												<Input
-													type="text"
-													value={pocket.target ? formatRupiah(pocket.target.toString()) : ""}
-													onChange={(e) => {
-														const raw = stripRupiah(e.target.value);
-														handleLocalPocketFieldChange(idx, "target", raw ? parseInt(raw, 10) : 0);
-													}}
-													placeholder="e.g. 1.000.000"
-													className={`h-10 rounded-xl focus:border-${pocket.color}-500 focus:ring-1 focus:ring-${pocket.color}-500`}
-												/>
-											</div>
-										)}
-									</div>
-								))}
-
-								{localPockets.length < 3 && (
-									<Button
-										onClick={() => {
-											const newId = `pocket_${localPockets.length + 2}`;
-											const colors: ("indigo" | "amber")[] = ["indigo", "amber", "indigo"];
-											const newPocket: PocketDef = {
-												id: newId,
-												name: `Kantong ${localPockets.length + 1}`,
-												type: "default",
-												color: colors[localPockets.length] || "indigo"
-											};
-											setLocalPockets([...localPockets, newPocket]);
-										}}
-										variant="outline"
-										className="w-full h-11 border-dashed rounded-xl font-bold flex items-center justify-center gap-1.5 cursor-pointer border-zinc-300 dark:border-zinc-800"
-									>
-										<Plus size={16} />
-										{language === "en" ? "Add Pocket" : "Tambah Kantong"}
-									</Button>
-								)}
-							</div>
-						)}
-					</div>
-					<div className="flex gap-2 mt-4">
-						<Button
-							onClick={savePocketSettings}
-							className={`flex-1 h-12 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black rounded-xl cursor-pointer border-none shadow-lg ${themeColors.buttonShadow}`}
-						>
-							{language === "en" ? "Save Changes" : "Simpan Perubahan"}
-						</Button>
-						<Button
-							variant="outline"
-							onClick={() => {
-								setLocalPockets(props.pockets);
-								setIsPocketSettingsOpen(false);
-							}}
-							className="h-12 px-5 rounded-xl font-bold cursor-pointer bg-transparent"
-						>
-							{language === "en" ? "Cancel" : "Batal"}
-						</Button>
-					</div>
-				</DialogContent>
-			</Dialog>
-
-			{/* Pocket Delete Confirmation Dialog */}
-			<Dialog open={pocketToDeleteIdx !== null} onOpenChange={(open) => { if (!open) setPocketToDeleteIdx(null); }}>
-				<DialogContent className="sm:max-w-[360px] rounded-3xl p-6">
-					<DialogHeader>
-						<DialogTitle className="text-red-500 flex items-center gap-2 font-black">
-							<AlertTriangle size={20} />
-							{language === "en" ? "Delete Pocket" : "Hapus Kantong"}
-						</DialogTitle>
-					</DialogHeader>
-					<div className="space-y-4 pt-2">
-						<p className="text-xs text-zinc-550 dark:text-zinc-400 font-semibold leading-relaxed">
-							{language === "en"
-								? `Are you sure you want to delete this pocket? All transactions associated with this pocket will be automatically unlinked and return to Total Worth (no pocket).`
-								: `Apakah Anda yakin ingin menghapus kantong ini? Semua transaksi yang terikat dengan kantong ini akan dilepas otomatis dan kembali ke Total Worth.`}
-						</p>
-						<div className="flex gap-2">
-							<Button
-								onClick={() => {
-									if (pocketToDeleteIdx !== null) {
-										setLocalPockets(localPockets.filter((_, i) => i !== pocketToDeleteIdx));
-										setPocketToDeleteIdx(null);
-									}
-								}}
-								className="flex-1 h-10 bg-red-500 hover:bg-red-650 text-white font-bold rounded-xl border-none cursor-pointer"
-							>
-								{language === "en" ? "Delete" : "Hapus"}
-							</Button>
-							<Button
-								variant="outline"
-								onClick={() => setPocketToDeleteIdx(null)}
-								className="flex-1 h-10 rounded-xl font-bold cursor-pointer bg-transparent"
-							>
-								{language === "en" ? "Cancel" : "Batal"}
-							</Button>
-						</div>
-					</div>
-				</DialogContent>
-			</Dialog>
+			<MoveFundsModal
+				isOpen={isMoveFundsOpen}
+				onOpenChange={setIsMoveFundsOpen}
+				pockets={props.pockets}
+				activePocket={activePocket}
+				onMoveFunds={props.onMoveFunds}
+				themeColors={themeColors}
+			/>
 
 			<section className="rounded-3xl p-6 glass-card">
 				<div className="flex items-center justify-between mb-6">
 					<h3 className="text-lg font-bold flex items-center gap-2">{t("transactionEntry")}</h3>
 					
-					{/* Manage Fields Dialog */}
-					<Dialog open={props.isManageFieldsOpen} onOpenChange={(open) => {
-						if (open && !props.user && !props.supabaseUser && !props.isDemoMode) {
-							props.onLoginClick?.();
-							return;
-						}
-						props.setIsManageFieldsOpen(open);
-					}}>
-						<DialogTrigger render={
-							<Button 
-								size="sm" 
-								variant="outline" 
-								disabled={isSyncing} 
-								className={`h-8 text-[10px] font-black ${themeColors.textDark} ${themeColors.bgLight} border ${themeColors.border} ${themeColors.hoverBg} px-2.5 rounded-xl cursor-pointer flex items-center gap-1.5 transition-all shadow-sm`}
-								onClick={handleManageFieldsClick}
-							>
-								<Settings size={14} /> {t("manageFields")}
-							</Button>
-						} />
-						<DialogContent className="sm:max-w-[400px] rounded-3xl overflow-hidden">
-							<DialogHeader className="px-6 pt-6">
-								<DialogTitle className="flex items-center gap-2">
-									{(editingOptionsIdx !== -1 || renamingIdx !== -1) && <Button variant="ghost" size="sm" onClick={() => { setEditingOptionsIdx(-1); setRenamingIdx(-1); }} className="h-8 w-8 p-0 rounded-full"><ChevronLeft size={20} /></Button>}
-									{editingOptionsIdx === -1 && renamingIdx === -1 ? t("manageFields") : editingOptionsIdx !== -1 ? `${t("manageOptions")}: ${props.customFields[editingOptionsIdx].name}` : t("editField")}
-								</DialogTitle>
-							</DialogHeader>
-							<div className="space-y-4 p-6 pt-2">
-								{editingOptionsIdx === -1 && renamingIdx === -1 ? (
-									<>
-										<div className="flex flex-col gap-3">
-											<Input placeholder="Field Name" value={props.newFieldName} onChange={(e) => props.setNewFieldName(e.target.value)} disabled={props.customFields.length >= 2 || isInteractionDisabled} />
-											<div className="flex flex-col gap-2">
-												<div className="flex gap-2">
-													<Select value={props.newFieldType} onValueChange={(v: any) => props.setNewFieldType(v || "text")} disabled={props.customFields.length >= 2 || isInteractionDisabled}><SelectTrigger className="flex-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="text">{t("text")}</SelectItem><SelectItem value="dropdown">{t("dropdown")}</SelectItem></SelectContent></Select>
-													<Button onClick={props.onAddField} disabled={props.customFields.length >= 2 || isInteractionDisabled || !props.newFieldName.trim()} className="bg-emerald-500 text-black font-bold px-6 cursor-pointer">{t("add")}</Button>
-												</div>
-												<div className="flex items-center gap-2 px-1"><input type="checkbox" id="newFieldReq" checked={props.newFieldRequired} onChange={(e) => props.setNewFieldRequired(e.target.checked)} disabled={isInteractionDisabled} className="w-4 h-4 rounded cursor-pointer" /><Label htmlFor="newFieldReq" className="text-xs font-medium cursor-pointer">{t("isRequired")}</Label></div>
-											</div>
-										</div>
-										<div className="space-y-2 mt-4">
-											{props.customFields.map((field, idx) => (
-												<div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800">
-													<div className="flex-1">
-														<div className="flex items-center gap-2">
-															<p className="text-sm font-bold">{field.name}</p>
-															<span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${field.required ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{field.required ? t("requiredLabel") : t("optionalLabel")}</span>
-														</div>
-														<p className="text-[10px] opacity-60 uppercase">{field.type}</p>
-													</div>
-													<div className="flex gap-1">
-														<Button variant="ghost" size="sm" className="cursor-pointer" disabled={isInteractionDisabled} onClick={() => { setRenamingIdx(idx); setRenamingInput(field.name); setRenamingType(field.type); setRenamingRequired(field.required); }}><Pencil size={16} /></Button>
-														{field.type === "dropdown" && (<Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => setEditingOptionsIdx(idx)} className="text-emerald-600 cursor-pointer"><ListTree size={16} /></Button>)}
-														<Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => props.onDeleteField(idx, field.name)} className="text-destructive cursor-pointer"><Trash2 size={16} /></Button>
-													</div>
-												</div>
-											))}
-										</div>
-									</>
-								) : renamingIdx !== -1 ? (
-									<div className="space-y-4">
-										<div className="space-y-2"><Label className="text-xs">{t("name")}</Label><Input value={renamingInput} onChange={(e) => setRenamingInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-xl" /></div>
-										<div className="space-y-2"><Label className="text-xs">{t("fieldType")}</Label><Select value={renamingType} onValueChange={(v: any) => setRenamingType(v || "text")} disabled={isInteractionDisabled}><SelectTrigger className="rounded-xl cursor-pointer"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="text" className="cursor-pointer">{t("text")}</SelectItem><SelectItem value="dropdown" className="cursor-pointer">{t("dropdown")}</SelectItem></SelectContent></Select></div>
-										<div className="flex items-center gap-2 px-1 py-1"><input type="checkbox" id="renameFieldReq" checked={renamingRequired} onChange={(e) => setRenamingRequired(e.target.checked)} disabled={isInteractionDisabled} className="cursor-pointer" /><Label htmlFor="renameFieldReq" className="text-xs font-medium cursor-pointer">{t("isRequired")}</Label></div>
-										<Button onClick={() => { props.onRenameField(renamingIdx, renamingInput, renamingType, renamingRequired); setRenamingIdx(-1); }} disabled={isInteractionDisabled} className="w-full bg-emerald-500 text-black font-bold h-12 rounded-xl mt-2 cursor-pointer">{t("editField")}</Button>
-									</div>
-								) : (
-									<div className="space-y-4">
-										<div className="flex gap-2"><Input placeholder={t("newOption")} value={props.newOptionInput} onChange={(e) => props.setNewOptionInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-xl" /><Button onClick={() => props.onAddOption(editingOptionsIdx, props.newOptionInput)} disabled={isInteractionDisabled} className="bg-emerald-500 text-black font-bold rounded-xl cursor-pointer">{t("add")}</Button></div>
-										<div className="max-h-[200px] overflow-y-auto space-y-2">{(props.customFields[editingOptionsIdx].options || []).map((opt: string) => (<div key={opt} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800"><span className="text-sm font-medium">{opt}</span><Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => props.onDeleteOption(editingOptionsIdx, opt)} className="cursor-pointer"><Trash2 size={14} /></Button></div>))}</div>
-									</div>
-								)}
-							</div>
-						</DialogContent>
-					</Dialog>
+					{!isCleanDisplay && (
+						<Button 
+							size="sm" 
+							variant="outline" 
+							disabled={isSyncing} 
+							className={`h-8 text-[10px] font-black ${themeColors.textDark} ${themeColors.bgLight} border ${themeColors.border} ${themeColors.hoverBg} px-2.5 rounded-xl cursor-pointer flex items-center gap-1.5 transition-all shadow-sm`}
+							onClick={handleManageFieldsClick}
+						>
+							<Settings size={14} /> {t("manageFields")}
+						</Button>
+					)}
+
+					<ManageFieldsModal
+						isOpen={props.isManageFieldsOpen}
+						onOpenChange={props.setIsManageFieldsOpen}
+						customFields={props.customFields}
+						newFieldName={props.newFieldName}
+						setNewFieldName={props.setNewFieldName}
+						newFieldType={props.newFieldType}
+						setNewFieldType={props.setNewFieldType}
+						newFieldRequired={props.newFieldRequired}
+						setNewFieldRequired={props.setNewFieldRequired}
+						newOptionInput={props.newOptionInput}
+						setNewOptionInput={props.setNewOptionInput}
+						onAddField={props.onAddField}
+						onDeleteField={props.onDeleteField}
+						onRenameField={props.onRenameField}
+						onAddOption={props.onAddOption}
+						onDeleteOption={props.onDeleteOption}
+						user={props.user}
+						supabaseUser={props.supabaseUser}
+						isDemoMode={!!props.isDemoMode}
+						isSyncing={!!isSyncing}
+						isCleanDisplay={!!isCleanDisplay}
+						themeColors={themeColors}
+					/>
 				</div>
 				<div className="space-y-5">
 					{props.loading && props.headers.length === 0 ? (

@@ -198,4 +198,11 @@
 
 .dark .bg-grid-pattern {
   background-image: radial-gradient(circle, rgba(52, 211, 153, 0.04) 1.2px, transparent 1.2px);
+}
+
+/* Remove outlines on SVGs and Recharts elements */
+svg, path, .recharts-sector, .recharts-curve, .recharts-rectangle, .recharts-pie-sector {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
