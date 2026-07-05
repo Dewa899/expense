@@ -21,6 +21,7 @@ import {
 	ensureAndGetSheetId,
 	initializeSheetFormatting,
 	handleInitialBalanceCarryForward,
+	cleanupDuplicateInitialBalances,
 	appendRowToSheet,
 	deleteSheetColumn
 } from "@/lib/sheets-api";
@@ -571,6 +572,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			// Format newly created sheet and carry forward balance implicitly
 			await initializeSheetFormatting(spreadsheetId, token, sheetName, internalSheetId, customFields);
 			await handleInitialBalanceCarryForward(spreadsheetId, sheetName, token, t("initialBalance"), t("fromPreviousMonth"));
+			await cleanupDuplicateInitialBalances(spreadsheetId, sheetName, token);
 
 			// Fetch user info from Google Drive API about endpoint
 			let profile = { name: "Google User", email: "", photo: "" };
@@ -846,7 +848,52 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				t("fromPreviousMonth")
 			];
 			
-			await appendRowToSheet(config.sheetId, selectedMonth, user.accessToken, values);
+			// Check if there is an existing Initial Balance row in the current sheet
+			const currentRes = await fetch(
+				`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(
+					selectedMonth
+				)}!A:H`,
+				{ headers: { Authorization: `Bearer ${user.accessToken}` } }
+			);
+			const currentData = await currentRes.json();
+			
+			let existingRowIndex = -1; // 1-based row number
+			if (!currentData.error && currentData.values && currentData.values.length > 0) {
+				const headers = currentData.values[0];
+				const catIdx = headers.findIndex(
+					(h: string) => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category")
+				);
+				if (catIdx !== -1) {
+					for (let i = 1; i < currentData.values.length; i++) {
+						if (currentData.values[i][catIdx] === "Initial Balance") {
+							existingRowIndex = i + 1; // 1-based index in the sheet
+							break;
+						}
+					}
+				}
+			}
+
+			if (existingRowIndex !== -1) {
+				const lastColLetter = String.fromCharCode(65 + values.length - 1);
+				const updateRes = await fetch(
+					`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(
+						selectedMonth
+					)}!A${existingRowIndex}:${lastColLetter}${existingRowIndex}?valueInputOption=USER_ENTERED`,
+					{
+						method: "PUT",
+						headers: {
+							Authorization: `Bearer ${user.accessToken}`,
+							"Content-Type": "application/json"
+						},
+						body: JSON.stringify({ values: [values] })
+					}
+				);
+				if (!updateRes.ok) {
+					throw new Error(`Failed to update existing initial balance: HTTP ${updateRes.status}`);
+				}
+			} else {
+				await appendRowToSheet(config.sheetId, selectedMonth, user.accessToken, values);
+			}
 			await fetchSheetData(config.sheetId, user.accessToken, selectedMonth);
 			setStatusModal({ isOpen: true, type: "success", title: "Berhasil", description: "Saldo dari bulan sebelumnya berhasil disinkronkan." });
 		} catch (error: any) {
@@ -1061,6 +1108,8 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 						if (!globalInitPromise) {
 							globalInitPromise = ensureAndGetSheetId(savedSheetId, current, parsedUser.accessToken, handleAuthError)
 								.then(async () => {
+									await handleInitialBalanceCarryForward(savedSheetId, current, parsedUser.accessToken, t("initialBalance"), t("fromPreviousMonth"));
+									await cleanupDuplicateInitialBalances(savedSheetId, current, parsedUser.accessToken);
 									await fetchSheetData(savedSheetId, parsedUser.accessToken, current);
 									await fetchAvailableMonths(savedSheetId, parsedUser.accessToken);
 								})
@@ -1072,6 +1121,8 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 								});
 						} else {
 							await globalInitPromise;
+							await handleInitialBalanceCarryForward(savedSheetId, current, parsedUser.accessToken, t("initialBalance"), t("fromPreviousMonth"));
+							await cleanupDuplicateInitialBalances(savedSheetId, current, parsedUser.accessToken);
 							fetchSheetData(savedSheetId, parsedUser.accessToken, current);
 							fetchAvailableMonths(savedSheetId, parsedUser.accessToken);
 						}
@@ -1344,6 +1395,8 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		try {
 			const internalSheetId = await ensureAndGetSheetId(activeSheetId, currentMonth, activeToken, handleAuthError);
 			await initializeSheetFormatting(activeSheetId, activeToken, currentMonth, internalSheetId, customFields);
+			await handleInitialBalanceCarryForward(activeSheetId, currentMonth, activeToken, t("initialBalance"), t("fromPreviousMonth"));
+			await cleanupDuplicateInitialBalances(activeSheetId, currentMonth, activeToken);
 			const activePocket = pockets.length > 0 && activePocketIdx > 0 ? pockets[activePocketIdx - 1] : null;
 			const values = headers.map((h) => {
 				const hL = h.toLowerCase();

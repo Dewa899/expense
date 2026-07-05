@@ -419,6 +419,34 @@ export async function handleInitialBalanceCarryForward(
 	initialBalanceText: string,
 	fromPreviousMonthText: string
 ): Promise<void> {
+	// Check if current month already has an Initial Balance row
+	try {
+		const currentRes = await fetch(
+			`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
+				currentMonth
+			)}!A:H`,
+			{ headers: { Authorization: `Bearer ${token}` } }
+		);
+		const currentData = await currentRes.json();
+		if (!currentData.error && currentData.values && currentData.values.length > 0) {
+			const headers = currentData.values[0];
+			const catIdx = headers.findIndex(
+				(h: string) => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category")
+			);
+			if (catIdx !== -1) {
+				const hasInitialBalance = currentData.values.slice(1).some((row: any) => {
+					return row[catIdx] === "Initial Balance";
+				});
+				if (hasInitialBalance) {
+					console.log("Current month already has an Initial Balance. Skipping carry forward.");
+					return;
+				}
+			}
+		}
+	} catch (e) {
+		console.log("Error checking current month initial balance:", e);
+	}
+
 	const prevMonthName = getPreviousMonthName(currentMonth);
 	try {
 		const res = await fetch(
@@ -479,6 +507,85 @@ export async function handleInitialBalanceCarryForward(
 		}
 	} catch (e) {
 		console.log("No previous month data found to carry forward:", e);
+	}
+}
+
+export async function cleanupDuplicateInitialBalances(
+	spreadsheetId: string,
+	sheetName: string,
+	token: string
+): Promise<void> {
+	try {
+		// 1. Fetch all rows in the sheet
+		const res = await fetch(
+			`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
+				sheetName
+			)}!A:H`,
+			{ headers: { Authorization: `Bearer ${token}` } }
+		);
+		const data = await res.json();
+		if (data.error || !data.values || data.values.length <= 1) return;
+
+		const fetchedHeaders = data.values[0];
+		const catIdx = fetchedHeaders.findIndex(
+			(h: string) => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category")
+		);
+		if (catIdx === -1) return;
+
+		// 2. Identify indices of "Initial Balance" rows
+		const initialBalanceIndices: number[] = [];
+		for (let i = 1; i < data.values.length; i++) {
+			const row = data.values[i];
+			if (row[catIdx] === "Initial Balance") {
+				initialBalanceIndices.push(i);
+			}
+		}
+
+		// If there are duplicates, delete everything except the first one
+		if (initialBalanceIndices.length > 1) {
+			const indicesToDelete = initialBalanceIndices.slice(1).sort((a, b) => b - a);
+
+			// Get the internal sheet ID
+			const metadataRes = await fetch(
+				`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
+				{ headers: { Authorization: `Bearer ${token}` } }
+			);
+			const metadata = await metadataRes.json();
+			const sheet = metadata.sheets?.find((s: any) => s.properties?.title === sheetName);
+			if (!sheet) return;
+			const internalSheetId = sheet.properties.sheetId;
+
+			// Prepare batchUpdate requests
+			const requests = indicesToDelete.map((idx) => ({
+				deleteDimension: {
+					range: {
+						sheetId: internalSheetId,
+						dimension: "ROWS",
+						startIndex: idx,
+						endIndex: idx + 1
+					}
+				}
+			}));
+
+			const batchRes = await fetch(
+				`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+				{
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${token}`,
+						"Content-Type": "application/json"
+					},
+					body: JSON.stringify({ requests })
+				}
+			);
+			if (!batchRes.ok) {
+				console.error("Failed to delete duplicate initial balances:", await batchRes.text());
+			} else {
+				console.log(`Successfully deleted ${requests.length} duplicate initial balance rows.`);
+			}
+		}
+	} catch (error) {
+		console.error("Error during cleanup of duplicate initial balances:", error);
 	}
 }
 
