@@ -799,7 +799,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				authSubscription.unsubscribe();
 			}
 		};
-	}, [t, fetchSupabaseUserData, checkGoogleConnectionStatus, setupGoogleSheet, fetchSheetData, fetchAvailableMonths, handleAuthError, customFields, setCategories, setCustomFields, setCustomChartConfigs, setHeaders, setUser, setConfig, setSelectedMonth, setIsGoogleConnected, setGoogleEmail, setSupabaseUser]);
+	}, [t]);
 
 	// Filter transactions by selectedMonth and parse dates safely
 	React.useEffect(() => {
