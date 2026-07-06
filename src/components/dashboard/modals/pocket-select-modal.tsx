@@ -90,8 +90,28 @@ export function PocketSelectModal({
 								gradient: "from-amber-500 to-rose-500",
 								shadow: "shadow-amber-500/10",
 								text: "text-amber-950/80"
+							},
+							rose: {
+								gradient: "from-rose-500 to-pink-500",
+								shadow: "shadow-rose-500/10",
+								text: "text-rose-950/80"
+							},
+							cyan: {
+								gradient: "from-cyan-500 to-blue-500",
+								shadow: "shadow-cyan-500/10",
+								text: "text-cyan-950/80"
+							},
+							violet: {
+								gradient: "from-violet-500 to-fuchsia-500",
+								shadow: "shadow-violet-500/10",
+								text: "text-violet-950/80"
+							},
+							orange: {
+								gradient: "from-orange-500 to-yellow-500",
+								shadow: "shadow-orange-500/10",
+								text: "text-orange-950/80"
 							}
-						}[(p.color === "indigo" || p.color === "amber") ? p.color : "emerald"];
+						}[p.color || "emerald"];
 
 						const pBalance = getPocketBalance(p);
 						const pInitial = transactions.find(t => t.category === "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id))?.amount || 0;

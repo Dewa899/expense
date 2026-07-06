@@ -12,12 +12,31 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Settings, Plus, Trash2, ChevronUp, ChevronDown, AlertTriangle } from "lucide-react";
+import { Settings, Plus, Trash2, ChevronUp, ChevronDown, AlertTriangle, Check } from "lucide-react";
 import { PocketDef } from "@/hooks/use-dashboard-logic";
 import { useLanguage } from "@/components/language-provider";
 import { formatRupiah, stripRupiah, NumericKeyboard, evaluateExpression } from "@/components/dashboard/cards/numeric-keyboard";
 import { WarningConfirmModal } from "./warning-confirm-modal";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+const SELECTABLE_POCKET_COLORS: ("indigo" | "amber" | "rose" | "cyan" | "violet" | "orange")[] = [
+	"indigo",
+	"amber",
+	"rose",
+	"cyan",
+	"violet",
+	"orange"
+];
+
+const getFirstUnusedColor = (currentPockets: PocketDef[]): "indigo" | "amber" | "rose" | "cyan" | "violet" | "orange" => {
+	const used = currentPockets.map(p => p.color);
+	for (const color of SELECTABLE_POCKET_COLORS) {
+		if (!used.includes(color)) {
+			return color;
+		}
+	}
+	return "indigo";
+};
 
 interface PocketSettingsModalProps {
 	isOpen: boolean;
@@ -111,12 +130,12 @@ export function PocketSettingsModal({
 								<Button
 									onClick={() => {
 										const newId = `pocket_${localPockets.length + 2}`;
-										const colors: ("indigo" | "amber")[] = ["indigo", "amber", "indigo"];
+										const nextColor = getFirstUnusedColor(localPockets);
 										const newPocket: PocketDef = {
 											id: newId,
 											name: `Kantong ${localPockets.length + 1}`,
 											type: "default",
-											color: colors[localPockets.length] || "indigo"
+											color: nextColor
 										};
 										setLocalPockets([...localPockets, newPocket]);
 									}}
@@ -127,16 +146,23 @@ export function PocketSettingsModal({
 							</div>
 						) : (
 							<div className="space-y-4">
-								{localPockets.map((pocket, idx) => (
-									<div key={pocket.id} className="p-4 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800 space-y-3 relative">
-										<div className="flex items-center justify-between">
-											<span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
-												pocket.color === "indigo"
-													? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
-													: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-											}`}>
-												{language === "en" ? `Pocket ${idx + 1}` : `Kantong ${idx + 1}`}
-											</span>
+								{localPockets.map((pocket, idx) => {
+									const badgeColorClass = {
+										emerald: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+										indigo: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
+										amber: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+										rose: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300",
+										cyan: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300",
+										violet: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
+										orange: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
+									}[pocket.color] || "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300";
+
+									return (
+										<div key={pocket.id} className="p-4 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800 space-y-3 relative">
+											<div className="flex items-center justify-between">
+												<span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${badgeColorClass}`}>
+													{language === "en" ? `Pocket ${idx + 1}` : `Kantong ${idx + 1}`}
+												</span>
 											<div className="flex items-center gap-1">
 												{/* Up arrow */}
 												<Button
@@ -201,6 +227,48 @@ export function PocketSettingsModal({
 										</div>
 
 										<div className="space-y-2">
+											<Label className="text-xs text-zinc-500 font-bold">{language === "en" ? "Pocket Color" : "Warna Kantong"}</Label>
+											<div className="flex gap-2 items-center">
+												{SELECTABLE_POCKET_COLORS.map((color) => {
+													const isSelected = pocket.color === color;
+													const isOccupied = localPockets.some(p => p.id !== pocket.id && p.color === color);
+													
+													const bgGradientClass = {
+														indigo: "from-indigo-500 to-purple-500",
+														amber: "from-amber-500 to-rose-500",
+														rose: "from-rose-500 to-pink-500",
+														cyan: "from-cyan-500 to-blue-500",
+														violet: "from-violet-500 to-fuchsia-500",
+														orange: "from-orange-500 to-yellow-500",
+													}[color];
+
+													return (
+														<button
+															key={color}
+															type="button"
+															disabled={isOccupied}
+															onClick={() => handleLocalPocketFieldChange(idx, "color", color)}
+															className={`w-8 h-8 rounded-full bg-gradient-to-br ${bgGradientClass} flex items-center justify-center relative transition-all duration-200 ${
+																isOccupied 
+																	? "opacity-20 cursor-not-allowed scale-90" 
+																	: "hover:scale-105 active:scale-95 cursor-pointer"
+															} ${
+																isSelected 
+																	? "ring-2 ring-zinc-800 dark:ring-zinc-200 ring-offset-2 dark:ring-offset-black scale-105" 
+																	: "border border-black/5 dark:border-white/5"
+															}`}
+															title={isOccupied ? (language === "en" ? "Color used by another pocket" : "Warna sudah digunakan kantong lain") : color}
+														>
+															{isSelected && (
+																<Check className="text-black w-3.5 h-3.5 stroke-[3px]" />
+															)}
+														</button>
+													);
+												})}
+											</div>
+										</div>
+
+										<div className="space-y-2">
 											<Label className="text-xs text-zinc-500 font-bold">{language === "en" ? "Pocket Type" : "Tipe Kantong"}</Label>
 											<Select
 												value={pocket.type}
@@ -251,18 +319,18 @@ export function PocketSettingsModal({
 											</div>
 										)}
 									</div>
-								))}
+								)})}
 
 								{localPockets.length < 3 && (
 									<Button
 										onClick={() => {
 											const newId = `pocket_${localPockets.length + 2}`;
-											const colors: ("indigo" | "amber")[] = ["indigo", "amber", "indigo"];
+											const nextColor = getFirstUnusedColor(localPockets);
 											const newPocket: PocketDef = {
 												id: newId,
 												name: `Kantong ${localPockets.length + 1}`,
 												type: "default",
-												color: colors[localPockets.length] || "indigo"
+												color: nextColor
 											};
 											setLocalPockets([...localPockets, newPocket]);
 										}}

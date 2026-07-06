@@ -81,27 +81,39 @@ export function PocketCarouselCard({
 
 	// Pre-calculated target pocket colors
 	const prevPocket = carouselPockets[(activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length];
-	const prevColorKey = (prevPocket.color === "indigo" || prevPocket.color === "amber") ? prevPocket.color : "emerald";
+	const prevColorKey = prevPocket.color || "emerald";
 	const prevGradient = {
 		emerald: "from-emerald-500/80 to-teal-500/80",
 		indigo: "from-indigo-500/80 to-purple-500/80",
-		amber: "from-amber-500/80 to-rose-500/80"
+		amber: "from-amber-500/80 to-rose-500/80",
+		rose: "from-rose-500/80 to-pink-500/80",
+		cyan: "from-cyan-500/80 to-blue-500/80",
+		violet: "from-violet-500/80 to-fuchsia-500/80",
+		orange: "from-orange-500/80 to-yellow-500/80"
 	}[prevColorKey];
 
 	const nextPocket = carouselPockets[(activePocketIdx + 1) % carouselPockets.length];
-	const nextColorKey = (nextPocket.color === "indigo" || nextPocket.color === "amber") ? nextPocket.color : "emerald";
+	const nextColorKey = nextPocket.color || "emerald";
 	const nextGradient = {
 		emerald: "from-emerald-500/80 to-teal-500/80",
 		indigo: "from-indigo-500/80 to-purple-500/80",
-		amber: "from-amber-500/80 to-rose-500/80"
+		amber: "from-amber-500/80 to-rose-500/80",
+		rose: "from-rose-500/80 to-pink-500/80",
+		cyan: "from-cyan-500/80 to-blue-500/80",
+		violet: "from-violet-500/80 to-fuchsia-500/80",
+		orange: "from-orange-500/80 to-yellow-500/80"
 	}[nextColorKey];
 
 	const stack2Pocket = carouselPockets[(activePocketIdx + 2) % carouselPockets.length];
-	const stack2ColorKey = (stack2Pocket.color === "indigo" || stack2Pocket.color === "amber") ? stack2Pocket.color : "emerald";
+	const stack2ColorKey = stack2Pocket.color || "emerald";
 	const stack2Gradient = {
 		emerald: "from-emerald-500/60 to-teal-500/60",
 		indigo: "from-indigo-500/60 to-purple-500/60",
-		amber: "from-amber-500/60 to-rose-500/60"
+		amber: "from-amber-500/60 to-rose-500/60",
+		rose: "from-rose-500/60 to-pink-500/60",
+		cyan: "from-cyan-500/60 to-blue-500/60",
+		violet: "from-violet-500/60 to-fuchsia-500/60",
+		orange: "from-orange-500/60 to-yellow-500/60"
 	}[stack2ColorKey];
 
 	const maskValue = (val: string) => isPrivate ? "******" : val;

@@ -33,7 +33,7 @@ export type PocketDef = {
 	name: string;
 	type: "default" | "budget" | "saving";
 	target?: number;
-	color: "emerald" | "indigo" | "amber";
+	color: "emerald" | "indigo" | "amber" | "rose" | "cyan" | "violet" | "orange";
 };
 
 export const DEFAULT_POCKETS: PocketDef[] = [];
