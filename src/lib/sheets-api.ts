@@ -418,7 +418,7 @@ export async function handleInitialBalanceCarryForward(
 	token: string,
 	initialBalanceText: string,
 	fromPreviousMonthText: string
-): Promise<void> {
+): Promise<boolean> {
 	// Check if current month already has an Initial Balance row
 	try {
 		const currentRes = await fetch(
@@ -439,7 +439,7 @@ export async function handleInitialBalanceCarryForward(
 				});
 				if (hasInitialBalance) {
 					console.log("Current month already has an Initial Balance. Skipping carry forward.");
-					return;
+					return false;
 				}
 			}
 		}
@@ -504,10 +504,12 @@ export async function handleInitialBalanceCarryForward(
 					body: JSON.stringify({ values: [values] })
 				}
 			);
+			return true;
 		}
 	} catch (e) {
 		console.log("No previous month data found to carry forward:", e);
 	}
+	return false;
 }
 
 export async function cleanupDuplicateInitialBalances(
@@ -645,5 +647,105 @@ export async function deleteSheetColumn(
 	);
 	if (!res.ok) {
 		throw new Error(`Failed to delete column at index ${colIndex}: HTTP ${res.status}`);
+	}
+}
+
+export async function syncPreviousBalanceInSheets(
+	spreadsheetId: string,
+	selectedMonth: string,
+	token: string,
+	initialBalanceText: string,
+	fromPreviousMonthText: string
+): Promise<void> {
+	const prevMonthName = getPreviousMonthName(selectedMonth);
+	const res = await fetch(
+		`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
+			prevMonthName
+		)}!A:H`,
+		{ headers: { Authorization: `Bearer ${token}` } }
+	);
+	const data = await res.json();
+	
+	if (data.error || !data.values || data.values.length <= 1) {
+		throw new Error("Tidak ditemukan data transaksi di bulan sebelumnya.");
+	}
+	
+	const fetchedHeaders = data.values[0];
+	const amountIdx = fetchedHeaders.findIndex(
+		(h: string) => h.toLowerCase().includes("jumlah") || h.toLowerCase().includes("amount")
+	);
+	const typeIdx = fetchedHeaders.findIndex(
+		(h: string) => h.toLowerCase().includes("tipe") || h.toLowerCase().includes("type")
+	);
+	
+	let totalBalance = 0;
+	for (let i = 1; i < data.values.length; i++) {
+		const row = data.values[i];
+		const rawAmount = cleanNumber(row[amountIdx]);
+		const type = row[typeIdx] || "";
+		const isExpense =
+			type.toLowerCase().includes("expense") ||
+			type.toLowerCase().includes("pengeluaran") ||
+			type.toLowerCase().includes("out");
+		totalBalance += isExpense ? -rawAmount : rawAmount;
+	}
+	
+	const amountVal = Math.abs(totalBalance).toString();
+	const typeVal = totalBalance >= 0 ? "Pemasukan / Income" : "Pengeluaran / Expense";
+	
+	const values = [
+		new Date().toLocaleString(),
+		`${initialBalanceText} (${prevMonthName})`,
+		amountVal,
+		typeVal,
+		"Initial Balance",
+		fromPreviousMonthText
+	];
+	
+	// Check if there is an existing Initial Balance row in the current sheet
+	const currentRes = await fetch(
+		`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
+			selectedMonth
+		)}!A:H`,
+		{ headers: { Authorization: `Bearer ${token}` } }
+	);
+	const currentData = await currentRes.json();
+	
+	let existingRowIndex = -1; // 1-based row number
+	if (!currentData.error && currentData.values && currentData.values.length > 0) {
+		const headers = currentData.values[0];
+		const catIdx = headers.findIndex(
+			(h: string) => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category")
+		);
+		if (catIdx !== -1) {
+			for (let i = 1; i < currentData.values.length; i++) {
+				if (currentData.values[i][catIdx] === "Initial Balance") {
+					existingRowIndex = i + 1; // 1-based index in the sheet
+					break;
+				}
+			}
+		}
+	}
+
+	if (existingRowIndex !== -1) {
+		const lastColLetter = String.fromCharCode(65 + values.length - 1);
+		const updateRes = await fetch(
+			`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
+				selectedMonth
+			)}!A${existingRowIndex}:${lastColLetter}${existingRowIndex}?valueInputOption=USER_ENTERED`,
+			{
+				method: "PUT",
+				headers: {
+					Authorization: `Bearer ${token}`,
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify({ values: [values] })
+			}
+		);
+		if (!updateRes.ok) {
+			throw new Error(`Failed to update existing initial balance: HTTP ${updateRes.status}`);
+		}
+	} else {
+		await appendRowToSheet(spreadsheetId, selectedMonth, token, values);
 	}
 }
