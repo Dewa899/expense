@@ -588,7 +588,14 @@ export function FormView(props: FormViewProps) {
 
 			<section className="rounded-3xl p-6 glass-card">
 				<div className="flex items-center justify-between mb-6">
-					<h3 className="text-lg font-bold flex items-center gap-2">{t("transactionEntry")}</h3>
+					<div className="flex flex-col">
+						<h3 className="text-lg font-bold flex items-center gap-2">{t("transactionEntry")}</h3>
+						{activePocket && activePocket.id !== "net_worth" && (
+							<span className={`text-xs font-bold ${themeColors.textDark} mt-0.5`}>
+								{language === "en" ? `On Pocket: ${activePocket.name}` : `Di Kantong: ${activePocket.name}`}
+							</span>
+						)}
+					</div>
 					
 					{!isCleanDisplay && (
 						<Button 
@@ -740,7 +747,11 @@ export function FormView(props: FormViewProps) {
 										onClick={handleLocalSubmit} 
 										className={`flex-grow h-14 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black text-lg rounded-2xl shadow-lg ${themeColors.buttonShadow} cursor-pointer border-none transition-all active:scale-[0.98]`}
 									>
-										{props.loading ? "..." : t("addExpense")}
+										{props.loading 
+											? "..." 
+											: (activePocket && activePocket.id !== "net_worth")
+												? (language === "en" ? `Add to ${activePocket.name}` : `Catat ke ${activePocket.name}`)
+												: t("addExpense")}
 									</Button>
 									<Button
 										type="button"

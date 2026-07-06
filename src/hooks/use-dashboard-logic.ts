@@ -1916,11 +1916,13 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 
 			for (const t of templates) {
 				const nextRun = new Date(t.next_execution_at);
-				if (nextRun <= now) {
+				let ran = false;
+				while (nextRun <= now) {
 					hasNew = true;
+					ran = true;
 					const isExpense = t.type === "expense";
 					const newTx = {
-						date: new Date().toISOString(),
+						date: nextRun.toISOString(),
 						name: t.name,
 						amount: isExpense ? -Math.abs(t.amount) : Math.abs(t.amount),
 						type: isExpense ? "Pengeluaran / Expense" : "Pemasukan / Income",
@@ -1940,6 +1942,8 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					} else if (t.interval_unit === "hourly") {
 						nextRun.setHours(nextRun.getHours() + intervalVal);
 					}
+				}
+				if (ran) {
 					t.next_execution_at = nextRun.toISOString();
 					t.last_executed_at = now.toISOString();
 				}

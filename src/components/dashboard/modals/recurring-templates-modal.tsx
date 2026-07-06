@@ -73,6 +73,11 @@ export function RecurringTemplatesModal({
 		{ value: "6", labelEn: "Saturday", labelId: "Sabtu" }
 	];
 
+	const selectedDayLabel = React.useMemo(() => {
+		const d = daysOfWeek.find((day) => day.value === recWeeklyDay);
+		return d ? (language === "en" ? d.labelEn : d.labelId) : "";
+	}, [recWeeklyDay, language]);
+
 	// Pre-fill first category when available
 	React.useEffect(() => {
 		if (categories.length > 0 && !recCategory) {
@@ -242,7 +247,7 @@ export function RecurringTemplatesModal({
 									</Label>
 									<Select value={recWeeklyDay} onValueChange={(val) => setRecWeeklyDay(val || "")}>
 										<SelectTrigger className="h-10 rounded-xl cursor-pointer">
-											<SelectValue />
+											{selectedDayLabel}
 										</SelectTrigger>
 										<SelectContent className="rounded-xl">
 											{daysOfWeek.map((d) => (

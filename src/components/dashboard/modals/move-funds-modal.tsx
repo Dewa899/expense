@@ -148,7 +148,7 @@ export function MoveFundsModal({
 								{language === "en" ? "From (Source)" : "Dari (Sumber)"}
 							</Label>
 							<Select value={sourcePocket} onValueChange={(val) => setSourcePocket(val || "net_worth")}>
-								<SelectTrigger className="h-12 rounded-xl cursor-pointer text-sm">
+								<SelectTrigger className="w-full h-12 rounded-xl cursor-pointer text-sm">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent className="rounded-xl">
@@ -170,7 +170,7 @@ export function MoveFundsModal({
 								{language === "en" ? "To (Destination)" : "Ke (Tujuan)"}
 							</Label>
 							<Select value={targetPocket} onValueChange={(val) => setTargetPocket(val || "")}>
-								<SelectTrigger className="h-12 rounded-xl cursor-pointer text-sm">
+								<SelectTrigger className="w-full h-12 rounded-xl cursor-pointer text-sm">
 									<SelectValue placeholder={language === "en" ? "Select target pocket" : "Pilih saku tujuan"} />
 								</SelectTrigger>
 								<SelectContent className="rounded-xl">
