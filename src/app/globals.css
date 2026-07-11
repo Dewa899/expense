@@ -126,11 +126,11 @@
   button, [role="button"], select, .cursor-pointer {
     cursor: pointer !important;
   }
-  html {
-    @apply font-sans;
+  html, body, input, select, textarea, button {
+    font-family: var(--font-sans), sans-serif;
   }
   h1, h2, h3, h4, h5, h6, .font-heading {
-    @apply font-heading;
+    font-family: var(--font-heading), var(--font-sans), sans-serif;
   }
   /* Hide number input stepper arrows/spinners */
   input::-webkit-outer-spin-button,
