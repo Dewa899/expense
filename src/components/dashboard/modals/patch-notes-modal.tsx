@@ -37,23 +37,33 @@ const UPDATES: UpdateItem[] = [
 		date: { en: "Sat, July 11, 2026", id: "Sabtu, 11 Juli 2026" },
 		time: "14:30",
 		title: {
-			en: "Playwright E2E Test Suite & Schema-Agnostic Validation Fix",
-			id: "Suite Pengujian E2E Playwright & Perbaikan Validasi Skema-Agnostik"
+			en: "Multi-Pocket Budgets, Auto Transactions & Friendly Typography",
+			id: "Anggaran Multi-Saku, Transaksi Otomatis & Tipografi Bersahabat"
 		},
 		description: {
-			en: "Introduced a comprehensive Playwright-based end-to-end integration test suite verifying all dashboard components, and resolved a validation bug where legacy/untracked Google Sheet columns caused form submission failures.",
-			id: "Memperkenalkan suite pengujian integrasi end-to-end berbasis Playwright untuk memverifikasi seluruh komponen dashboard, serta memperbaiki bug validasi di mana kolom Google Sheet lama/tidak terlacak menyebabkan kegagalan pengiriman formulir."
+			en: "This major update introduces local envelope/pocket budgeting, automatic transaction scheduling, a premium glassmorphic UI overhaul with modern and friendly rounded typography, and custom dynamic column fields.",
+			id: "Pembaruan besar ini memperkenalkan penganggaran saku/amplop lokal, penjadwalan transaksi otomatis, perombakan UI glassmorphism premium dengan tipografi bulat yang modern dan bersahabat, serta kolom kustom dinamis."
 		},
 		details: [
 			{
-				type: "bugfix",
-				title: { en: "Untracked Column Validation Fix", id: "Perbaikan Validasi Kolom Tidak Terlacak" },
-				desc: { en: "Ignored custom columns during form validation if they are from legacy Google Sheet structures and not active in the database definitions, resolving submission blocks.", id: "Mengabaikan kolom kustom selama validasi formulir jika berasal dari struktur Google Sheet lama dan tidak aktif di definisi database, menyelesaikan hambatan pengiriman." }
+				type: "feature",
+				title: { en: "Multi-Pocket Budgeting", id: "Penganggaran Multi-Saku" },
+				desc: { en: "Allocate funds across up to 3 custom pockets (e.g. Savings, Food, Transport) with custom limits and instant wallet transfers, keeping your cash flow isolated.", id: "Alokasikan dana ke hingga 3 saku kustom (misal: Tabungan, Makan, Transport) dengan limit kustom dan transfer dompet instan untuk menjaga arus kas Anda tetap teratur." }
 			},
 			{
 				type: "feature",
-				title: { en: "Playwright E2E Integration Suite", id: "Suite Integrasi E2E Playwright" },
-				desc: { en: "Implemented a robust, multi-language automated test suite covering Onboarding, authentication, pocket/budget management, auto-transactions, custom fields, and OCR scanner portals.", id: "Mengimplementasikan suite pengujian otomatis multi-bahasa yang tangguh mencakup Onboarding, autentikasi, manajemen saku/budget, transaksi otomatis, kolom kustom, dan portal pemindai OCR." }
+				title: { en: "Auto Transactions / Scheduler", id: "Transaksi Otomatis / Penjadwal" },
+				desc: { en: "Set up recurring templates that run weekly or monthly, automatically generating log entries into your Google Sheet to save you repeating inputs.", id: "Atur template berulang mingguan atau bulanan yang secara otomatis mencatat data ke Google Sheet Anda tanpa perlu input manual berulang kali." }
+			},
+			{
+				type: "feature",
+				title: { en: "Friendly Typographic UI", id: "Tampilan Tipografi Bersahabat" },
+				desc: { en: "Switched layout to Fredoka and Plus Jakarta Sans for a smooth, warm, and friendly rounded aesthetic, complemented by premium glassmorphic cards.", id: "Mengubah tipografi ke Fredoka dan Plus Jakarta Sans untuk estetika bulat yang halus, hangat, dan bersahabat, dilengkapi dengan kartu glassmorphic premium." }
+			},
+			{
+				type: "feature",
+				title: { en: "Dynamic Custom Columns", id: "Kolom Kustom Dinamis" },
+				desc: { en: "Define up to 2 extra text or dropdown columns in your sheet on the fly to track any financial data you want.", id: "Definisikan hingga 2 kolom teks atau dropdown tambahan di sheet Anda secara langsung untuk melacak data keuangan apa pun yang Anda inginkan." }
 			}
 		]
 	},
