@@ -194,14 +194,19 @@ export async function fetchUserProfile(token: string): Promise<UserProfile> {
 	};
 }
 
+export interface SheetInitResult {
+	sheetId: number;
+	availableMonths: string[];
+}
+
 export async function ensureAndGetSheetId(
 	spreadsheetId: string,
 	sheetName: string,
 	token: string,
 	onAuthError: () => void
-): Promise<number> {
+): Promise<SheetInitResult> {
 	let metadataRes = await fetch(
-		`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
+		`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties(title,sheetId)`,
 		{ headers: { Authorization: `Bearer ${token}` } }
 	);
 	let metadata = await metadataRes.json();
@@ -210,6 +215,7 @@ export async function ensureAndGetSheetId(
 		throw new Error("UNAUTHORIZED");
 	}
 
+	const availableMonths = metadata.sheets?.map((s: any) => s.properties?.title).filter(Boolean) || [];
 	let existingSheet = metadata.sheets?.find((s: any) => s.properties?.title === sheetName);
 	let targetSheetId: number;
 
@@ -232,22 +238,22 @@ export async function ensureAndGetSheetId(
 		if (!createRes.ok || createData.error) {
 			// Fallback check
 			const fallbackRes = await fetch(
-				`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
+				`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties(title,sheetId)`,
 				{ headers: { Authorization: `Bearer ${token}` } }
 			);
 			const fallbackMeta = await fallbackRes.json();
 			const actuallyExists = fallbackMeta.sheets?.find((s: any) => s.properties?.title === sheetName);
-			if (actuallyExists) return actuallyExists.properties.sheetId;
+			if (actuallyExists) {
+				const updatedMonths = fallbackMeta.sheets?.map((s: any) => s.properties?.title).filter(Boolean) || [];
+				return { sheetId: actuallyExists.properties.sheetId, availableMonths: updatedMonths };
+			}
 			throw new Error("Unable to create sheet tab: " + (createData.error?.message || "Unknown error"));
 		}
 
 		targetSheetId = createData.replies[0].addSheet.properties.sheetId;
-
-		metadataRes = await fetch(
-			`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
-			{ headers: { Authorization: `Bearer ${token}` } }
-		);
-		metadata = await metadataRes.json();
+		if (!availableMonths.includes(sheetName)) {
+			availableMonths.push(sheetName);
+		}
 	} else {
 		targetSheetId = existingSheet.properties.sheetId;
 	}
@@ -271,7 +277,7 @@ export async function ensureAndGetSheetId(
 		}
 	}
 
-	return targetSheetId;
+	return { sheetId: targetSheetId, availableMonths };
 }
 
 export async function initializeSheetFormatting(
@@ -409,24 +415,32 @@ export async function handleInitialBalanceCarryForward(
 	currentMonth: string,
 	token: string,
 	initialBalanceText: string,
-	fromPreviousMonthText: string
+	fromPreviousMonthText: string,
+	currentValues?: any[][]
 ): Promise<boolean> {
 	// Check if current month already has an Initial Balance row
 	try {
-		const currentRes = await fetch(
-			`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
-				currentMonth
-			)}!A:H`,
-			{ headers: { Authorization: `Bearer ${token}` } }
-		);
-		const currentData = await currentRes.json();
-		if (!currentData.error && currentData.values && currentData.values.length > 0) {
-			const headers = currentData.values[0];
+		let values = currentValues;
+		if (!values) {
+			const currentRes = await fetch(
+				`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
+					currentMonth
+				)}!A:H`,
+				{ headers: { Authorization: `Bearer ${token}` } }
+			);
+			const currentData = await currentRes.json();
+			if (!currentData.error && currentData.values) {
+				values = currentData.values;
+			}
+		}
+
+		if (values && values.length > 0) {
+			const headers = values[0];
 			const catIdx = headers.findIndex(
 				(h: string) => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category")
 			);
 			if (catIdx !== -1) {
-				const hasInitialBalance = currentData.values.slice(1).some((row: any) => {
+				const hasInitialBalance = values.slice(1).some((row: any) => {
 					return row[catIdx] === "Initial Balance";
 				});
 				if (hasInitialBalance) {
@@ -506,29 +520,36 @@ export async function handleInitialBalanceCarryForward(
 export async function cleanupDuplicateInitialBalances(
 	spreadsheetId: string,
 	sheetName: string,
-	token: string
-): Promise<void> {
+	token: string,
+	currentValues?: any[][],
+	internalSheetId?: number
+): Promise<boolean> {
 	try {
-		// 1. Fetch all rows in the sheet
-		const res = await fetch(
-			`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
-				sheetName
-			)}!A:H`,
-			{ headers: { Authorization: `Bearer ${token}` } }
-		);
-		const data = await res.json();
-		if (data.error || !data.values || data.values.length <= 1) return;
+		let values = currentValues;
+		if (!values) {
+			const res = await fetch(
+				`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
+					sheetName
+				)}!A:H`,
+				{ headers: { Authorization: `Bearer ${token}` } }
+			);
+			const data = await res.json();
+			if (data.error || !data.values) return false;
+			values = data.values;
+		}
 
-		const fetchedHeaders = data.values[0];
+		if (!values || values.length <= 1) return false;
+
+		const fetchedHeaders = values[0];
 		const catIdx = fetchedHeaders.findIndex(
 			(h: string) => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category")
 		);
-		if (catIdx === -1) return;
+		if (catIdx === -1) return false;
 
 		// 2. Identify indices of "Initial Balance" rows
 		const initialBalanceIndices: number[] = [];
-		for (let i = 1; i < data.values.length; i++) {
-			const row = data.values[i];
+		for (let i = 1; i < values.length; i++) {
+			const row = values[i];
 			if (row[catIdx] === "Initial Balance") {
 				initialBalanceIndices.push(i);
 			}
@@ -538,21 +559,24 @@ export async function cleanupDuplicateInitialBalances(
 		if (initialBalanceIndices.length > 1) {
 			const indicesToDelete = initialBalanceIndices.slice(1).sort((a, b) => b - a);
 
-			// Get the internal sheet ID
-			const metadataRes = await fetch(
-				`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
-				{ headers: { Authorization: `Bearer ${token}` } }
-			);
-			const metadata = await metadataRes.json();
-			const sheet = metadata.sheets?.find((s: any) => s.properties?.title === sheetName);
-			if (!sheet) return;
-			const internalSheetId = sheet.properties.sheetId;
+			let targetSheetId = internalSheetId;
+			if (targetSheetId === undefined) {
+				// Get the internal sheet ID
+				const metadataRes = await fetch(
+					`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
+					{ headers: { Authorization: `Bearer ${token}` } }
+				);
+				const metadata = await metadataRes.json();
+				const sheet = metadata.sheets?.find((s: any) => s.properties?.title === sheetName);
+				if (!sheet) return false;
+				targetSheetId = sheet.properties.sheetId;
+			}
 
 			// Prepare batchUpdate requests
 			const requests = indicesToDelete.map((idx) => ({
 				deleteDimension: {
 					range: {
-						sheetId: internalSheetId,
+						sheetId: targetSheetId,
 						dimension: "ROWS",
 						startIndex: idx,
 						endIndex: idx + 1
@@ -573,12 +597,16 @@ export async function cleanupDuplicateInitialBalances(
 			);
 			if (!batchRes.ok) {
 				console.error("Failed to delete duplicate initial balances:", await batchRes.text());
+				return false;
 			} else {
 				console.log(`Successfully deleted ${requests.length} duplicate initial balance rows.`);
+				return true;
 			}
 		}
+		return false;
 	} catch (error) {
 		console.error("Error during cleanup of duplicate initial balances:", error);
+		return false;
 	}
 }
 

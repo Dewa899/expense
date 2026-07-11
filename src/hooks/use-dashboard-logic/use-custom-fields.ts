@@ -15,7 +15,7 @@ interface UseCustomFieldsOptions {
 	setHeaders: React.Dispatch<React.SetStateAction<string[]>>;
 	setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 	handleAuthError: () => void;
-	fetchSheetData: (sheetId: string, token: string, sheetName: string) => Promise<void>;
+	fetchSheetData: (sheetId: string, token: string, sheetName: string) => Promise<any>;
 	updateSupabaseSettings: (cats: string[], fields: CustomFieldDef[], charts: CustomChartConfig[]) => Promise<void>;
 }
 
@@ -74,7 +74,7 @@ export function useCustomFields({
 		setLoading(true);
 		try {
 			const sheetName = getCurrentMonthSheetName();
-			const internalSheetId = await ensureAndGetSheetId(config.sheetId, sheetName, user.accessToken, handleAuthError);
+			const { sheetId: internalSheetId } = await ensureAndGetSheetId(config.sheetId, sheetName, user.accessToken, handleAuthError);
 			setCustomFields(updatedFields);
 			localStorage.setItem("customFieldDefs", JSON.stringify(updatedFields));
 			await initializeSheetFormatting(config.sheetId, user.accessToken, sheetName, internalSheetId, updatedFields);
@@ -117,7 +117,7 @@ export function useCustomFields({
 		setLoading(true);
 		try {
 			const sheetName = getCurrentMonthSheetName();
-			const internalSheetId = await ensureAndGetSheetId(config.sheetId, sheetName, user.accessToken, handleAuthError);
+			const { sheetId: internalSheetId } = await ensureAndGetSheetId(config.sheetId, sheetName, user.accessToken, handleAuthError);
 			setCustomFields(updatedFields);
 			localStorage.setItem("customFieldDefs", JSON.stringify(updatedFields));
 			await initializeSheetFormatting(config.sheetId, user.accessToken, sheetName, internalSheetId, updatedFields);
@@ -158,7 +158,7 @@ export function useCustomFields({
 		setLoading(true);
 		try {
 			const sheetName = getCurrentMonthSheetName();
-			const internalSheetId = await ensureAndGetSheetId(config.sheetId, sheetName, user.accessToken, handleAuthError);
+			const { sheetId: internalSheetId } = await ensureAndGetSheetId(config.sheetId, sheetName, user.accessToken, handleAuthError);
 			setCustomChartConfigs(updatedCharts);
 			setCustomFields(updatedFields);
 			localStorage.setItem("customFieldDefs", JSON.stringify(updatedFields));

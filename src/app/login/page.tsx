@@ -13,10 +13,9 @@ export default function LoginPage() {
 
 	React.useEffect(() => {
 		// Check local storage for direct Google Sheets active session
-		const savedSheetId = localStorage.getItem("sheetId");
 		const savedUser = localStorage.getItem("googleUser");
 		const savedToken = sessionStorage.getItem("google_oauth_token");
-		if (savedSheetId || savedUser || savedToken) {
+		if (savedUser || savedToken) {
 			router.replace("/");
 			return;
 		}
