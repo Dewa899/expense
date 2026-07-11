@@ -61,7 +61,20 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	const [availableMonths, setAvailableMonths] = React.useState<string[]>([]);
 	const [selectedMonth, setSelectedMonth] = React.useState<string>("");
 	const [formData, setFormData] = React.useState<Record<string, string>>({});
-	const [loading, setLoading] = React.useState(!isDemoMode);
+	const [loading, setLoading] = React.useState(() => {
+		if (isDemoMode) return false;
+		if (typeof window !== "undefined") {
+			const savedUser = localStorage.getItem("googleUser");
+			const hash = window.location.hash;
+			const search = window.location.search;
+			const hasGoogleAuth = hash.includes("access_token") || sessionStorage.getItem("google_oauth_token");
+			const hasSupabaseSession = Object.keys(localStorage).some(key => key.startsWith("sb-") && key.endsWith("-auth-token")) || search.includes("code");
+			if (savedUser || hasGoogleAuth || hasSupabaseSession) {
+				return true;
+			}
+		}
+		return false;
+	});
 	const [isOcrReady, setIsOcrReady] = React.useState(false);
 	const [totalAmount, setTotalAmount] = React.useState(0);
 
@@ -700,6 +713,11 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					setSupabaseUser(null);
 					setIsGoogleConnected(false);
 					setGoogleEmail("");
+
+					const savedUser = localStorage.getItem("googleUser");
+					if (!savedUser) {
+						setLoading(false);
+					}
 					
 					const localCatsStr = localStorage.getItem("customCategories");
 					if (localCatsStr) {
