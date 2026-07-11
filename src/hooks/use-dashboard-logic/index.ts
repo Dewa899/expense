@@ -34,11 +34,11 @@ import { useSupabaseSync } from "./use-supabase-sync";
 import { useGoogleSync } from "./use-google-sync";
 import { useExport } from "./use-export";
 
-let globalInitPromise: Promise<void> | null = null;
+let globalInitPromise: Promise<any> | null = null;
 
 export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	const { isDemoMode = false, demoTransactions = [], addDemoTransaction } = options;
-	const { t } = useLanguage();
+	const { t, language } = useLanguage();
 	const [view, setView] = React.useState<"form" | "analytics">("form");
 	const [headers, setHeaders] = React.useState<string[]>([]);
 	const [transactions, setTransactions] = React.useState<Transaction[]>([]);
@@ -47,6 +47,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	const [selectedMonth, setSelectedMonth] = React.useState<string>("");
 	const [formData, setFormData] = React.useState<Record<string, string>>({});
 	const [loading, setLoading] = React.useState(false);
+	const [isOcrReady, setIsOcrReady] = React.useState(false);
 	const [totalAmount, setTotalAmount] = React.useState(0);
 
 	const [statusModal, setStatusModal] = React.useState<StatusModalState>({
@@ -202,12 +203,6 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	React.useEffect(() => {
 		let authSubscription: any = null;
 		const init = async () => {
-			// Wake up OCR server in the background (cold start mitigation)
-			const ocrApiUrl = process.env.NEXT_PUBLIC_OCR_API_URL;
-			if (ocrApiUrl) {
-				fetch(ocrApiUrl).catch(() => {});
-			}
-
 			const urlParams = new URLSearchParams(window.location.search);
 			const code = urlParams.get("code");
 			if (code) {
@@ -239,9 +234,10 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				
 				if (isGoogleSheetsAuth) {
 					console.log("Found Google OAuth token in hash. Setting up sheet...");
-					window.history.replaceState({}, document.title, window.location.pathname);
 					sessionStorage.setItem("google_oauth_token", token);
-					setupGoogleSheet(token);
+					setupGoogleSheet(token).finally(() => {
+						window.history.replaceState({}, document.title, window.location.pathname);
+					});
 					return;
 				}
 			}
@@ -296,9 +292,20 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 
 			const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
 				if (session && session.user) {
+					setIsIntegrating(true);
+					setLoading(true);
+					setStatusModal(prev => ({
+						...prev,
+						description: language === "en" ? "Synchronizing with Supabase..." : "Menyinkronkan dengan Supabase..."
+					}));
 					setSupabaseUser(session.user);
-					await fetchSupabaseUserData(session.user.id);
-					await checkGoogleConnectionStatus(session.access_token);
+					try {
+						await fetchSupabaseUserData(session.user.id);
+						await checkGoogleConnectionStatus(session.access_token);
+					} finally {
+						setIsIntegrating(false);
+						setLoading(false);
+					}
 				} else {
 					setSupabaseUser(null);
 					setIsGoogleConnected(false);
@@ -349,39 +356,70 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					
 					const doInit = async () => {
 						setLoading(true);
+						setIsIntegrating(true);
+						setStatusModal(prev => ({
+							...prev,
+							description: language === "en" ? "Synchronizing with Google Sheets..." : "Menyinkronkan dengan Google Sheets..."
+						}));
+
 						if (!globalInitPromise) {
 							globalInitPromise = ensureAndGetSheetId(savedSheetId, current, parsedUser.accessToken, handleAuthError)
-								.then(async () => {
-									await Promise.all([
-										fetchSheetData(savedSheetId, parsedUser.accessToken, current),
-										fetchAvailableMonths(savedSheetId, parsedUser.accessToken)
-									]);
-									
-									handleInitialBalanceCarryForward(savedSheetId, current, parsedUser.accessToken, t("initialBalance"), t("fromPreviousMonth"))
-										.then(async (carried) => {
-											await cleanupDuplicateInitialBalances(savedSheetId, current, parsedUser.accessToken);
-											initializedMonthsRef.current[current] = true;
-											if (carried) {
-												await fetchSheetData(savedSheetId, parsedUser.accessToken, current);
-											}
-										})
-										.catch((err) => {
-											console.error("Background initial balance carry forward error:", err);
-											initializedMonthsRef.current[current] = true;
-										});
+								.then(async ({ sheetId: internalSheetId, availableMonths }) => {
+									setAvailableMonths(availableMonths);
+
+									const currentValues = await fetchSheetData(savedSheetId, parsedUser.accessToken, current);
+
+									const carried = await handleInitialBalanceCarryForward(
+										savedSheetId,
+										current,
+										parsedUser.accessToken,
+										t("initialBalance"),
+										t("fromPreviousMonth"),
+										currentValues || undefined
+									);
+
+									const duplicatesCleaned = await cleanupDuplicateInitialBalances(
+										savedSheetId,
+										current,
+										parsedUser.accessToken,
+										currentValues || undefined,
+										internalSheetId
+									);
+
+									initializedMonthsRef.current[current] = true;
+
+									if (carried || duplicatesCleaned) {
+										await fetchSheetData(savedSheetId, parsedUser.accessToken, current);
+									}
+
+									return { sheetId: internalSheetId, availableMonths };
 								})
-								.catch((e) => {
-									fetchSheetData(savedSheetId, parsedUser.accessToken, current);
+								.catch(async (e) => {
+									await fetchSheetData(savedSheetId, parsedUser.accessToken, current);
+									throw e;
 								})
 								.finally(() => {
 									globalInitPromise = null;
+									setIsIntegrating(false);
+									setLoading(false);
 								});
 						} else {
-							await globalInitPromise;
-							await Promise.all([
-								fetchSheetData(savedSheetId, parsedUser.accessToken, current),
-								fetchAvailableMonths(savedSheetId, parsedUser.accessToken)
-							]);
+							try {
+								const result: any = await globalInitPromise;
+								let availableMonths: string[] = [];
+								if (result && typeof result === "object") {
+									availableMonths = result.availableMonths || [];
+								}
+								const currentValues = await fetchSheetData(savedSheetId, parsedUser.accessToken, current);
+								if (availableMonths.length > 0) {
+									setAvailableMonths(availableMonths);
+								}
+							} catch (e) {
+								await fetchSheetData(savedSheetId, parsedUser.accessToken, current);
+							} finally {
+								setIsIntegrating(false);
+								setLoading(false);
+							}
 						}
 					};
 					doInit();
@@ -398,7 +436,46 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				authSubscription.unsubscribe();
 			}
 		};
-	}, [t]);
+	}, [t, language]);
+
+	// Asynchronous background OCR ping with retries
+	React.useEffect(() => {
+		let active = true;
+		let timeoutId: NodeJS.Timeout;
+		let retryCount = 0;
+		const maxRetries = 5;
+		const ocrApiUrl = process.env.NEXT_PUBLIC_OCR_API_URL;
+		if (!ocrApiUrl) return;
+
+		const pingOcr = async () => {
+			try {
+				const controller = new AbortController();
+				const id = setTimeout(() => controller.abort(), 5000);
+				const res = await fetch(ocrApiUrl, { signal: controller.signal });
+				clearTimeout(id);
+				
+				if (res.ok && active) {
+					setIsOcrReady(true);
+					return;
+				}
+			} catch (e) {
+				console.log(`OCR ping attempt ${retryCount + 1} failed:`, e);
+			}
+
+			if (active && retryCount < maxRetries) {
+				retryCount++;
+				timeoutId = setTimeout(pingOcr, 5000);
+			}
+		};
+
+		// Start first ping after 1.5 seconds to avoid competing with Google Sheets initial sync
+		timeoutId = setTimeout(pingOcr, 1500);
+
+		return () => {
+			active = false;
+			clearTimeout(timeoutId);
+		};
+	}, []);
 
 	React.useEffect(() => {
 		if (supabaseUser) {
@@ -705,10 +782,10 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		try {
 			const isInitialized = initializedMonthsRef.current[currentMonth];
 			if (!isInitialized) {
-				const internalSheetId = await ensureAndGetSheetId(activeSheetId, currentMonth, activeToken, handleAuthError);
+				const { sheetId: internalSheetId } = await ensureAndGetSheetId(activeSheetId, currentMonth, activeToken, handleAuthError);
 				await initializeSheetFormatting(activeSheetId, activeToken, currentMonth, internalSheetId, customFields);
 				await handleInitialBalanceCarryForward(activeSheetId, currentMonth, activeToken, t("initialBalance"), t("fromPreviousMonth"));
-				await cleanupDuplicateInitialBalances(activeSheetId, currentMonth, activeToken);
+				await cleanupDuplicateInitialBalances(activeSheetId, currentMonth, activeToken, undefined, internalSheetId);
 				initializedMonthsRef.current[currentMonth] = true;
 			}
 			const values = headers.map((h) => {
@@ -754,7 +831,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		handleSetInitialBalance, handleSyncPreviousBalance,
 		handleGoogleLogin, handleMonthChange, resetToCurrentMonth, handleSubmit,
 		isIntegrating,
-		supabaseUser, isGoogleConnected, googleEmail,
+		supabaseUser, isGoogleConnected, googleEmail, isOcrReady,
 		exportToCSV, exportToGoogleSheets,
 		isAddToHomeOpen, setIsAddToHomeOpen, deferredPrompt, isInstallable, triggerInstall, isStandaloneMode,
 		translateHeader: (header: string) => {

@@ -96,6 +96,7 @@ interface FormViewProps {
 	ocrLoading: boolean;
 	ocrMessage: string;
 	onOcrClick: () => void;
+	isOcrReady?: boolean;
 
 	// PWA Props
 	isAddToHomeOpen: boolean;
@@ -651,7 +652,7 @@ export function FormView(props: FormViewProps) {
 					)}
 					
 					{(() => {
-						const isOcrDisabled = props.ocrLoading || isInteractionDisabled || (!props.supabaseUser && !props.user && !props.isDemoMode);
+						const isOcrDisabled = props.ocrLoading || props.isOcrReady === false || isInteractionDisabled || (!props.supabaseUser && !props.user && !props.isDemoMode);
 						
 						return (props.supabaseUser || props.user || props.isDemoMode) ? (
 							<div className="flex items-center gap-3 mt-4 w-full">
