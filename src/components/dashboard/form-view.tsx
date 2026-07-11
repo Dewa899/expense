@@ -386,7 +386,11 @@ export function FormView(props: FormViewProps) {
 				togglePrivacy={togglePrivacy}
 				isSyncing={isSyncing}
 				formatCurrency={props.formatCurrency}
-				totalAmount={props.totalAmount}
+				totalAmount={
+					activePocket.id === "net_worth" 
+						? props.totalAmount 
+						: props.getPocketBalance(activePocket)
+				}
 				transactions={props.transactions}
 				variant="form"
 				onSettingsClick={() => setIsDashboardSettingsOpen(true)}

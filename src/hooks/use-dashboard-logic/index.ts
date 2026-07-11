@@ -713,6 +713,10 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					setSupabaseUser(null);
 					setIsGoogleConnected(false);
 					setGoogleEmail("");
+					
+					if (isDemoMode) {
+						return;
+					}
 
 					const savedUser = localStorage.getItem("googleUser");
 					if (!savedUser) {

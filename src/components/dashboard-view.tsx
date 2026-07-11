@@ -49,7 +49,9 @@ export function DashboardView({
 	// In demo mode, overlay the in-memory data on top of the hook's state
 	const transactions = isDemoMode ? demoTransactions : logic.transactions;
 	const categories = isDemoMode ? [...demoCategories, ...logic.categories.filter(c => !demoCategories.includes(c))] : logic.categories;
-	const totalAmount = logic.totalAmount;
+	const totalAmount = isDemoMode
+		? transactions.reduce((sum, t) => sum + t.amount, 0)
+		: logic.totalAmount;
 	
 	// OCR States
 	const ocrInputRef = React.useRef<HTMLInputElement>(null);
