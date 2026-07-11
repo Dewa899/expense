@@ -1132,6 +1132,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				const hL = h.toLowerCase();
 				if (hL.includes("tanggal") || hL.includes("date") || hL.includes("catatan") || hL.includes("note") || hL.includes("pocket") || hL.includes("kantong")) return false;
 				const customField = customFields.find(f => f.name.toLowerCase() === hL);
+				if (!customField && !CORE_HEADERS_DUAL.includes(h)) return false;
 				if (customField && !customField.required) return false;
 				return !activeFormData[h];
 			});
@@ -1180,6 +1181,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				const hL = h.toLowerCase();
 				if (hL.includes("tanggal") || hL.includes("date") || hL.includes("catatan") || hL.includes("note") || hL.includes("pocket") || hL.includes("kantong")) return false;
 				const customField = customFields.find(f => f.name.toLowerCase() === hL);
+				if (!customField && !CORE_HEADERS_DUAL.includes(h)) return false;
 				if (customField && !customField.required) return false;
 				return !activeFormData[h];
 			});
@@ -1269,6 +1271,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			const hL = h.toLowerCase();
 			if (hL.includes("tanggal") || hL.includes("date") || hL.includes("catatan") || hL.includes("note") || hL.includes("pocket") || hL.includes("kantong")) return false;
 			const customField = customFields.find(f => f.name.toLowerCase() === hL);
+			if (!customField && !CORE_HEADERS_DUAL.includes(h)) return false;
 			if (customField && !customField.required) return false;
 			return !activeFormData[h];
 		});

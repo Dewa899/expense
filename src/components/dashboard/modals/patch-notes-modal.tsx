@@ -32,6 +32,32 @@ interface UpdateItem {
 
 const UPDATES: UpdateItem[] = [
 	{
+		version: "v3.0.0",
+		type: "major",
+		date: { en: "Sat, July 11, 2026", id: "Sabtu, 11 Juli 2026" },
+		time: "14:30",
+		title: {
+			en: "Playwright E2E Test Suite & Schema-Agnostic Validation Fix",
+			id: "Suite Pengujian E2E Playwright & Perbaikan Validasi Skema-Agnostik"
+		},
+		description: {
+			en: "Introduced a comprehensive Playwright-based end-to-end integration test suite verifying all dashboard components, and resolved a validation bug where legacy/untracked Google Sheet columns caused form submission failures.",
+			id: "Memperkenalkan suite pengujian integrasi end-to-end berbasis Playwright untuk memverifikasi seluruh komponen dashboard, serta memperbaiki bug validasi di mana kolom Google Sheet lama/tidak terlacak menyebabkan kegagalan pengiriman formulir."
+		},
+		details: [
+			{
+				type: "bugfix",
+				title: { en: "Untracked Column Validation Fix", id: "Perbaikan Validasi Kolom Tidak Terlacak" },
+				desc: { en: "Ignored custom columns during form validation if they are from legacy Google Sheet structures and not active in the database definitions, resolving submission blocks.", id: "Mengabaikan kolom kustom selama validasi formulir jika berasal dari struktur Google Sheet lama dan tidak aktif di definisi database, menyelesaikan hambatan pengiriman." }
+			},
+			{
+				type: "feature",
+				title: { en: "Playwright E2E Integration Suite", id: "Suite Integrasi E2E Playwright" },
+				desc: { en: "Implemented a robust, multi-language automated test suite covering Onboarding, authentication, pocket/budget management, auto-transactions, custom fields, and OCR scanner portals.", id: "Mengimplementasikan suite pengujian otomatis multi-bahasa yang tangguh mencakup Onboarding, autentikasi, manajemen saku/budget, transaksi otomatis, kolom kustom, dan portal pemindai OCR." }
+			}
+		]
+	},
+	{
 		version: "v2.2.1",
 		type: "bugfix",
 		date: { en: "Sat, July 11, 2026", id: "Sabtu, 11 Juli 2026" },
