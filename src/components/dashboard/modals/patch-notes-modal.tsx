@@ -32,6 +32,32 @@ interface UpdateItem {
 
 const UPDATES: UpdateItem[] = [
 	{
+		version: "v2.2.1",
+		type: "bugfix",
+		date: { en: "Sat, July 11, 2026", id: "Sabtu, 11 Juli 2026" },
+		time: "13:20",
+		title: {
+			en: "Login Loop Fix & Smooth Supabase OAuth Loading",
+			id: "Perbaikan Loop Login & Loading Supabase OAuth Mulus"
+		},
+		description: {
+			en: "Fixed login redirection loops caused by stale local storage, and added a clean loading overlay during Supabase OAuth state initialization for a smoother user experience.",
+			id: "Memperbaiki loop pengalihan login yang disebabkan oleh data local storage lama, serta menambahkan overlay pemuatan selama inisialisasi status Supabase OAuth untuk pengalaman pengguna yang lebih mulus."
+		},
+		details: [
+			{
+				type: "bugfix",
+				title: { en: "OAuth Login Loop Fix", id: "Perbaikan Loop Login OAuth" },
+				desc: { en: "Resolved an issue where having a saved spreadsheet ID without a valid user token caused infinite redirection loops between the home page and login page.", id: "Menyelesaikan masalah di mana ID spreadsheet yang tersimpan tanpa token pengguna yang valid menyebabkan pengulangan pengalihan tanpa henti antara halaman utama dan login." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Smooth Supabase OAuth loading", id: "Loading Supabase OAuth Mulus" },
+				desc: { en: "Integrated the full-screen synchronizing overlay during Supabase OAuth session load and initial data-fetching state instead of displaying a disabled form layout.", id: "Mengintegrasikan overlay penyelarasan layar penuh selama pemuatan sesi Supabase OAuth dan status penarikan data awal daripada menampilkan tata letak formulir dinonaktifkan." }
+			}
+		]
+	},
+	{
 		version: "v2.2.0",
 		type: "minor",
 		date: { en: "Fri, July 3, 2026", id: "Jumat, 3 Juli 2026" },

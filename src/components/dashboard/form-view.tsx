@@ -109,6 +109,7 @@ interface FormViewProps {
 	ocrLoading: boolean;
 	ocrMessage: string;
 	onOcrClick: () => void;
+	isOcrReady?: boolean;
 
 	// Pocket Props
 	pockets: PocketDef[];
@@ -793,7 +794,7 @@ export function FormView(props: FormViewProps) {
 					)}
 					
 					{(() => {
-						const isOcrDisabled = props.ocrLoading || isInteractionDisabled || (!props.supabaseUser && !props.user && !props.isDemoMode);
+						const isOcrDisabled = props.ocrLoading || props.isOcrReady === false || isInteractionDisabled || (!props.supabaseUser && !props.user && !props.isDemoMode);
 						
 						return (props.supabaseUser || props.user || props.isDemoMode) ? (
 							<div className="flex flex-col items-center w-full gap-2">

@@ -390,15 +390,22 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack, mode = "logi
 			<StatusModal 
 				state={statusModal}
 				onClose={() => setStatusModal(prev => ({ ...prev, isOpen: false }))}
-				onReportBug={(title, desc) => {
-					setSupportData({
-						category: "bug",
-						email: email || "",
-						title: `[BUG] ${title}`,
-						message: `User encountered error during login/recovery:\n\nError Title: ${title}\nError Message: ${desc}`
-					});
-					setIsSupportOpen(true);
-				}}
+				onReportBug={(statusModal.description?.toLowerCase().includes("credential") || 
+					statusModal.description?.toLowerCase().includes("invalid") || 
+					statusModal.description?.toLowerCase().includes("not found") || 
+					statusModal.description?.toLowerCase().includes("password") || 
+					statusModal.description?.toLowerCase().includes("email") ||
+					statusModal.description?.toLowerCase().includes("kredensial") || 
+					statusModal.description?.toLowerCase().includes("sandi") ||
+					statusModal.description?.toLowerCase().includes("tidak ditemukan")) ? undefined : (title, desc) => {
+						setSupportData({
+							category: "bug",
+							email: email || "",
+							title: `[BUG] ${title}`,
+							message: `User encountered error during login/recovery:\n\nError Title: ${title}\nError Message: ${desc}`
+						});
+						setIsSupportOpen(true);
+					}}
 			/>
 
 			<SupportModal 

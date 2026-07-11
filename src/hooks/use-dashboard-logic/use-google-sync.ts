@@ -113,8 +113,8 @@ export function useGoogleSync({
 		}
 	}, [t, setStatusModal]);
 
-	const fetchSheetData = React.useCallback(async (sheetId: string, token: string, sheetName: string) => {
-		if (!sheetId || !token) return;
+	const fetchSheetData = React.useCallback(async (sheetId: string, token: string, sheetName: string): Promise<any[][] | null> => {
+		if (!sheetId || !token) return null;
 		console.log("Fetching sheet data for:", sheetName);
 		try {
 			setLoading(true);
@@ -122,7 +122,7 @@ export function useGoogleSync({
 			const data = await response.json();
 			if (response.status === 401 || data.error?.code === 401) {
 				handleAuthError();
-				return;
+				return null;
 			}
 			if (data.values && data.values.length > 0) {
 				const fetchedHeaders = data.values[0].slice(0, 8);
@@ -183,14 +183,17 @@ export function useGoogleSync({
 				});
 				setCustomFields(discoveredFields);
 				localStorage.setItem("customFieldDefs", JSON.stringify(discoveredFields));
+				return data.values;
 			} else { 
 				setHeaders([...CORE_HEADERS_DUAL, ...customFields.map(f => f.name)]);
 				setTotalAmount(0); 
 				setTransactions([]); 
+				return [];
 			}
 		} catch (error) { 
 			console.error("Fetch Error:", error);
 			setHeaders([...CORE_HEADERS_DUAL, ...customFields.map(f => f.name)]);
+			return null;
 		} finally { 
 			setLoading(false); 
 		}
@@ -226,11 +229,11 @@ export function useGoogleSync({
 
 			const sheetName = getCurrentMonthSheetName();
 			setStatusModal(prev => ({ ...prev, description: `Setting up sheet: ${sheetName}...` }));
-			const internalSheetId = await ensureAndGetSheetId(spreadsheetId, sheetName, token, handleAuthError);
+			const { sheetId: internalSheetId, availableMonths } = await ensureAndGetSheetId(spreadsheetId, sheetName, token, handleAuthError);
 
 			await initializeSheetFormatting(spreadsheetId, token, sheetName, internalSheetId, customFields);
 			await handleInitialBalanceCarryForward(spreadsheetId, sheetName, token, t("initialBalance"), t("fromPreviousMonth"));
-			await cleanupDuplicateInitialBalances(spreadsheetId, sheetName, token);
+			await cleanupDuplicateInitialBalances(spreadsheetId, sheetName, token, undefined, internalSheetId);
 			initializedMonthsRef.current[sheetName] = true;
 
 			let profile = { name: "Google User", email: "", photo: "" };
@@ -250,7 +253,7 @@ export function useGoogleSync({
 			setSelectedMonth(sheetName);
 			
 			await fetchSheetData(spreadsheetId, token, sheetName);
-			await fetchAvailableMonths(spreadsheetId, token);
+			setAvailableMonths(availableMonths);
 
 			setStatusModal({ 
 				isOpen: true, 
