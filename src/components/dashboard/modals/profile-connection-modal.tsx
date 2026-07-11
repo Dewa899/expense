@@ -41,6 +41,10 @@ export function ProfileConnectionModal({
 
 	const handleLogout = async () => {
 		await supabase.auth.signOut();
+		localStorage.removeItem("googleUser");
+		localStorage.removeItem("sheetId");
+		localStorage.removeItem("customFieldDefs");
+		localStorage.removeItem("customChartConfigs");
 		onOpenChange(false);
 		window.location.reload();
 	};
