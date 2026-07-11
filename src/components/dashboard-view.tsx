@@ -207,6 +207,9 @@ export function DashboardView({
 					localStorage.removeItem("sheetId");
 					localStorage.removeItem("customFieldDefs");
 					localStorage.removeItem("customChartConfigs");
+					localStorage.removeItem("customPockets");
+					localStorage.removeItem("customCategories");
+					localStorage.removeItem("recurringTemplates");
 					window.location.reload();
 				}}
 			/>

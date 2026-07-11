@@ -45,6 +45,9 @@ export function ProfileConnectionModal({
 		localStorage.removeItem("sheetId");
 		localStorage.removeItem("customFieldDefs");
 		localStorage.removeItem("customChartConfigs");
+		localStorage.removeItem("customPockets");
+		localStorage.removeItem("customCategories");
+		localStorage.removeItem("recurringTemplates");
 		onOpenChange(false);
 		window.location.reload();
 	};

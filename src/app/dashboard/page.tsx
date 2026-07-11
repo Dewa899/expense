@@ -84,6 +84,11 @@ export default function DashboardLandingPage() {
 								}
 								localStorage.removeItem("googleUser");
 								localStorage.removeItem("sheetId");
+								localStorage.removeItem("customFieldDefs");
+								localStorage.removeItem("customChartConfigs");
+								localStorage.removeItem("customPockets");
+								localStorage.removeItem("customCategories");
+								localStorage.removeItem("recurringTemplates");
 								setIsDemoConfirmOpen(false);
 								enterDemo();
 								router.push("/");
