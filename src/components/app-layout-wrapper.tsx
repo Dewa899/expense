@@ -4,7 +4,7 @@ import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/components/language-provider";
-import { useDashboardLogic } from "@/hooks/use-dashboard-logic";
+import { useDashboard } from "@/components/dashboard-context";
 import { useDemo } from "@/components/demo-context";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, HelpCircle, Info, Languages, MessageSquare, Moon, Sun } from "lucide-react";
@@ -16,7 +16,7 @@ import { PatchNotesModal } from "@/components/dashboard/modals/patch-notes-modal
 export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();
 	const router = useRouter();
-	const logic = useDashboardLogic();
+	const logic = useDashboard();
 	const { isDemoMode } = useDemo();
 	const { theme, setTheme } = useTheme();
 	const { language, setLanguage } = useLanguage();

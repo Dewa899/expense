@@ -3,7 +3,7 @@
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useDashboardLogic } from "@/hooks/use-dashboard-logic";
+import { useDashboard } from "@/components/dashboard-context";
 import { FormView } from "./dashboard/form-view";
 import { StatusModal } from "./dashboard/modals/status-modal";
 import { DisconnectModal } from "./dashboard/modals/disconnect-modal";
@@ -38,11 +38,7 @@ export function DashboardView({
 	const { isDemoMode, demoTransactions, demoCategories, exitDemo, addDemoTransaction } = useDemo();
 	const router = useRouter();
 	
-	const logic = useDashboardLogic(
-		isDemoMode
-			? { isDemoMode: true, demoTransactions, addDemoTransaction }
-			: {}
-	);
+	const logic = useDashboard();
 	
 	const isLoggedIn = !!logic.supabaseUser || !!logic.user;
 	

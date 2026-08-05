@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useDashboardLogic } from "@/hooks/use-dashboard-logic";
+import { useDashboard } from "@/components/dashboard-context";
 import { AnalyticsView } from "@/components/dashboard/analytics-view";
 import { AppLayoutWrapper } from "@/components/app-layout-wrapper";
 import { useDemo } from "@/components/demo-context";
@@ -17,11 +17,7 @@ function DetailPageContent() {
 
 	const { isDemoMode, demoTransactions, demoCategories, addDemoTransaction } = useDemo();
 
-	const logic = useDashboardLogic(
-		isDemoMode
-			? { isDemoMode: true, demoTransactions, addDemoTransaction }
-			: {}
-	);
+	const logic = useDashboard();
 
 	const transactions = isDemoMode ? demoTransactions : logic.transactions;
 

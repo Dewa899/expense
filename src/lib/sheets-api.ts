@@ -198,6 +198,7 @@ export async function fetchUserProfile(token: string): Promise<UserProfile> {
 export interface SheetInitResult {
 	sheetId: number;
 	availableMonths: string[];
+	isNewSheet?: boolean;
 }
 
 export async function ensureAndGetSheetId(
@@ -219,8 +220,10 @@ export async function ensureAndGetSheetId(
 	const availableMonths = metadata.sheets?.map((s: any) => s.properties?.title).filter(Boolean) || [];
 	let existingSheet = metadata.sheets?.find((s: any) => s.properties?.title === sheetName);
 	let targetSheetId: number;
+	let isNewSheet = false;
 
 	if (!existingSheet) {
+		isNewSheet = true;
 		const createRes = await fetch(
 			`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
 			{
@@ -246,7 +249,7 @@ export async function ensureAndGetSheetId(
 			const actuallyExists = fallbackMeta.sheets?.find((s: any) => s.properties?.title === sheetName);
 			if (actuallyExists) {
 				const updatedMonths = fallbackMeta.sheets?.map((s: any) => s.properties?.title).filter(Boolean) || [];
-				return { sheetId: actuallyExists.properties.sheetId, availableMonths: updatedMonths };
+				return { sheetId: actuallyExists.properties.sheetId, availableMonths: updatedMonths, isNewSheet: false };
 			}
 			throw new Error("Unable to create sheet tab: " + (createData.error?.message || "Unknown error"));
 		}
@@ -278,7 +281,7 @@ export async function ensureAndGetSheetId(
 		}
 	}
 
-	return { sheetId: targetSheetId, availableMonths };
+	return { sheetId: targetSheetId, availableMonths, isNewSheet };
 }
 
 export async function initializeSheetFormatting(
@@ -365,26 +368,6 @@ export async function initializeSheetFormatting(
 						}
 					},
 					{
-						addConditionalFormatRule: {
-							rule: {
-								ranges: [
-									{
-										sheetId: internalSheetId,
-										startRowIndex: 1,
-										endRowIndex: 1000,
-										startColumnIndex: 0,
-										endColumnIndex: allHeaders.length
-									}
-								],
-								booleanRule: {
-									condition: { type: "CUSTOM_FORMULA", values: [{ userEnteredValue: "=ISODD(ROW())" }] },
-									format: { backgroundColor: { red: 0.95, green: 0.98, blue: 0.96 } }
-								}
-							},
-							index: 0
-						}
-					},
-					{
 						repeatCell: {
 							range: {
 								sheetId: internalSheetId,
@@ -433,7 +416,7 @@ export async function handleInitialBalanceCarryForward(
 			const currentRes = await fetch(
 				`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
 					currentMonth
-				)}!A:H`,
+				)}!A1:H100`,
 				{ headers: { Authorization: `Bearer ${token}` } }
 			);
 			const currentData = await currentRes.json();
@@ -466,7 +449,7 @@ export async function handleInitialBalanceCarryForward(
 		const res = await fetch(
 			`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
 				prevMonthName
-			)}!A:H`,
+			)}!A1:H100`,
 			{ headers: { Authorization: `Bearer ${token}` } }
 		);
 		const data = await res.json();
@@ -539,7 +522,7 @@ export async function cleanupDuplicateInitialBalances(
 			const res = await fetch(
 				`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
 					sheetName
-				)}!A:H`,
+				)}!A1:H100`,
 				{ headers: { Authorization: `Bearer ${token}` } }
 			);
 			const data = await res.json();
@@ -689,7 +672,7 @@ export async function syncPreviousBalanceInSheets(
 	const res = await fetch(
 		`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
 			prevMonthName
-		)}!A:H`,
+		)}!A1:H100`,
 		{ headers: { Authorization: `Bearer ${token}` } }
 	);
 	const data = await res.json();
@@ -734,7 +717,7 @@ export async function syncPreviousBalanceInSheets(
 	const currentRes = await fetch(
 		`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
 			selectedMonth
-		)}!A:H`,
+		)}!A1:H100`,
 		{ headers: { Authorization: `Bearer ${token}` } }
 	);
 	const currentData = await currentRes.json();

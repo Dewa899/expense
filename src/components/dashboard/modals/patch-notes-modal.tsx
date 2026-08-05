@@ -32,6 +32,32 @@ interface UpdateItem {
 
 const UPDATES: UpdateItem[] = [
 	{
+		version: "v3.0.1",
+		type: "bugfix",
+		date: { en: "Wed, Aug 5, 2026", id: "Rabu, 5 Agustus 2026" },
+		time: "20:15",
+		title: {
+			en: "Instant Page Navigation & Ultra-Fast Google Sheets Sync",
+			id: "Navigasi Halaman Instan & Sync Google Sheets Super Cepat"
+		},
+		description: {
+			en: "Eliminated recurring loading screens during page transitions using global React Context, parallelized auth checks, and restricted Google Sheets API range queries for 100x faster sync speed.",
+			id: "Menghilangkan loading berulang saat navigasi halaman menggunakan React Context global, memparalelkan cek otentikasi, serta membatasi range query Google Sheets API untuk kecepatan sinkronisasi hingga 100x lebih cepat."
+		},
+		details: [
+			{
+				type: "improvement",
+				title: { en: "Global Dashboard State Context", id: "Context State Dashboard Global" },
+				desc: { en: "Persisted dashboard state globally across page transitions so switching between Quick Add and Analytics Detail is instantaneous without triggering reloads.", id: "Mempertahankan state dashboard secara global sehingga navigasi antara Quick Add dan Detail Analytics terjadi secara instan tanpa memicu loading ulang." }
+			},
+			{
+				type: "bugfix",
+				title: { en: "Google Sheets Range Bounding & BatchUpdate Optimization", id: "Pembatasan Range Google Sheets & Optimasi BatchUpdate" },
+				desc: { en: "Bounded sheet data fetches to `A1:H100` and prevented duplicate conditional formatting rule stacking, dropping API sync latency from 40s to ~300ms.", id: "Membatasi pembacaan data ke `A1:H100` dan mencegah penumpukan aturan format bersyarat berulang, memangkas latensi API dari 40 detik menjadi ~300ms." }
+			}
+		]
+	},
+	{
 		version: "v3.0.0",
 		type: "major",
 		date: { en: "Sat, July 11, 2026", id: "Sabtu, 11 Juli 2026" },

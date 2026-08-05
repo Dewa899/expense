@@ -80,6 +80,7 @@ export const metadata: Metadata = {
 };
 
 import { DemoProvider } from "@/components/demo-context";
+import { DashboardProvider } from "@/components/dashboard-context";
 
 export default function RootLayout({
   children,
@@ -111,7 +112,9 @@ export default function RootLayout({
         >
           <LanguageProvider>
             <DemoProvider>
-              {children}
+              <DashboardProvider>
+                {children}
+              </DashboardProvider>
             </DemoProvider>
           </LanguageProvider>
         </ThemeProvider>

@@ -703,8 +703,10 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					}));
 					setSupabaseUser(session.user);
 					try {
-						await fetchSupabaseUserData(session.user.id);
-						await checkGoogleConnectionStatus(session.access_token);
+						await Promise.all([
+							fetchSupabaseUserData(session.user.id),
+							checkGoogleConnectionStatus(session.access_token)
+						]);
 					} finally {
 						setIsIntegrating(false);
 						setLoading(false);
@@ -792,22 +794,45 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 
 									const currentValues = await fetchSheetData(savedSheetId, parsedUser.accessToken, current);
 
-									const carried = await handleInitialBalanceCarryForward(
-										savedSheetId,
-										current,
-										parsedUser.accessToken,
-										t("initialBalance"),
-										t("fromPreviousMonth"),
-										currentValues || undefined
-									);
+									let hasInitialBalance = false;
+									let initialBalanceCount = 0;
+									if (currentValues && currentValues.length > 0) {
+										const headers = currentValues[0];
+										const catIdx = headers.findIndex(
+											(h: string) => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category")
+										);
+										if (catIdx !== -1) {
+											currentValues.slice(1).forEach((row: any) => {
+												if (row[catIdx] === "Initial Balance") {
+													hasInitialBalance = true;
+													initialBalanceCount++;
+												}
+											});
+										}
+									}
 
-									const duplicatesCleaned = await cleanupDuplicateInitialBalances(
-										savedSheetId,
-										current,
-										parsedUser.accessToken,
-										currentValues || undefined,
-										internalSheetId
-									);
+									let carried = false;
+									if (!hasInitialBalance) {
+										carried = await handleInitialBalanceCarryForward(
+											savedSheetId,
+											current,
+											parsedUser.accessToken,
+											t("initialBalance"),
+											t("fromPreviousMonth"),
+											currentValues || undefined
+										);
+									}
+
+									let duplicatesCleaned = false;
+									if (initialBalanceCount > 1) {
+										duplicatesCleaned = await cleanupDuplicateInitialBalances(
+											savedSheetId,
+											current,
+											parsedUser.accessToken,
+											currentValues || undefined,
+											internalSheetId
+										);
+									}
 
 									initializedMonthsRef.current[current] = true;
 
