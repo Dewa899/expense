@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion, useMotionValue, useTransform, AnimatePresence, animate } from "framer-motion";
-import { Wallet, Settings, ChevronLeft, ChevronRight, Eye, EyeOff, ArrowLeftRight } from "lucide-react";
+import { Wallet, Settings, ChevronLeft, ChevronRight, Eye, EyeOff, ArrowLeftRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PocketDef } from "@/hooks/use-dashboard-logic";
 import { useLanguage } from "@/components/language-provider";
@@ -217,8 +217,9 @@ export function PocketCarouselCard({
 							<div>
 								<div className="flex justify-between items-start">
 									<div className="flex flex-col max-w-[70%]">
-										<span className="text-[9px] font-black uppercase tracking-wider opacity-60">
+										<span className="text-[9px] font-black uppercase tracking-wider opacity-60 flex items-center gap-1.5">
 											{activePocket.id === "net_worth" ? (language === "en" ? "Total Balance" : "Total Saldo") : "Pocket"}
+											{isSyncing && <Loader2 size={10} className="animate-spin text-emerald-500 shrink-0" />}
 										</span>
 										<h4 className="text-sm font-black uppercase tracking-wide flex items-center gap-1.5 mt-0.5 truncate text-ellipsis overflow-hidden whitespace-nowrap">
 											<Wallet size={14} className="opacity-70 shrink-0" />

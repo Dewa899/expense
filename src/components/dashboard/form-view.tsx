@@ -808,11 +808,9 @@ export function FormView(props: FormViewProps) {
 										onClick={handleLocalSubmit} 
 										className={`flex-grow h-14 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black text-lg rounded-2xl shadow-lg ${themeColors.buttonShadow} cursor-pointer border-none transition-all active:scale-[0.98]`}
 									>
-										{props.loading 
-											? "..." 
-											: (activePocket && activePocket.id !== "net_worth")
-												? (language === "en" ? `Add to ${activePocket.name}` : `Catat ke ${activePocket.name}`)
-												: t("addExpense")}
+										{(activePocket && activePocket.id !== "net_worth")
+											? (language === "en" ? `Add to ${activePocket.name}` : `Catat ke ${activePocket.name}`)
+											: t("addExpense")}
 									</Button>
 									<Button
 										type="button"

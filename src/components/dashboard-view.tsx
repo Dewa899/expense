@@ -10,6 +10,7 @@ import { DisconnectModal } from "./dashboard/modals/disconnect-modal";
 import { DeleteFieldModal } from "./dashboard/modals/delete-field-modal";
 import { OnboardingTutorial } from "./dashboard/onboarding-tutorial";
 import { IntegrationLoading } from "./dashboard/integration-loading";
+import { ToastNotification } from "./ui/toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Camera, FlaskConical, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -273,6 +274,7 @@ export function DashboardView({
 					</Button>
 				</DialogContent>
 			</Dialog>
+			<ToastNotification toast={logic.toastState} onClose={logic.hideToast} />
 		</div>
 	);
 }

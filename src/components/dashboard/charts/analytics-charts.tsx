@@ -66,12 +66,24 @@ interface AnalyticsChartsProps {
 	getCustomChartData: (fieldName: string, type: "income" | "expense") => any[];
 }
 
-const CustomTooltip = ({ active, payload, formatCurrency }: any) => {
+const CustomTooltip = ({ active, payload, label, formatCurrency }: any) => {
 	if (active && payload && payload.length) {
 		return (
-			<div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-3 border border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-xl">
-				<p className="text-[10px] uppercase font-bold text-zinc-400 mb-1">{payload[0].name}</p>
-				<p className="text-sm font-black text-zinc-900 dark:text-zinc-100">{formatCurrency(payload[0].value)}</p>
+			<div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-3 border border-zinc-200/50 dark:border-zinc-800 rounded-2xl shadow-xl space-y-1.5 min-w-[140px]">
+				{label && <p className="text-[10px] uppercase font-bold text-zinc-400 border-b border-zinc-100 dark:border-zinc-800/80 pb-1">{label}</p>}
+				{payload.map((item: any, idx: number) => {
+					const color = item.stroke && item.stroke !== "#fff" && item.stroke !== "#ffffff" ? item.stroke : (item.color || item.fill || "#10b981");
+					const name = item.name || item.dataKey || "Total";
+					return (
+						<div key={idx} className="flex items-center justify-between gap-3 text-xs">
+							<div className="flex items-center gap-1.5">
+								<span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+								<span className="font-bold text-zinc-600 dark:text-zinc-400 text-[10px] uppercase">{name}</span>
+							</div>
+							<span className="font-black text-zinc-900 dark:text-zinc-100">{formatCurrency(Math.abs(item.value))}</span>
+						</div>
+					);
+				})}
 			</div>
 		);
 	}

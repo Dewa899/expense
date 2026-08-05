@@ -26,6 +26,15 @@ export function StatusModal({ state, onClose, onGoogleLogin, onReportBug }: Stat
 	const isSyncSuccess = state.type === "success" && state.title === t("syncSuccessTitle");
 	const isAuthError = state.title === t("sessionExpiredTitle");
 
+	React.useEffect(() => {
+		if (state.isOpen && state.type === "success") {
+			const timer = setTimeout(() => {
+				onClose();
+			}, 1500);
+			return () => clearTimeout(timer);
+		}
+	}, [state.isOpen, state.type, onClose]);
+
 	return (
 		<Dialog open={state.isOpen} onOpenChange={(open) => {
 			if (!open && isLoading) return; // Prevent closing if loading

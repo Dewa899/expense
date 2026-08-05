@@ -82,6 +82,18 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		isOpen: false, type: null, title: "", description: "",
 	});
 
+	const [toastState, setToastState] = React.useState<{ isOpen: boolean; message: string; type?: "success" | "error" | "info" }>({
+		isOpen: false, message: "", type: "success"
+	});
+
+	const showToast = React.useCallback((message: string, type: "success" | "error" | "info" = "success") => {
+		setToastState({ isOpen: true, message, type });
+	}, []);
+
+	const hideToast = React.useCallback(() => {
+		setToastState(prev => ({ ...prev, isOpen: false }));
+	}, []);
+
 	// Pockets and Recurring Templates States
 	const [pockets, setPockets] = React.useState<PocketDef[]>(() => {
 		if (typeof window !== "undefined") {
@@ -1197,7 +1209,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				raw: customFieldValues,
 			});
 			setFormData({});
-			setStatusModal({ isOpen: true, type: "success", title: t("successTitle"), description: t("successDesc") });
+			showToast(language === "en" ? "Transaction Saved!" : "Transaksi Berhasil Disimpan!", "success");
 			return;
 		}
 
@@ -1216,70 +1228,71 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				return; 
 			}
 
-			setLoading(true);
-			try {
-				const amountHeader = headers.find(h => h.toLowerCase().includes("jumlah") || h.toLowerCase().includes("amount")) || "";
-				const typeHeader = headers.find(h => h.toLowerCase().includes("tipe") || h.toLowerCase().includes("type")) || "";
-				const nameHeader = headers.find(h => h.toLowerCase().includes("nama") || h.toLowerCase().includes("name")) || "";
-				const catHeader = headers.find(h => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category")) || "";
-				const noteHeader = headers.find(h => h.toLowerCase().includes("catatan") || h.toLowerCase().includes("note")) || "";
-				const pocketHeader = headers.find(h => h.toLowerCase().includes("pocket") || h.toLowerCase().includes("kantong")) || "";
-				
-				const typeVal = activeFormData[typeHeader] || "";
-				const isExpense = typeVal.toLowerCase().includes("expense") || typeVal.toLowerCase().includes("pengeluaran");
-				const rawAmt = cleanNumber(stripRupiah(activeFormData[amountHeader] || "0"));
+			// Optimistic UX: Reset form immediately and display toast notification
+			setFormData({});
+			showToast(language === "en" ? "Transaction Saved!" : "Transaksi Berhasil Disimpan!", "success");
 
-				const customFieldValues: Record<string, string> = {};
-				customFields.forEach(f => {
-					const headerName = headers.find(h => h.toLowerCase() === f.name.toLowerCase());
-					if (headerName) {
-						customFieldValues[f.name] = activeFormData[headerName] || "";
+			(async () => {
+				try {
+					const amountHeader = headers.find(h => h.toLowerCase().includes("jumlah") || h.toLowerCase().includes("amount")) || "";
+					const typeHeader = headers.find(h => h.toLowerCase().includes("tipe") || h.toLowerCase().includes("type")) || "";
+					const nameHeader = headers.find(h => h.toLowerCase().includes("nama") || h.toLowerCase().includes("name")) || "";
+					const catHeader = headers.find(h => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category")) || "";
+					const noteHeader = headers.find(h => h.toLowerCase().includes("catatan") || h.toLowerCase().includes("note")) || "";
+					const pocketHeader = headers.find(h => h.toLowerCase().includes("pocket") || h.toLowerCase().includes("kantong")) || "";
+					
+					const typeVal = activeFormData[typeHeader] || "";
+					const isExpense = typeVal.toLowerCase().includes("expense") || typeVal.toLowerCase().includes("pengeluaran");
+					const rawAmt = cleanNumber(stripRupiah(activeFormData[amountHeader] || "0"));
+
+					const customFieldValues: Record<string, string> = {};
+					customFields.forEach(f => {
+						const headerName = headers.find(h => h.toLowerCase() === f.name.toLowerCase());
+						if (headerName) {
+							customFieldValues[f.name] = activeFormData[headerName] || "";
+						}
+					});
+
+					const pocketVal = activeFormData[pocketHeader] || "";
+					const pocketId = pockets.find(p => p.name === pocketVal)?.id || null;
+					const hasMissingPocketId = localStorage.getItem("supabase_missing_pocket_id") === "true";
+
+					const payload: any = {
+						user_id: supabaseUser.id,
+						date: new Date().toISOString(),
+						name: activeFormData[nameHeader] || "",
+						amount: rawAmt,
+						type: isExpense ? "expense" : "income",
+						category: activeFormData[catHeader] || "",
+						note: activeFormData[noteHeader] || "",
+						custom_fields: customFieldValues
+					};
+
+					if (pocketId) {
+						if (!hasMissingPocketId) {
+							payload.pocket_id = pocketId;
+						} else {
+							payload.custom_fields.pocket_id = pocketId;
+						}
 					}
-				});
 
-				const pocketVal = activeFormData[pocketHeader] || "";
-				const pocketId = pockets.find(p => p.name === pocketVal)?.id || null;
-				const hasMissingPocketId = localStorage.getItem("supabase_missing_pocket_id") === "true";
-
-				const payload: any = {
-					user_id: supabaseUser.id,
-					date: new Date().toISOString(),
-					name: activeFormData[nameHeader] || "",
-					amount: rawAmt,
-					type: isExpense ? "expense" : "income",
-					category: activeFormData[catHeader] || "",
-					note: activeFormData[noteHeader] || "",
-					custom_fields: customFieldValues
-				};
-
-				if (pocketId) {
-					if (!hasMissingPocketId) {
-						payload.pocket_id = pocketId;
-					} else {
+					let { error } = await supabase.from("transactions").insert(payload);
+					if (error && error.message.includes("pocket_id")) {
+						localStorage.setItem("supabase_missing_pocket_id", "true");
+						delete payload.pocket_id;
+						if (!payload.custom_fields) payload.custom_fields = {};
 						payload.custom_fields.pocket_id = pocketId;
+						const retryResult = await supabase.from("transactions").insert(payload);
+						error = retryResult.error;
 					}
+
+					if (error) throw error;
+
+					await fetchSupabaseUserData(supabaseUser.id);
+				} catch (error: any) {
+					setStatusModal({ isOpen: true, type: "error", title: "Submission Failed", description: error.message });
 				}
-
-				let { error } = await supabase.from("transactions").insert(payload);
-				if (error && error.message.includes("pocket_id")) {
-					localStorage.setItem("supabase_missing_pocket_id", "true");
-					delete payload.pocket_id;
-					if (!payload.custom_fields) payload.custom_fields = {};
-					payload.custom_fields.pocket_id = pocketId;
-					const retryResult = await supabase.from("transactions").insert(payload);
-					error = retryResult.error;
-				}
-
-				if (error) throw error;
-
-				setFormData({});
-				await fetchSupabaseUserData(supabaseUser.id);
-				setStatusModal({ isOpen: true, type: "success", title: t("successTitle"), description: t("successDesc") });
-			} catch (error: any) {
-				setStatusModal({ isOpen: true, type: "error", title: "Submission Failed", description: error.message });
-			} finally {
-				setLoading(false);
-			}
+			})();
 			return;
 		}
 
@@ -1306,38 +1319,39 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			return; 
 		}
 
-		setLoading(true);
-		try {
-			const isInitialized = initializedMonthsRef.current[currentMonth];
-			if (!isInitialized) {
-				const { sheetId: internalSheetId } = await ensureAndGetSheetId(activeSheetId, currentMonth, activeToken, handleAuthError);
-				await initializeSheetFormatting(activeSheetId, activeToken, currentMonth, internalSheetId, customFields);
-				await handleInitialBalanceCarryForward(activeSheetId, currentMonth, activeToken, t("initialBalance"), t("fromPreviousMonth"));
-				await cleanupDuplicateInitialBalances(activeSheetId, currentMonth, activeToken, undefined, internalSheetId);
-				initializedMonthsRef.current[currentMonth] = true;
-			}
-			const values = headers.map((h) => {
-				const hL = h.toLowerCase();
-				if (hL.includes("tanggal") || hL.includes("date")) return new Date().toLocaleString();
-				let val = activeFormData[h] || "";
-				if (hL.includes("jumlah") || hL.includes("amount")) {
-					val = Math.abs(cleanNumber(stripRupiah(val))).toString();
+		// Optimistic UX: Reset form immediately and display toast notification
+		setFormData({});
+		showToast(language === "en" ? "Transaction Saved!" : "Transaksi Berhasil Disimpan!", "success");
+
+		// Perform API submission and sync in the background without blocking form typing
+		(async () => {
+			try {
+				const isInitialized = initializedMonthsRef.current[currentMonth];
+				if (!isInitialized) {
+					const { sheetId: internalSheetId } = await ensureAndGetSheetId(activeSheetId, currentMonth, activeToken, handleAuthError);
+					await initializeSheetFormatting(activeSheetId, activeToken, currentMonth, internalSheetId, customFields);
+					await handleInitialBalanceCarryForward(activeSheetId, currentMonth, activeToken, t("initialBalance"), t("fromPreviousMonth"));
+					await cleanupDuplicateInitialBalances(activeSheetId, currentMonth, activeToken, undefined, internalSheetId);
+					initializedMonthsRef.current[currentMonth] = true;
 				}
-				return val;
-			});
+				const values = headers.map((h) => {
+					const hL = h.toLowerCase();
+					if (hL.includes("tanggal") || hL.includes("date")) return new Date().toLocaleString();
+					let val = activeFormData[h] || "";
+					if (hL.includes("jumlah") || hL.includes("amount")) {
+						val = Math.abs(cleanNumber(stripRupiah(val))).toString();
+					}
+					return val;
+				});
 
-			await appendRowToSheet(activeSheetId, currentMonth, activeToken, values);
-
-			setFormData({});
-			setSelectedMonth(currentMonth);
-			await fetchSheetData(activeSheetId, activeToken, currentMonth);
-			fetchAvailableMonths(activeSheetId, activeToken);
-			setStatusModal({ isOpen: true, type: "success", title: t("successTitle"), description: t("successDesc") });
-		} catch (error: any) { 
-			setStatusModal({ isOpen: true, type: "error", title: "Submission Failed", description: error.message }); 
-		} finally { 
-			setLoading(false); 
-		}
+				await appendRowToSheet(activeSheetId, currentMonth, activeToken, values);
+				setSelectedMonth(currentMonth);
+				await fetchSheetData(activeSheetId, activeToken, currentMonth);
+				fetchAvailableMonths(activeSheetId, activeToken);
+			} catch (error: any) { 
+				setStatusModal({ isOpen: true, type: "error", title: "Submission Failed", description: error.message }); 
+			}
+		})();
 	};
 
 	return {
@@ -1346,6 +1360,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		availableMonths, selectedMonth, newCategoryInput, setNewCategoryInput,
 		formData, handleInputChange, loading, totalAmount, formatCurrency,
 		user, statusModal, setStatusModal,
+		toastState, showToast, hideToast,
 		isManageFieldsOpen, setIsManageFieldsOpen,
 		newFieldName, setNewFieldName,
 		newFieldType, setNewFieldType,
