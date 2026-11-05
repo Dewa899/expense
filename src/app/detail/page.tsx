@@ -83,7 +83,10 @@ function DetailPageContent() {
 				supabaseUser={logic.supabaseUser}
 				customFields={logic.customFields}
 				customChartConfigs={logic.customChartConfigs}
-				onBack={() => router.push("/")}
+				onBack={() => {
+					logic.resetToCurrentMonth();
+					router.push("/");
+				}}
 				onMonthChange={logic.handleMonthChange}
 				onAddCustomChart={logic.handleAddCustomChart}
 				onDeleteCustomChart={logic.handleDeleteCustomChart}

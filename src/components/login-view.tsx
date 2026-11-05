@@ -88,6 +88,8 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack, mode = "logi
 					password,
 				});
 				if (error) throw error;
+				localStorage.removeItem("googleUser");
+				localStorage.removeItem("sheetId");
 				onLoginSuccess();
 			}
 		} catch (error: any) {
@@ -136,6 +138,8 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack, mode = "logi
 	const handleGoogleLogin = async () => {
 		setLoading(true);
 		try {
+			localStorage.removeItem("googleUser");
+			localStorage.removeItem("sheetId");
 			const { error } = await supabase.auth.signInWithOAuth({
 				provider: 'google',
 				options: {

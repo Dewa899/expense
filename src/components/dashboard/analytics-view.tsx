@@ -258,14 +258,18 @@ export function AnalyticsView({
 
 	const pocketTransactions = React.useMemo(() => {
 		if (activePocket.id === "net_worth") return transactions;
-		return transactions.filter(t => t.pocket === activePocket.name || t.pocket === activePocket.id);
+		return transactions.filter(t => t.pocket === activePocket.name || t.pocket === activePocket.id || (t as any).pocket_id === activePocket.id);
 	}, [transactions, activePocket]);
 
-	const initialBalanceEntry = React.useMemo(() => {
-		return pocketTransactions.find(t => t.category === "Initial Balance");
+	const initialBalanceEntries = React.useMemo(() => {
+		return pocketTransactions.filter(t => t.category === "Initial Balance");
 	}, [pocketTransactions]);
 
-	const startingBalance = initialBalanceEntry ? initialBalanceEntry.amount : 0;
+	const initialBalanceEntry = initialBalanceEntries[0];
+
+	const startingBalance = React.useMemo(() => {
+		return initialBalanceEntries.reduce((sum, t) => sum + t.amount, 0);
+	}, [initialBalanceEntries]);
 
 	// Pocket progression calculation
 	const currentProgress = React.useMemo(() => {

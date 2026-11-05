@@ -114,9 +114,9 @@ export function PocketSelectModal({
 						}[p.color || "emerald"];
 
 						const pBalance = getPocketBalance(p);
-						const pInitial = transactions.find(t => t.category === "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id))?.amount || 0;
-						const pIncome = transactions.filter(t => t.category !== "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-						const pExpense = Math.abs(transactions.filter(t => t.category !== "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
+						const pInitial = transactions.filter(t => t.category === "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id || (t as any).pocket_id === p.id)).reduce((sum, t) => sum + t.amount, 0);
+						const pIncome = transactions.filter(t => t.category !== "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id || (t as any).pocket_id === p.id) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+						const pExpense = Math.abs(transactions.filter(t => t.category !== "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id || (t as any).pocket_id === p.id) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
 
 						return (
 							<button

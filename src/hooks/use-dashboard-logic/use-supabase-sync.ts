@@ -1,6 +1,11 @@
 import * as React from "react";
 import { supabase } from "@/lib/supabase-client";
-import { CORE_HEADERS_DUAL, getCurrentMonthSheetName, getPreviousMonthName } from "@/lib/sheets-api";
+import {
+	CORE_HEADERS_DUAL,
+	getCurrentMonthSheetName,
+	getPreviousMonthName,
+	calculateCarryForwardBalance
+} from "@/lib/sheets-api";
 import { CustomFieldDef, CustomChartConfig, PocketDef } from "./types";
 
 interface UseSupabaseSyncOptions {
@@ -31,6 +36,7 @@ export function useSupabaseSync({
 	setPockets
 }: UseSupabaseSyncOptions) {
 	const [supabaseUser, setSupabaseUser] = React.useState<any>(null);
+	const isSyncingCarryForwardRef = React.useRef(false);
 
 	const fetchSupabaseUserData = React.useCallback(async (userId: string) => {
 		try {
@@ -105,62 +111,124 @@ export function useSupabaseSync({
 			const currentMonthName = getCurrentMonthSheetName();
 			const firstDayOfCurrentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
-			const hasCurrentMonthInitialBalance = currentMonthTxs.some(t => {
-				const isInitialBalance = t.category === "Initial Balance";
-				return isInitialBalance && new Date(t.date) >= firstDayOfCurrentMonth;
-			});
+			if (!isSyncingCarryForwardRef.current) {
+				isSyncingCarryForwardRef.current = true;
+				try {
+					// 1. Deduplicate any multiple "Initial Balance" rows within the same month
+					const initByMonth = new Map<string, any[]>();
+					currentMonthTxs.forEach(tx => {
+						if (tx.category === "Initial Balance") {
+							const mName = new Date(tx.date).toLocaleString("id-ID", { month: "long", year: "numeric" });
+							if (!initByMonth.has(mName)) initByMonth.set(mName, []);
+							initByMonth.get(mName)!.push(tx);
+						}
+					});
 
-			const hasPastTransactions = currentMonthTxs.some(t => new Date(t.date) < firstDayOfCurrentMonth);
+					const idsToDelete: string[] = [];
+					initByMonth.forEach((list) => {
+						if (list.length > 1) {
+							// Keep list[0] (most recently created/updated since ordered by date DESC)
+							list.slice(1).forEach(dup => {
+								if (dup.id) idsToDelete.push(dup.id);
+							});
+						}
+					});
 
-			if (!hasCurrentMonthInitialBalance && hasPastTransactions) {
-				console.log("Auto-carrying forward balance from previous months...");
-				let carryForwardBalance = 0;
-				currentMonthTxs.forEach(t => {
-					if (new Date(t.date) < firstDayOfCurrentMonth) {
-						const isExpense = t.type === "expense" || t.type.toLowerCase().includes("expense") || t.type.toLowerCase().includes("pengeluaran");
-						carryForwardBalance += isExpense ? -Math.abs(t.amount) : Math.abs(t.amount);
+					if (idsToDelete.length > 0) {
+						await supabase.from("transactions").delete().in("id", idsToDelete);
+						currentMonthTxs = currentMonthTxs.filter(tx => !idsToDelete.includes(tx.id));
 					}
-				});
 
-				const prevMonthName = getPreviousMonthName(currentMonthName);
+					// 2. Check and handle current month Initial Balance carry-forward
+					const currentMonthInitTx = currentMonthTxs.find(t => {
+						const txMonth = new Date(t.date).toLocaleString("id-ID", { month: "long", year: "numeric" });
+						return t.category === "Initial Balance" && txMonth === currentMonthName;
+					});
 
-				const { error: insertError } = await supabase.from("transactions").insert({
-					user_id: userId,
-					date: new Date().toISOString(),
-					name: `${t("initialBalance")} (${prevMonthName})`,
-					amount: Math.abs(carryForwardBalance),
-					type: carryForwardBalance >= 0 ? "income" : "expense",
-					category: "Initial Balance",
-					note: t("fromPreviousMonth")
-				});
+					const hasPastTransactions = currentMonthTxs.some(t => {
+						const txMonth = new Date(t.date).toLocaleString("id-ID", { month: "long", year: "numeric" });
+						return txMonth !== currentMonthName && new Date(t.date) < firstDayOfCurrentMonth;
+					});
 
-				if (!insertError) {
-					const { data: updatedTxs } = await supabase
-						.from("transactions")
-						.select("*")
-						.eq("user_id", userId)
-						.order("date", { ascending: false });
+					if (hasPastTransactions) {
+						const carryForwardBalance = calculateCarryForwardBalance(currentMonthTxs, currentMonthName);
+						const prevMonthName = getPreviousMonthName(currentMonthName);
 
-					if (updatedTxs) {
-						currentMonthTxs = updatedTxs;
+						if (!currentMonthInitTx) {
+							console.log("Auto-carrying forward balance from previous months...");
+							const { error: insertError } = await supabase.from("transactions").insert({
+								user_id: userId,
+								date: new Date().toISOString(),
+								name: `${t("initialBalance")} (${prevMonthName})`,
+								amount: Math.abs(carryForwardBalance),
+								type: carryForwardBalance >= 0 ? "income" : "expense",
+								category: "Initial Balance",
+								note: t("fromPreviousMonth")
+							});
+
+							if (!insertError) {
+								const { data: updatedTxs } = await supabase
+									.from("transactions")
+									.select("*")
+									.eq("user_id", userId)
+									.order("date", { ascending: false });
+
+								if (updatedTxs) {
+									currentMonthTxs = updatedTxs;
+								}
+							}
+						} else {
+							const isManual =
+								currentMonthInitTx.note === "Manual Setup" ||
+								(currentMonthInitTx.name && currentMonthInitTx.name.includes("Manual Setup"));
+							const isEx =
+								currentMonthInitTx.type === "expense" ||
+								currentMonthInitTx.type?.toLowerCase().includes("expense") ||
+								currentMonthInitTx.type?.toLowerCase().includes("pengeluaran");
+							const currentSignedAmt = isEx
+								? -Math.abs(Number(currentMonthInitTx.amount) || 0)
+								: Math.abs(Number(currentMonthInitTx.amount) || 0);
+
+							if (!isManual && currentMonthInitTx.id && Math.round(currentSignedAmt) !== Math.round(carryForwardBalance)) {
+								const { error: updateErr } = await supabase
+									.from("transactions")
+									.update({
+										amount: Math.abs(carryForwardBalance),
+										type: carryForwardBalance >= 0 ? "income" : "expense",
+										name: `${t("initialBalance")} (${prevMonthName})`,
+										note: t("fromPreviousMonth")
+									})
+									.eq("id", currentMonthInitTx.id);
+
+								if (!updateErr) {
+									currentMonthInitTx.amount = Math.abs(carryForwardBalance);
+									currentMonthInitTx.type = carryForwardBalance >= 0 ? "income" : "expense";
+								}
+							}
+						}
 					}
+				} finally {
+					isSyncingCarryForwardRef.current = false;
 				}
 			}
 
 			if (currentMonthTxs.length > 0) {
 				const parsedTxs = currentMonthTxs.map(t => {
 					const isExpense = t.type === "expense" || t.type.toLowerCase().includes("expense") || t.type.toLowerCase().includes("pengeluaran");
+					const resolvedPocketId = t.pocket_id || t.custom_fields?.pocket_id || null;
+					const matchedPocket = dbPockets.find(p => p.id === resolvedPocketId || p.name === resolvedPocketId);
+					const resolvedPocketName = t.pocket || matchedPocket?.name || "";
 					return {
 						id: t.id,
 						date: new Date(t.date).toLocaleString(),
 						rawDate: t.date,
 						name: t.name,
 						amount: isExpense ? -Math.abs(t.amount) : Math.abs(t.amount),
-						type: t.type === "expense" ? "Pengeluaran / Expense" : "Pemasukan / Income",
+						type: isExpense ? "Pengeluaran / Expense" : "Pemasukan / Income",
 						category: t.category,
 						note: t.note || "",
-						pocket: t.pocket || "",
-						pocket_id: t.pocket_id || null,
+						pocket: resolvedPocketName,
+						pocket_id: resolvedPocketId,
 						raw: t.custom_fields || {}
 					};
 				});
@@ -173,7 +241,7 @@ export function useSupabaseSync({
 					uniqueMonths.push(current);
 				}
 				setAvailableMonths(uniqueMonths);
-				setSelectedMonth(current);
+				setSelectedMonth(prev => (prev && uniqueMonths.includes(prev) ? prev : current));
 			} else {
 				setAllTransactions([]);
 				setAvailableMonths([getCurrentMonthSheetName()]);

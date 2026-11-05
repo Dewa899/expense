@@ -32,6 +32,37 @@ interface UpdateItem {
 
 const UPDATES: UpdateItem[] = [
 	{
+		version: "v3.0.2",
+		type: "bugfix",
+		date: { en: "Thu, Nov 5, 2026", id: "Kamis, 5 November 2026" },
+		time: "14:02",
+		title: {
+			en: "Balance Sync Consistency & Carry-Forward Hotfix",
+			id: "Konsistensi Sinkronisasi Saldo & Hotfix Carry-Forward"
+		},
+		description: {
+			en: "Resolved balance discrepancies between the Main Dashboard and Detailed Dashboard, fixed chronological carry-forward calculations, and eliminated duplicate Initial Balance entries across both Google/Supabase Account Mode and Direct Google Sheets Mode.",
+			id: "Memperbaiki perbedaan total saldo antara Dashboard Utama dan Detailed Dashboard, menyempurnakan perhitungan saldo bawaan (carry-forward) bulan sebelumnya, serta mencegah duplikasi baris Saldo Awal baik di Mode Akun Google/Supabase maupun Google Sheets Langsung."
+		},
+		details: [
+			{
+				type: "bugfix",
+				title: { en: "Unified Starting & Total Balance Calculation", id: "Penyeragaman Perhitungan Saldo Awal & Total Saldo" },
+				desc: { en: "Standardized how Initial Balance and Net Balance are calculated across the main carousel card, pocket selector, and analytics dashboard so both views always show the exact same balance.", id: "Menyeragamkan rumus perhitungan Saldo Awal dan Total Saldo di kartu utama, pemilih kantong, dan halaman detail analitik agar seluruh tampilan selalu menampilkan angka yang identik." }
+			},
+			{
+				type: "bugfix",
+				title: { en: "Accurate Monthly Carry-Forward & Auto-Deduplication", id: "Perhitungan Carry-Forward Akurat & Deduplikasi Otomatis" },
+				desc: { en: "Fixed an issue where auto carry-forward double-counted earlier months' initial balances, and added automatic cleanup for duplicate Initial Balance records in Supabase and Google Sheets.", id: "Memperbaiki bug di mana carry-forward otomatis menghitung ganda saldo awal bulan-bulan lampau, serta menambahkan pembersihan otomatis untuk baris Saldo Awal ganda di Supabase dan Google Sheets." }
+			},
+			{
+				type: "improvement",
+				title: { en: "In-Place Initial Balance Upsert & Mode Isolation", id: "Update Saldo Awal In-Place & Isolasi Mode Login" },
+				desc: { en: "Updating starting balance in Direct Google Sheets Mode now updates the existing row in-place instead of appending duplicates, and isolated Supabase vs Direct Sheets sessions to prevent cross-mode data collisions.", id: "Mengubah saldo awal di Mode Google Sheets Langsung kini memperbarui baris yang sudah ada tanpa menambah baris ganda, serta mengisolasi sesi Supabase dan Sheets Langsung agar tidak saling menimpa data." }
+			}
+		]
+	},
+	{
 		version: "v3.0.1",
 		type: "bugfix",
 		date: { en: "Wed, Aug 5, 2026", id: "Rabu, 5 Agustus 2026" },

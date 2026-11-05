@@ -16,7 +16,9 @@ import {
 	handleInitialBalanceCarryForward,
 	cleanupDuplicateInitialBalances,
 	appendRowToSheet,
-	syncPreviousBalanceInSheets
+	upsertInitialBalanceInSheets,
+	syncPreviousBalanceInSheets,
+	calculateCarryForwardBalance
 } from "@/lib/sheets-api";
 
 import {
@@ -476,7 +478,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			return transactions.reduce((sum, t) => sum + t.amount, 0);
 		}
 		return transactions
-			.filter(t => t.pocket === pocket.name || t.pocket === pocket.id)
+			.filter(t => t.pocket === pocket.name || t.pocket === pocket.id || (t as any).pocket_id === pocket.id)
 			.reduce((sum, t) => sum + t.amount, 0);
 	};
 
@@ -685,12 +687,20 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 						title: t("syncSuccessTitle") || "Success", 
 						description: t("syncSuccessDesc") || "Integration sequence finished successfully." 
 					});
+					sessionStorage.removeItem("google_oauth_token");
+					setIsIntegrating(false);
+					setLoading(false);
+					window.history.replaceState({}, document.title, window.location.pathname);
+					return;
 				}
+				setStatusModal({ 
+					isOpen: true, 
+					type: "success", 
+					title: t("syncSuccessTitle") || "Success", 
+					description: t("syncSuccessDesc") || "Integration sequence finished successfully." 
+				});
 				sessionStorage.removeItem("google_oauth_token");
-				setIsIntegrating(false);
-				setLoading(false);
 				window.history.replaceState({}, document.title, window.location.pathname);
-				return; 
 			} else if (googleSyncStatus === "error") {
 				setStatusModal({ 
 					isOpen: true, 
@@ -702,11 +712,13 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				setIsIntegrating(false);
 				setLoading(false);
 				window.history.replaceState({}, document.title, window.location.pathname);
-				return;
 			}
 
 			const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
 				if (session && session.user) {
+					// Clear any standalone Google Sheets localStorage credentials so modes never collide
+					localStorage.removeItem("googleUser");
+					localStorage.removeItem("sheetId");
 					setIsIntegrating(true);
 					setLoading(true);
 					setStatusModal(prev => ({
@@ -780,10 +792,11 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			});
 			authSubscription = subscription;
 
+			const { data: { session: activeSupabaseSession } } = await supabase.auth.getSession();
 			const savedSheetId = localStorage.getItem("sheetId") || "";
 			const savedUser = localStorage.getItem("googleUser");
 
-			if (savedUser) {
+			if (savedUser && !activeSupabaseSession?.user) {
 				const parsedUser = JSON.parse(savedUser);
 				setUser(parsedUser);
 				if (savedSheetId) {
@@ -1004,43 +1017,56 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	const handleMonthChange = (month: string | null) => {
 		if (!month) return;
 		setSelectedMonth(month);
-		if (user?.accessToken) fetchSheetData(config.sheetId, user.accessToken, month);
+		if (!supabaseUser && user?.accessToken && config.sheetId) {
+			fetchSheetData(config.sheetId, user.accessToken, month);
+		}
 	};
 
-	const resetToCurrentMonth = () => {
+	const resetToCurrentMonth = React.useCallback(() => {
 		const current = getCurrentMonthSheetName();
-		if (selectedMonth !== current) {
+		if (selectedMonth && selectedMonth !== current) {
 			setSelectedMonth(current);
-			if (user?.accessToken && config.sheetId) {
+			if (!supabaseUser && user?.accessToken && config.sheetId) {
 				fetchSheetData(config.sheetId, user.accessToken, current);
 			}
 		}
-	};
+	}, [selectedMonth, supabaseUser, user?.accessToken, config.sheetId, fetchSheetData]);
 
 	const handleSetInitialBalance = async (amount: number) => {
 		if (supabaseUser) {
 			setLoading(true);
 			try {
-				const existingEntry = transactions.find(t => t.category === "Initial Balance");
+				const existingEntries = transactions.filter(t => t.category === "Initial Balance");
+				const existingEntry = existingEntries[0];
 				if (existingEntry && existingEntry.id) {
 					const { error } = await supabase
 						.from("transactions")
 						.update({
 							amount: Math.abs(amount),
 							name: `${t("initialBalance")} (Manual Setup)`,
-							type: "income",
+							type: amount >= 0 ? "income" : "expense",
 							note: "Manual Setup",
 							date: new Date().toISOString()
 						})
 						.eq("id", existingEntry.id);
 					if (error) throw error;
+
+					if (existingEntries.length > 1) {
+						const duplicateIds = existingEntries
+							.slice(1)
+							.map(e => e.id)
+							.filter(Boolean);
+						if (duplicateIds.length > 0) {
+							await supabase.from("transactions").delete().in("id", duplicateIds);
+						}
+					}
 				} else {
 					const { error } = await supabase.from("transactions").insert({
 						user_id: supabaseUser.id,
 						date: new Date().toISOString(),
 						name: `${t("initialBalance")} (Manual Setup)`,
 						amount: Math.abs(amount),
-						type: "income",
+						type: amount >= 0 ? "income" : "expense",
 						category: "Initial Balance",
 						note: "Manual Setup"
 					});
@@ -1068,12 +1094,12 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				new Date().toLocaleString(),
 				`${t("initialBalance")} (Manual Setup)`,
 				Math.abs(amount).toString(),
-				"Pemasukan / Income",
+				amount >= 0 ? "Pemasukan / Income" : "Pengeluaran / Expense",
 				"Initial Balance",
 				"Manual Setup"
 			];
 			
-			await appendRowToSheet(config.sheetId, selectedMonth, user.accessToken, values);
+			await upsertInitialBalanceInSheets(config.sheetId, selectedMonth, user.accessToken, values);
 			await fetchSheetData(config.sheetId, user.accessToken, selectedMonth);
 			setStatusModal({ 
 				isOpen: true, 
@@ -1096,19 +1122,14 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				const { data: txs } = await supabase
 					.from("transactions")
 					.select("*")
-					.eq("user_id", supabaseUser.id);
+					.eq("user_id", supabaseUser.id)
+					.order("date", { ascending: false });
 					
 				if (txs) {
-					let totalBalance = 0;
-					txs.forEach(t => {
-						const txMonth = new Date(t.date).toLocaleString("id-ID", { month: "long", year: "numeric" });
-						if (txMonth === prevMonthName) {
-							const isExpense = t.type === "expense" || t.type.toLowerCase().includes("expense") || t.type.toLowerCase().includes("pengeluaran");
-							totalBalance += isExpense ? -Math.abs(t.amount) : Math.abs(t.amount);
-						}
-					});
+					const totalBalance = calculateCarryForwardBalance(txs, selectedMonth);
 					
-					const existingEntry = transactions.find(t => t.category === "Initial Balance");
+					const existingEntries = transactions.filter(t => t.category === "Initial Balance");
+					const existingEntry = existingEntries[0];
 					if (existingEntry && existingEntry.id) {
 						const { error } = await supabase
 							.from("transactions")
@@ -1121,6 +1142,16 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 							})
 							.eq("id", existingEntry.id);
 						if (error) throw error;
+
+						if (existingEntries.length > 1) {
+							const duplicateIds = existingEntries
+								.slice(1)
+								.map(e => e.id)
+								.filter(Boolean);
+							if (duplicateIds.length > 0) {
+								await supabase.from("transactions").delete().in("id", duplicateIds);
+							}
+						}
 					} else {
 						const { error } = await supabase.from("transactions").insert({
 							user_id: supabaseUser.id,
@@ -1147,7 +1178,6 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		if (!user?.accessToken || !config.sheetId || !selectedMonth) return;
 		setLoading(true);
 		try {
-			const prevMonthName = getPreviousMonthName(selectedMonth);
 			await syncPreviousBalanceInSheets(config.sheetId, selectedMonth, user.accessToken, t("initialBalance"), t("fromPreviousMonth"));
 			await fetchSheetData(config.sheetId, user.accessToken, selectedMonth);
 			setStatusModal({ isOpen: true, type: "success", title: "Berhasil", description: "Saldo dari bulan sebelumnya berhasil disinkronkan." });
@@ -1164,6 +1194,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 
 	const handleSubmit = async (overrideFormData?: Record<string, string>) => {
 		const activeFormData = overrideFormData || formData;
+		const activeSelectedPocket = activePocketIdx > 0 ? pockets[activePocketIdx - 1] : null;
 		if (isDemoMode && addDemoTransaction) {
 			const missingFields = headers.filter(h => {
 				const hL = h.toLowerCase();
@@ -1205,7 +1236,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				type: typeVal,
 				category: activeFormData[catHeader] || "",
 				note: activeFormData[noteHeader] || "",
-				pocket: activeFormData[pocketHeader] || "",
+				pocket: activeFormData[pocketHeader] || activeSelectedPocket?.name || "",
 				raw: customFieldValues,
 			});
 			setFormData({});
@@ -1253,8 +1284,8 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 						}
 					});
 
-					const pocketVal = activeFormData[pocketHeader] || "";
-					const pocketId = pockets.find(p => p.name === pocketVal)?.id || null;
+					const pocketVal = activeFormData[pocketHeader] || activeSelectedPocket?.name || "";
+					const pocketId = pockets.find(p => p.name === pocketVal || p.id === pocketVal)?.id || activeSelectedPocket?.id || null;
 					const hasMissingPocketId = localStorage.getItem("supabase_missing_pocket_id") === "true";
 
 					const payload: any = {
@@ -1337,6 +1368,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				const values = headers.map((h) => {
 					const hL = h.toLowerCase();
 					if (hL.includes("tanggal") || hL.includes("date")) return new Date().toLocaleString();
+					if (hL.includes("pocket") || hL.includes("kantong")) return activeFormData[h] || activeSelectedPocket?.name || "";
 					let val = activeFormData[h] || "";
 					if (hL.includes("jumlah") || hL.includes("amount")) {
 						val = Math.abs(cleanNumber(stripRupiah(val))).toString();

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { LandingView } from "@/components/landing-view";
 import { AppLayoutWrapper } from "@/components/app-layout-wrapper";
 import { useDemo } from "@/components/demo-context";
-import { useDashboardLogic } from "@/hooks/use-dashboard-logic";
+import { useDashboard } from "@/components/dashboard-context";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/components/language-provider";
@@ -13,7 +13,7 @@ import { supabase } from "@/lib/supabase-client";
 
 export default function DashboardLandingPage() {
 	const router = useRouter();
-	const logic = useDashboardLogic();
+	const logic = useDashboard();
 	const { enterDemo } = useDemo();
 	const { language } = useLanguage();
 	const [mounted, setMounted] = React.useState(false);

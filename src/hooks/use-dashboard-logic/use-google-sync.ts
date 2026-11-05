@@ -118,7 +118,7 @@ export function useGoogleSync({
 		console.log("Fetching sheet data for:", sheetName);
 		try {
 			setLoading(true);
-			const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName)}!A1:H100`, { headers: { Authorization: `Bearer ${token}` } });
+			const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName)}!A1:H1000`, { headers: { Authorization: `Bearer ${token}` } });
 			const data = await response.json();
 			if (response.status === 401 || data.error?.code === 401) {
 				handleAuthError();
@@ -136,7 +136,7 @@ export function useGoogleSync({
 				const noteIdx = fetchedHeaders.findIndex((h: string) => h.toLowerCase().includes("catatan") || h.toLowerCase().includes("note"));
 				const pocketIdx = fetchedHeaders.findIndex((h: string) => h.toLowerCase().includes("pocket") || h.toLowerCase().includes("kantong"));
 
-				const rowData = data.values.slice(1).map((row: any) => {
+				const mappedRows = data.values.slice(1).map((row: any) => {
 					const rawAmount = cleanNumber(row[amountIdx]);
 					const type = row[typeIdx] || "";
 					const isExpense = type.toLowerCase().includes("expense") || type.toLowerCase().includes("pengeluaran") || type.toLowerCase().includes("out");
@@ -151,6 +151,21 @@ export function useGoogleSync({
 						raw: row
 					};
 				});
+
+				// Deduplicate "Initial Balance" rows in memory if multiple exist
+				const initRows = mappedRows.filter((r: any) => r.category === "Initial Balance");
+				let rowData = mappedRows;
+				if (initRows.length > 1) {
+					let keptInit = initRows[0];
+					for (const ir of initRows) {
+						if (ir.note === "Manual Setup" || (ir.name && ir.name.includes("Manual Setup"))) {
+							keptInit = ir;
+						}
+					}
+					rowData = mappedRows.filter((r: any) => r.category !== "Initial Balance" || r === keptInit);
+					// Also clean up duplicates in the sheet asynchronously
+					cleanupDuplicateInitialBalances(sheetId, sheetName, token, data.values).catch(() => {});
+				}
 				
 				setTransactions(rowData);
 				setTotalAmount(rowData.reduce((sum: number, t: any) => sum + t.amount, 0));

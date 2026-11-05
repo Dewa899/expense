@@ -283,18 +283,18 @@ export function PocketCarouselCard({
 									<div className="mt-2 flex items-center justify-between text-[10px] font-black opacity-80 flex-wrap gap-y-1.5 w-full">
 										<div className="flex items-center gap-1.5">
 											<Wallet size={12} className="opacity-50" />
-											<span>{maskValue(formatCurrency(transactions.find(t => t.category === "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id))?.amount || 0))}</span>
+											<span>{maskValue(formatCurrency(transactions.filter(t => t.category === "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id || (t as any).pocket_id === activePocket.id)).reduce((sum, t) => sum + t.amount, 0)))}</span>
 										</div>
 										
 										<div className="flex items-center gap-3">
 											<div className="flex items-center gap-1 text-emerald-950/80">
 												<ChevronLeft size={12} className="rotate-90" />
-												<span>{maskValue(formatCurrency(transactions.filter(t => t.category !== "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0)))}</span>
+												<span>{maskValue(formatCurrency(transactions.filter(t => t.category !== "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id || (t as any).pocket_id === activePocket.id) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0)))}</span>
 											</div>
 											<div className="w-1 h-1 rounded-full bg-black/10" />
 											<div className="flex items-center gap-1 text-red-950/80">
 												<ChevronRight size={12} className="rotate-90" />
-												<span>{maskValue(formatCurrency(Math.abs(transactions.filter(t => t.category !== "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0))))}</span>
+												<span>{maskValue(formatCurrency(Math.abs(transactions.filter(t => t.category !== "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id || (t as any).pocket_id === activePocket.id) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0))))}</span>
 											</div>
 										</div>
 									</div>

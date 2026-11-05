@@ -401,6 +401,93 @@ export async function initializeSheetFormatting(
 	}
 }
 
+export function parseMonthYearString(monthYearStr: string): { month: number; year: number } | null {
+	if (!monthYearStr) return null;
+	const parts = monthYearStr.trim().split(/\s+/);
+	if (parts.length < 2) return null;
+	const months = [
+		"Januari",
+		"Februari",
+		"Maret",
+		"April",
+		"Mei",
+		"Juni",
+		"Juli",
+		"Agustus",
+		"September",
+		"Oktober",
+		"November",
+		"Desember"
+	];
+	const monthIdx = months.findIndex((m) => m.toLowerCase() === parts[0].toLowerCase());
+	const year = parseInt(parts[1], 10);
+	if (monthIdx === -1 || isNaN(year)) return null;
+	return { month: monthIdx, year };
+}
+
+export function calculateCarryForwardBalance(txs: any[], targetMonthName: string): number {
+	const targetMY = parseMonthYearString(targetMonthName);
+	if (!targetMY) return 0;
+
+	const monthGroups = new Map<string, { year: number; month: number; items: any[] }>();
+
+	txs.forEach((t) => {
+		const rawDate = t.rawDate || t.date;
+		if (!rawDate) return;
+		const d = new Date(rawDate);
+		if (isNaN(d.getTime())) return;
+		const txMonthName = d.toLocaleString("id-ID", { month: "long", year: "numeric" });
+		const parsed = parseMonthYearString(txMonthName);
+		if (!parsed) return;
+
+		// Only consider months strictly before targetMonthName
+		const isBefore =
+			parsed.year < targetMY.year ||
+			(parsed.year === targetMY.year && parsed.month < targetMY.month);
+		if (!isBefore) return;
+
+		const key = `${parsed.year}-${String(parsed.month).padStart(2, "0")}`;
+		if (!monthGroups.has(key)) {
+			monthGroups.set(key, { year: parsed.year, month: parsed.month, items: [] });
+		}
+		monthGroups.get(key)!.items.push(t);
+	});
+
+	if (monthGroups.size === 0) return 0;
+
+	const sortedMonths = Array.from(monthGroups.values()).sort((a, b) =>
+		a.year !== b.year ? a.year - b.year : a.month - b.month
+	);
+
+	const getSignedAmount = (t: any): number => {
+		const typeStr = (t.type || "").toLowerCase();
+		const isExpense =
+			typeStr === "expense" ||
+			typeStr.includes("expense") ||
+			typeStr.includes("pengeluaran") ||
+			typeStr.includes("out") ||
+			(typeof t.amount === "number" && t.amount < 0 && !typeStr.includes("income") && !typeStr.includes("pemasukan"));
+		return isExpense ? -Math.abs(Number(t.amount) || 0) : Math.abs(Number(t.amount) || 0);
+	};
+
+	let runningBalance = 0;
+	for (const group of sortedMonths) {
+		const initEntries = group.items.filter((t) => t.category === "Initial Balance");
+		const regularEntries = group.items.filter((t) => t.category !== "Initial Balance");
+		const regularSum = regularEntries.reduce((sum, t) => sum + getSignedAmount(t), 0);
+
+		if (initEntries.length > 0) {
+			// Group items come from txs (ordered by date DESC), so initEntries[0] is the latest initial balance for that month
+			const initAmount = getSignedAmount(initEntries[0]);
+			runningBalance = initAmount + regularSum;
+		} else {
+			runningBalance += regularSum;
+		}
+	}
+
+	return runningBalance;
+}
+
 export async function handleInitialBalanceCarryForward(
 	spreadsheetId: string,
 	currentMonth: string,
@@ -416,7 +503,7 @@ export async function handleInitialBalanceCarryForward(
 			const currentRes = await fetch(
 				`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
 					currentMonth
-				)}!A1:H100`,
+				)}!A1:H1000`,
 				{ headers: { Authorization: `Bearer ${token}` } }
 			);
 			const currentData = await currentRes.json();
@@ -449,7 +536,7 @@ export async function handleInitialBalanceCarryForward(
 		const res = await fetch(
 			`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
 				prevMonthName
-			)}!A1:H100`,
+			)}!A1:H1000`,
 			{ headers: { Authorization: `Bearer ${token}` } }
 		);
 		const data = await res.json();
@@ -462,10 +549,18 @@ export async function handleInitialBalanceCarryForward(
 			const typeIdx = fetchedHeaders.findIndex(
 				(h: string) => h.toLowerCase().includes("tipe") || h.toLowerCase().includes("type")
 			);
+			const catIdx = fetchedHeaders.findIndex(
+				(h: string) => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category")
+			);
 
 			let totalBalance = 0;
+			let seenInitialBalance = false;
 			for (let i = 1; i < data.values.length; i++) {
 				const row = data.values[i];
+				if (catIdx !== -1 && row[catIdx] === "Initial Balance") {
+					if (seenInitialBalance) continue; // Ignore duplicate Initial Balance rows in previous month
+					seenInitialBalance = true;
+				}
 				const rawAmount = cleanNumber(row[amountIdx]);
 				const type = row[typeIdx] || "";
 				const isExpense =
@@ -522,7 +617,7 @@ export async function cleanupDuplicateInitialBalances(
 			const res = await fetch(
 				`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
 					sheetName
-				)}!A1:H100`,
+				)}!A1:H1000`,
 				{ headers: { Authorization: `Bearer ${token}` } }
 			);
 			const data = await res.json();
@@ -536,6 +631,12 @@ export async function cleanupDuplicateInitialBalances(
 		const catIdx = fetchedHeaders.findIndex(
 			(h: string) => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category")
 		);
+		const nameIdx = fetchedHeaders.findIndex(
+			(h: string) => h.toLowerCase().includes("nama") || h.toLowerCase().includes("name")
+		);
+		const noteIdx = fetchedHeaders.findIndex(
+			(h: string) => h.toLowerCase().includes("catatan") || h.toLowerCase().includes("note")
+		);
 		if (catIdx === -1) return false;
 
 		// 2. Identify indices of "Initial Balance" rows
@@ -547,9 +648,21 @@ export async function cleanupDuplicateInitialBalances(
 			}
 		}
 
-		// If there are duplicates, delete everything except the first one
+		// If there are duplicates, keep the latest Manual Setup row if one exists, otherwise keep the first one
 		if (initialBalanceIndices.length > 1) {
-			const indicesToDelete = initialBalanceIndices.slice(1).sort((a, b) => b - a);
+			let indexToKeep = initialBalanceIndices[0];
+			for (const idx of initialBalanceIndices) {
+				const row = values[idx];
+				const nameStr = (nameIdx !== -1 ? row[nameIdx] : "") || "";
+				const noteStr = (noteIdx !== -1 ? row[noteIdx] : "") || "";
+				if (nameStr.includes("Manual Setup") || noteStr === "Manual Setup") {
+					indexToKeep = idx;
+				}
+			}
+
+			const indicesToDelete = initialBalanceIndices
+				.filter((idx) => idx !== indexToKeep)
+				.sort((a, b) => b - a);
 
 			let targetSheetId = internalSheetId;
 			if (targetSheetId === undefined) {
@@ -626,6 +739,62 @@ export async function appendRowToSheet(
 	}
 }
 
+export async function upsertInitialBalanceInSheets(
+	spreadsheetId: string,
+	selectedMonth: string,
+	token: string,
+	values: string[]
+): Promise<void> {
+	const currentRes = await fetch(
+		`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
+			selectedMonth
+		)}!A1:H1000`,
+		{ headers: { Authorization: `Bearer ${token}` } }
+	);
+	const currentData = await currentRes.json();
+
+	const existingRowIndices: number[] = []; // 1-based row numbers in sheet
+	if (!currentData.error && currentData.values && currentData.values.length > 0) {
+		const headers = currentData.values[0];
+		const catIdx = headers.findIndex(
+			(h: string) => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category")
+		);
+		if (catIdx !== -1) {
+			for (let i = 1; i < currentData.values.length; i++) {
+				if (currentData.values[i][catIdx] === "Initial Balance") {
+					existingRowIndices.push(i + 1);
+				}
+			}
+		}
+	}
+
+	if (existingRowIndices.length > 0) {
+		const targetRow = existingRowIndices[0];
+		const lastColLetter = String.fromCharCode(65 + values.length - 1);
+		const updateRes = await fetch(
+			`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
+				selectedMonth
+			)}!A${targetRow}:${lastColLetter}${targetRow}?valueInputOption=USER_ENTERED`,
+			{
+				method: "PUT",
+				headers: {
+					Authorization: `Bearer ${token}`,
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify({ values: [values] })
+			}
+		);
+		if (!updateRes.ok) {
+			throw new Error(`Failed to update existing initial balance: HTTP ${updateRes.status}`);
+		}
+		if (existingRowIndices.length > 1) {
+			await cleanupDuplicateInitialBalances(spreadsheetId, selectedMonth, token);
+		}
+	} else {
+		await appendRowToSheet(spreadsheetId, selectedMonth, token, values);
+	}
+}
+
 export async function deleteSheetColumn(
 	spreadsheetId: string,
 	token: string,
@@ -672,7 +841,7 @@ export async function syncPreviousBalanceInSheets(
 	const res = await fetch(
 		`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
 			prevMonthName
-		)}!A1:H100`,
+		)}!A1:H1000`,
 		{ headers: { Authorization: `Bearer ${token}` } }
 	);
 	const data = await res.json();
@@ -688,10 +857,18 @@ export async function syncPreviousBalanceInSheets(
 	const typeIdx = fetchedHeaders.findIndex(
 		(h: string) => h.toLowerCase().includes("tipe") || h.toLowerCase().includes("type")
 	);
+	const catIdx = fetchedHeaders.findIndex(
+		(h: string) => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category")
+	);
 	
 	let totalBalance = 0;
+	let seenInitialBalance = false;
 	for (let i = 1; i < data.values.length; i++) {
 		const row = data.values[i];
+		if (catIdx !== -1 && row[catIdx] === "Initial Balance") {
+			if (seenInitialBalance) continue;
+			seenInitialBalance = true;
+		}
 		const rawAmount = cleanNumber(row[amountIdx]);
 		const type = row[typeIdx] || "";
 		const isExpense =
@@ -712,51 +889,6 @@ export async function syncPreviousBalanceInSheets(
 		"Initial Balance",
 		fromPreviousMonthText
 	];
-	
-	// Check if there is an existing Initial Balance row in the current sheet
-	const currentRes = await fetch(
-		`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
-			selectedMonth
-		)}!A1:H100`,
-		{ headers: { Authorization: `Bearer ${token}` } }
-	);
-	const currentData = await currentRes.json();
-	
-	let existingRowIndex = -1; // 1-based row number
-	if (!currentData.error && currentData.values && currentData.values.length > 0) {
-		const headers = currentData.values[0];
-		const catIdx = headers.findIndex(
-			(h: string) => h.toLowerCase().includes("kategori") || h.toLowerCase().includes("category")
-		);
-		if (catIdx !== -1) {
-			for (let i = 1; i < currentData.values.length; i++) {
-				if (currentData.values[i][catIdx] === "Initial Balance") {
-					existingRowIndex = i + 1; // 1-based index in the sheet
-					break;
-				}
-			}
-		}
-	}
 
-	if (existingRowIndex !== -1) {
-		const lastColLetter = String.fromCharCode(65 + values.length - 1);
-		const updateRes = await fetch(
-			`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
-				selectedMonth
-			)}!A${existingRowIndex}:${lastColLetter}${existingRowIndex}?valueInputOption=USER_ENTERED`,
-			{
-				method: "PUT",
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-Type": "application/json"
-				},
-				body: JSON.stringify({ values: [values] })
-			}
-		);
-		if (!updateRes.ok) {
-			throw new Error(`Failed to update existing initial balance: HTTP ${updateRes.status}`);
-		}
-	} else {
-		await appendRowToSheet(spreadsheetId, selectedMonth, token, values);
-	}
+	await upsertInitialBalanceInSheets(spreadsheetId, selectedMonth, token, values);
 }

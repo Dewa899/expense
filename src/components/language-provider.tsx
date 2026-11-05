@@ -483,23 +483,26 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 		setMounted(true);
 	}, []);
 
-	const handleSetLanguage = (lang: Language) => {
+	const handleSetLanguage = React.useCallback((lang: Language) => {
 		setLanguage(lang);
 		localStorage.setItem("lang", lang);
-	};
+	}, []);
 
-	const t = (key: keyof typeof dictionary): string => {
+	const t = React.useCallback((key: keyof typeof dictionary): string => {
 		return dictionary[key]?.[language] || (key as string);
-	};
+	}, [language]);
+
+	const contextValue = React.useMemo(
+		() => ({ language, setLanguage: handleSetLanguage, t }),
+		[language, handleSetLanguage, t]
+	);
 
 	// To avoid hydration flicker/mismatch, we can return a placeholder
 	// or ensure the first render matches server.
 	// Using mounted check for the provider's logic if needed.
 
 	return (
-		<LanguageContext.Provider
-			value={{ language, setLanguage: handleSetLanguage, t }}
-		>
+		<LanguageContext.Provider value={contextValue}>
 			{children}
 		</LanguageContext.Provider>
 	);

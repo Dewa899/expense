@@ -41,6 +41,10 @@ export function DashboardView({
 	
 	const logic = useDashboard();
 	
+	React.useEffect(() => {
+		logic.resetToCurrentMonth();
+	}, [logic.resetToCurrentMonth]);
+
 	const isLoggedIn = !!logic.supabaseUser || !!logic.user;
 	
 	// In demo mode, overlay the in-memory data on top of the hook's state
