@@ -44,6 +44,7 @@ export function useExport({
 				`"${t.type}"`,
 				`"${t.category}"`,
 				`"${(t.note || "").replace(/"/g, '""')}"`,
+				`"${(t.pocket || "").replace(/"/g, '""')}"`,
 				...customFieldNames.map(name => {
 					let val = "";
 					if (t.raw) {

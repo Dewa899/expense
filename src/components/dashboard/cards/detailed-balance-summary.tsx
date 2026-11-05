@@ -37,6 +37,11 @@ interface DetailedBalanceSummaryProps {
 	percentage: number;
 	currentProgress: number;
 	onManagePockets: () => void;
+	pocketsCount?: number;
+	overallTotalBalance?: number;
+	unallocatedBalance?: number;
+	allocatedPocketsBalance?: number;
+	isPrivate?: boolean;
 }
 
 export function DetailedBalanceSummary({
@@ -62,11 +67,17 @@ export function DetailedBalanceSummary({
 	percentage,
 	currentProgress,
 	onManagePockets,
+	pocketsCount = 0,
+	overallTotalBalance = 0,
+	unallocatedBalance = 0,
+	allocatedPocketsBalance = 0,
+	isPrivate = false,
 }: DetailedBalanceSummaryProps) {
 	const { t, language } = useLanguage();
 	const router = useRouter();
 	const [isSetupBalanceOpen, setIsSetupBalanceOpen] = React.useState(false);
 	const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
+	const maskValue = (val: string) => isPrivate ? "******" : val;
 
 	const handleOpenManageBalance = (open: boolean) => {
 		if (open && !user && !supabaseUser) {
@@ -310,6 +321,55 @@ export function DetailedBalanceSummary({
 					)}
 				</div>
 			</div>
+
+			{/* Persistent 3-Level Balance Hierarchy Cards (Always visible when Pockets are active, even when switching pockets) */}
+			{pocketsCount > 0 && (
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+					<div className="glass-card p-5 rounded-[28px] flex flex-col justify-between">
+						<div>
+							<p className="text-[10px] uppercase font-bold text-zinc-400 mb-1">
+								{language === "en" ? "Total Balance (All Funds)" : "Total Saldo Keseluruhan"}
+							</p>
+							<h4 className="text-lg font-black text-zinc-900 dark:text-zinc-100">
+								{maskValue(formatCurrency(overallTotalBalance))}
+							</h4>
+						</div>
+						<p className="text-[10px] font-semibold text-zinc-400 mt-1.5">
+							{language === "en" ? "Main Pocket + All Pockets" : "Dompet Utama + Semua Kantong"}
+						</p>
+					</div>
+
+					<div className="glass-card p-5 rounded-[28px] flex flex-col justify-between">
+						<div>
+							<p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 mb-1">
+								{language === "en" ? "Main Pocket (Unallocated)" : "Saldo Utama (Unallocated)"}
+							</p>
+							<h4 className="text-lg font-black text-emerald-600 dark:text-emerald-400">
+								{maskValue(formatCurrency(unallocatedBalance))}
+							</h4>
+						</div>
+						<p className="text-[10px] font-semibold text-zinc-400 mt-1.5">
+							{language === "en" ? "Available for daily use / transfer" : "Dana bebas belum dialokasikan"}
+						</p>
+					</div>
+
+					<div className="glass-card p-5 rounded-[28px] flex flex-col justify-between">
+						<div>
+							<p className="text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 mb-1">
+								{language === "en" ? "Pockets Allocation" : "Alokasi Kantong"}
+							</p>
+							<h4 className="text-lg font-black text-indigo-600 dark:text-indigo-400">
+								{maskValue(formatCurrency(allocatedPocketsBalance))}
+							</h4>
+						</div>
+						<p className="text-[10px] font-semibold text-zinc-400 mt-1.5">
+							{language === "en"
+								? `Allocated across ${pocketsCount} pocket(s)`
+								: `Tersimpan di ${pocketsCount} kantong aktif`}
+						</p>
+					</div>
+				</div>
+			)}
 
 			{/* Second grid: Income & Expense (Desktop: side-by-side, Mobile: stacked) */}
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">

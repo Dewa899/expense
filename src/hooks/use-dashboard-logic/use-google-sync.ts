@@ -118,14 +118,32 @@ export function useGoogleSync({
 		console.log("Fetching sheet data for:", sheetName);
 		try {
 			setLoading(true);
-			const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName)}!A1:H1000`, { headers: { Authorization: `Bearer ${token}` } });
+			const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName)}!A1:Z1000`, { headers: { Authorization: `Bearer ${token}` } });
 			const data = await response.json();
 			if (response.status === 401 || data.error?.code === 401) {
 				handleAuthError();
 				return null;
 			}
 			if (data.values && data.values.length > 0) {
-				const fetchedHeaders = data.values[0].slice(0, 8);
+				const fetchedHeaders: string[] = [...data.values[0]];
+				const hasPocketHeader = fetchedHeaders.some(
+					(h: string) => h.toLowerCase().includes("pocket") || h.toLowerCase().includes("kantong")
+				);
+				if (!hasPocketHeader) {
+					fetchedHeaders.push("Pocket / Kantong");
+					const lastColLetter = String.fromCharCode(65 + fetchedHeaders.length - 1);
+					fetch(
+						`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName)}!A1:${lastColLetter}1?valueInputOption=RAW`,
+						{
+							method: "PUT",
+							headers: {
+								Authorization: `Bearer ${token}`,
+								"Content-Type": "application/json"
+							},
+							body: JSON.stringify({ values: [fetchedHeaders] })
+						}
+					).catch(() => {});
+				}
 				setHeaders(fetchedHeaders);
 
 				const amountIdx = fetchedHeaders.findIndex((h: string) => h.toLowerCase().includes("jumlah") || h.toLowerCase().includes("amount"));
@@ -139,7 +157,7 @@ export function useGoogleSync({
 				const mappedRows = data.values.slice(1).map((row: any) => {
 					const rawAmount = cleanNumber(row[amountIdx]);
 					const type = row[typeIdx] || "";
-					const isExpense = type.toLowerCase().includes("expense") || type.toLowerCase().includes("pengeluaran") || type.toLowerCase().includes("out");
+					const isExpense = type.toLowerCase().includes("expense") || type.toLowerCase().includes("pengeluaran") || type.toLowerCase().includes("out") || type.toLowerCase().includes("keluar");
 					return {
 						date: row[dateIdx] || "",
 						name: row[nameIdx] || "",
@@ -170,7 +188,13 @@ export function useGoogleSync({
 				setTransactions(rowData);
 				setTotalAmount(rowData.reduce((sum: number, t: any) => sum + t.amount, 0));
 
-				const sheetCategories = Array.from(new Set(rowData.map((t: any) => t.category).filter(Boolean))) as string[];
+				const sheetCategories = Array.from(
+					new Set(
+						rowData
+							.map((t: any) => t.category)
+							.filter((cat: string) => Boolean(cat) && cat !== "Initial Balance" && cat !== "Transfer" && cat !== "Mutasi")
+					)
+				) as string[];
 				setCategories(prev => {
 					const updated = [...prev];
 					let hasNew = false;

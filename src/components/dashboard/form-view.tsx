@@ -48,7 +48,7 @@ import { useLanguage } from "@/components/language-provider";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDemo } from "@/components/demo-context";
 import { supabase } from "@/lib/supabase-client";
-import { CustomFieldDef, PocketDef } from "@/hooks/use-dashboard-logic";
+import { CustomFieldDef, PocketDef, isInternalTransfer } from "@/hooks/use-dashboard-logic";
 import { NumericKeyboard, formatRupiah, stripRupiah, evaluateExpression } from "@/components/dashboard/cards/numeric-keyboard";
 import { PocketSelectModal } from "@/components/dashboard/modals/pocket-select-modal";
 import { PocketSettingsModal } from "@/components/dashboard/modals/pocket-settings-modal";
@@ -361,7 +361,7 @@ export function FormView(props: FormViewProps) {
 		if (activePocket.type === "default" || !activePocket.target) return 0;
 		if (activePocket.type === "budget") {
 			const expense = props.transactions
-				.filter(t => (t.pocket === activePocket.name || t.pocket === activePocket.id) && t.amount < 0)
+				.filter(t => (t.pocket === activePocket.name || t.pocket === activePocket.id || (t as any).pocket_id === activePocket.id) && !isInternalTransfer(t) && t.amount < 0)
 				.reduce((sum, t) => sum + t.amount, 0);
 			return (Math.abs(expense) / activePocket.target) * 100;
 		} else {
@@ -644,6 +644,8 @@ export function FormView(props: FormViewProps) {
 				pockets={props.pockets}
 				activePocket={activePocket}
 				onMoveFunds={props.onMoveFunds}
+				transactions={props.transactions}
+				formatCurrency={props.formatCurrency}
 				themeColors={themeColors}
 			/>
 
@@ -651,9 +653,11 @@ export function FormView(props: FormViewProps) {
 				<div className="flex items-center justify-between mb-6">
 					<div className="flex flex-col">
 						<h3 className="text-lg font-bold flex items-center gap-2">{t("transactionEntry")}</h3>
-						{activePocket && activePocket.id !== "net_worth" && (
+						{props.pockets.length > 0 && activePocket && (
 							<span className={`text-xs font-bold ${themeColors.textDark} mt-0.5`}>
-								{language === "en" ? `On Pocket: ${activePocket.name}` : `Di Kantong: ${activePocket.name}`}
+								{activePocket.id === "net_worth"
+									? (language === "en" ? "Source: Main Pocket (Unallocated)" : "Sumber Dana: Dompet Utama (Saldo Bebas)")
+									: (language === "en" ? `On Pocket: ${activePocket.name}` : `Di Kantong: ${activePocket.name}`)}
 							</span>
 						)}
 					</div>

@@ -38,6 +38,14 @@ const getFirstUnusedColor = (currentPockets: PocketDef[]): "indigo" | "amber" | 
 	return "indigo";
 };
 
+const getNextUniquePocketId = (currentPockets: PocketDef[]): string => {
+	let n = currentPockets.length + 2;
+	while (currentPockets.some(p => p.id === `pocket_${n}`)) {
+		n++;
+	}
+	return `pocket_${n}`;
+};
+
 interface PocketSettingsModalProps {
 	isOpen: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -129,7 +137,7 @@ export function PocketSettingsModal({
 								<p>{language === "en" ? "You haven't added any custom pockets." : "Anda belum menambahkan kantong kustom."}</p>
 								<Button
 									onClick={() => {
-										const newId = `pocket_${localPockets.length + 2}`;
+										const newId = getNextUniquePocketId(localPockets);
 										const nextColor = getFirstUnusedColor(localPockets);
 										const newPocket: PocketDef = {
 											id: newId,
@@ -324,7 +332,7 @@ export function PocketSettingsModal({
 								{localPockets.length < 3 && (
 									<Button
 										onClick={() => {
-											const newId = `pocket_${localPockets.length + 2}`;
+											const newId = getNextUniquePocketId(localPockets);
 											const nextColor = getFirstUnusedColor(localPockets);
 											const newPocket: PocketDef = {
 												id: newId,

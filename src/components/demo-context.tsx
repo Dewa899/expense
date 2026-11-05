@@ -65,6 +65,26 @@ const DEMO_TRANSACTIONS: Transaction[] = [
 		pocket: "Jajan",
 		raw: [],
 	},
+	{
+		date: new Date(Date.now() - 6 * 864e5).toLocaleString(),
+		name: "Pindahan Dana ke Jajan",
+		amount: -500000,
+		type: "Pengeluaran / Expense",
+		category: "Transfer",
+		note: "Transfer antar kantong",
+		pocket: "",
+		raw: [],
+	},
+	{
+		date: new Date(Date.now() - 6 * 864e5).toLocaleString(),
+		name: "Pindahan Dana dari Dompet Utama (Saldo Bebas)",
+		amount: 500000,
+		type: "Pemasukan / Income",
+		category: "Transfer",
+		note: "Transfer antar kantong",
+		pocket: "Jajan",
+		raw: [],
+	},
 ];
 
 // ─── Context ──────────────────────────────────────────────────────────────────

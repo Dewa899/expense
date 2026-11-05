@@ -34,7 +34,7 @@ function DetailPageContent() {
 				p => p.name.toLowerCase() === initialPocketParam.toLowerCase()
 			);
 			const isNetWorthParam = [
-				"total worth", "total kekayaan", "total net worth", "total balance", "total saldo"
+				"total worth", "total kekayaan", "total net worth", "total balance", "total saldo", "main pocket", "dompet utama", "saldo utama", "unallocated balance"
 			].includes(initialPocketParam.toLowerCase());
 
 			if (isNetWorthParam) {

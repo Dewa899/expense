@@ -4,7 +4,7 @@ import * as React from "react";
 import { motion, useMotionValue, useTransform, AnimatePresence, animate } from "framer-motion";
 import { Wallet, Settings, ChevronLeft, ChevronRight, Eye, EyeOff, ArrowLeftRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PocketDef } from "@/hooks/use-dashboard-logic";
+import { PocketDef, isInternalTransfer } from "@/hooks/use-dashboard-logic";
 import { useLanguage } from "@/components/language-provider";
 
 interface PocketCarouselCardProps {
@@ -118,6 +118,31 @@ export function PocketCarouselCard({
 
 	const maskValue = (val: string) => isPrivate ? "******" : val;
 
+	const mainPocketBalance = React.useMemo(() => {
+		return transactions
+			.filter(t => !pockets.some(p => t.pocket === p.name || t.pocket === p.id || (t as any).pocket_id === p.id))
+			.reduce((sum, t) => sum + t.amount, 0);
+	}, [transactions, pockets]);
+
+	const matchesActivePocket = React.useCallback(
+		(t: any) => {
+			if (activePocket.id === "net_worth") {
+				return !pockets.some(
+					p => t.pocket === p.name || t.pocket === p.id || (t as any).pocket_id === p.id
+				);
+			}
+			return (
+				t.pocket === activePocket.name ||
+				t.pocket === activePocket.id ||
+				(t as any).pocket_id === activePocket.id
+			);
+		},
+		[activePocket, pockets]
+	);
+
+	const displayedBalance =
+		activePocket.id === "net_worth" && pockets.length > 0 ? mainPocketBalance : totalAmount;
+
 	return (
 		<section className="relative z-0 isolate mt-2">
 			{/* Background Peek Card (Previous Pocket, peeks left) */}
@@ -218,12 +243,20 @@ export function PocketCarouselCard({
 								<div className="flex justify-between items-start">
 									<div className="flex flex-col max-w-[70%]">
 										<span className="text-[9px] font-black uppercase tracking-wider opacity-60 flex items-center gap-1.5">
-											{activePocket.id === "net_worth" ? (language === "en" ? "Total Balance" : "Total Saldo") : "Pocket"}
+											{activePocket.id === "net_worth"
+												? pockets.length > 0
+													? (language === "en" ? "Main Pocket" : "Dompet Utama")
+													: (language === "en" ? "Total Balance" : "Total Saldo")
+												: "Pocket"}
 											{isSyncing && <Loader2 size={10} className="animate-spin text-emerald-500 shrink-0" />}
 										</span>
 										<h4 className="text-sm font-black uppercase tracking-wide flex items-center gap-1.5 mt-0.5 truncate text-ellipsis overflow-hidden whitespace-nowrap">
 											<Wallet size={14} className="opacity-70 shrink-0" />
-											<span className="truncate">{activePocket.name}</span>
+											<span className="truncate">
+												{activePocket.id === "net_worth" && pockets.length > 0
+													? (language === "en" ? "Unallocated Balance" : "Saldo Utama")
+													: activePocket.name}
+											</span>
 										</h4>
 									</div>
 									<div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -269,7 +302,7 @@ export function PocketCarouselCard({
 
 								<div className="flex items-baseline justify-between mt-3 w-full">
 									<h2 className="text-3xl font-black tracking-tight text-left">
-										{maskValue(formatCurrency(totalAmount))}
+										{maskValue(formatCurrency(displayedBalance))}
 									</h2>
 									{variant === "form" && (
 										<span className="text-[9px] font-black uppercase tracking-widest opacity-40 select-none pointer-events-none shrink-0 text-right">
@@ -283,18 +316,18 @@ export function PocketCarouselCard({
 									<div className="mt-2 flex items-center justify-between text-[10px] font-black opacity-80 flex-wrap gap-y-1.5 w-full">
 										<div className="flex items-center gap-1.5">
 											<Wallet size={12} className="opacity-50" />
-											<span>{maskValue(formatCurrency(transactions.filter(t => t.category === "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id || (t as any).pocket_id === activePocket.id)).reduce((sum, t) => sum + t.amount, 0)))}</span>
+											<span>{maskValue(formatCurrency(transactions.filter(t => t.category === "Initial Balance" && matchesActivePocket(t)).reduce((sum, t) => sum + t.amount, 0)))}</span>
 										</div>
 										
 										<div className="flex items-center gap-3">
 											<div className="flex items-center gap-1 text-emerald-950/80">
 												<ChevronLeft size={12} className="rotate-90" />
-												<span>{maskValue(formatCurrency(transactions.filter(t => t.category !== "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id || (t as any).pocket_id === activePocket.id) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0)))}</span>
+												<span>{maskValue(formatCurrency(transactions.filter(t => t.category !== "Initial Balance" && !isInternalTransfer(t) && matchesActivePocket(t) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0)))}</span>
 											</div>
 											<div className="w-1 h-1 rounded-full bg-black/10" />
 											<div className="flex items-center gap-1 text-red-950/80">
 												<ChevronRight size={12} className="rotate-90" />
-												<span>{maskValue(formatCurrency(Math.abs(transactions.filter(t => t.category !== "Initial Balance" && (activePocket.id === "net_worth" || t.pocket === activePocket.name || t.pocket === activePocket.id || (t as any).pocket_id === activePocket.id) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0))))}</span>
+												<span>{maskValue(formatCurrency(Math.abs(transactions.filter(t => t.category !== "Initial Balance" && !isInternalTransfer(t) && matchesActivePocket(t) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0))))}</span>
 											</div>
 										</div>
 									</div>

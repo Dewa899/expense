@@ -32,6 +32,37 @@ interface UpdateItem {
 
 const UPDATES: UpdateItem[] = [
 	{
+		version: "v3.0.3",
+		type: "bugfix",
+		date: { en: "Thu, Nov 5, 2026", id: "Kamis, 5 November 2026" },
+		time: "15:05",
+		title: {
+			en: "Dynamic Sync Branding, Mobile Cold-Start Optimization & Pocket Allocation Hierarchy",
+			id: "Branding Sinkronisasi Dinamis, Optimasi Startup Mobile & Hierarki Alokasi Saku"
+		},
+		description: {
+			en: "Resolved mobile startup lock hangs on cold opens, dynamically customized integration loading screens across Google Account, Email, and Sheets modes, and refined multi-pocket fund allocation & unallocated balance hierarchy.",
+			id: "Mengatasi freeze/loading lama pada browser mobile saat pembukaan awal, menyesuaikan layar sinkronisasi secara dinamis sesuai tipe login (Akun Google, Email, dan Sheets), serta menyempurnakan alokasi dana dan hierarki Saldo Utama (Unallocated)."
+		},
+		details: [
+			{
+				type: "bugfix",
+				title: { en: "Mobile Cold-Start Lock Deferral & Fast Parallel Queries", id: "Pelepasan Lock Startup Mobile & Query Paralel Cepat" },
+				desc: { en: "Deferred data fetches outside of Supabase's `onAuthStateChange` lock stack to prevent `navigator.locks` deadlocks on mobile devices, parallelized database fetches, and backgrounded Google export checks for immediate dashboard loading.", id: "Mengalihkan pengambilan data ke luar stack lock `onAuthStateChange` Supabase untuk mencegah deadlock `navigator.locks` di HP, memparalelkan query database, serta menjalankan cek Google Sheets di latar belakang agar dashboard terbuka seketika." }
+			},
+			{
+				type: "improvement",
+				title: { en: "Contextual Account Sync Loading Screen", id: "Layar Sinkronisasi Akun Kontekstual" },
+				desc: { en: "Integration loading screen now accurately reflects the active login provider (Google Account, regular email account, or direct Google Sheets) with tailored titles and status messages instead of generic Google Drive text.", id: "Layar loading sinkronisasi kini secara cerdas menampilkan status sesuai tipe login (Akun Google, Akun Email, atau Google Sheets langsung) dengan judul dan deskripsi yang tepat tanpa teks Google Drive yang keliru." }
+			},
+			{
+				type: "feature",
+				title: { en: "Unallocated Balance Hierarchy & Move Funds Modal", id: "Hierarki Saldo Utama (Unallocated) & Modal Pindah Dana" },
+				desc: { en: "Separated Unallocated balance from locked pocket allocations on the main dashboard card, provided dedicated breakdown cards in Detailed Dashboard, and enabled fluid fund transfers between Main Pocket and custom pockets.", id: "Memisahkan Saldo Utama (Unallocated) dari alokasi kantong pada kartu dashboard, menyediakan kartu rincian terpisah di Detailed Dashboard, serta menghadirkan fitur Pindah Dana antar kantong dan dompet utama." }
+			}
+		]
+	},
+	{
 		version: "v3.0.2",
 		type: "bugfix",
 		date: { en: "Thu, Nov 5, 2026", id: "Kamis, 5 November 2026" },

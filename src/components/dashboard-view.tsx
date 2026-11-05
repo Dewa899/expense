@@ -133,7 +133,8 @@ export function DashboardView({
 				{logic.isIntegrating && (
 					<IntegrationLoading 
 						isOpen={logic.isIntegrating} 
-						description={logic.statusModal.description} 
+						description={logic.statusModal.description}
+						supabaseUser={logic.supabaseUser}
 					/>
 				)}
 			</AnimatePresence>			<div className="max-w-md mx-auto w-full space-y-6">

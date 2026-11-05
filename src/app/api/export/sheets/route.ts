@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     // 2. Fetch Google credentials & settings
     const [connRes, settingsRes, txsRes] = await Promise.all([
       supabaseService.from("google_connections").select("refresh_token, sheet_id").eq("user_id", user.id).single(),
-      supabaseService.from("user_settings").select("custom_field_defs").eq("user_id", user.id).single(),
+      supabaseService.from("user_settings").select("custom_field_defs, custom_pockets").eq("user_id", user.id).single(),
       supabaseService.from("transactions").select("*").eq("user_id", user.id).order("date", { ascending: true })
     ]);
 
@@ -40,6 +40,7 @@ export async function POST(request: Request) {
 
     const { refresh_token: refreshToken, sheet_id: sheetId } = connRes.data;
     const customFields = settingsRes.data?.custom_field_defs || [];
+    const customPockets = Array.isArray(settingsRes.data?.custom_pockets) ? settingsRes.data.custom_pockets : [];
     const transactions = txsRes.data || [];
 
     // 3. Get Google access token using refresh token
@@ -90,7 +91,7 @@ export async function POST(request: Request) {
     const existingSheets = metadata.sheets || [];
 
     // Prepare core headers matching the spreadsheet specifications
-    const coreHeaders = ["Date / Tanggal", "Name / Nama", "Amount / Jumlah", "Type / Tipe", "Category / Kategori", "Note / Catatan"];
+    const coreHeaders = ["Date / Tanggal", "Name / Nama", "Amount / Jumlah", "Type / Tipe", "Category / Kategori", "Note / Catatan", "Pocket / Kantong"];
     const customFieldNames = customFields.map((f: any) => f.name);
     const allHeaders = [...coreHeaders, ...customFieldNames];
 
@@ -126,6 +127,11 @@ export async function POST(request: Request) {
       // Build values matrix
       const values = [allHeaders];
       groupedTransactions[sheetName].forEach((t) => {
+        const rawPocketRef = t.pocket_id || t.custom_fields?.pocket_id || t.pocket || t.custom_fields?.pocket || null;
+        const matchedPocket = rawPocketRef
+          ? customPockets.find((p: any) => p.id === rawPocketRef || p.name === rawPocketRef)
+          : undefined;
+        const resolvedPocketName = matchedPocket ? matchedPocket.name : "";
         const row = [
           new Date(t.date).toLocaleString("id-ID"),
           t.name,
@@ -133,6 +139,7 @@ export async function POST(request: Request) {
           formatTransactionType(t.type),
           t.category,
           t.note || "",
+          resolvedPocketName,
           ...customFieldNames.map((name: string) => {
             const rawCustom = t.custom_fields || {};
             return rawCustom[name] || "";

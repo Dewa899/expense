@@ -39,6 +39,18 @@ import { useExport } from "./use-export";
 
 let globalInitPromise: Promise<any> | null = null;
 
+export const isInternalTransfer = (t: any): boolean => {
+	if (!t) return false;
+	const cat = (t.category || "").toLowerCase().trim();
+	const note = (t.note || "").toLowerCase().trim();
+	return (
+		cat === "transfer" ||
+		cat === "mutasi" ||
+		note === "transfer antar kantong" ||
+		note.startsWith("transfer antar kantong")
+	);
+};
+
 const parseDateSafe = (dateStr: string): Date => {
 	if (!dateStr) return new Date();
 	const parsed = new Date(dateStr);
@@ -274,40 +286,189 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		t
 	});
 
-	// Move Funds implementation
+	// Helper to check if a transaction belongs to a specific custom pocket
+	const isTxInPocket = React.useCallback((t: any, pocket: PocketDef) => {
+		return (
+			t.pocket === pocket.name ||
+			t.pocket === pocket.id ||
+			(t as any).pocket_id === pocket.id
+		);
+	}, []);
+
+	// Helper to check if a transaction belongs to ANY active custom pocket
+	const isTxInAnyCustomPocket = React.useCallback(
+		(t: any, customPockets: PocketDef[] = pockets) => {
+			return customPockets.some(p => isTxInPocket(t, p));
+		},
+		[pockets, isTxInPocket]
+	);
+
+	// Unallocated / Main Pocket Balance (Dompet Utama / Saldo Bebas)
+	const getMainPocketBalance = React.useCallback(
+		(txList: any[] = transactions) => {
+			return txList
+				.filter(t => !isTxInAnyCustomPocket(t, pockets))
+				.reduce((sum, t) => sum + t.amount, 0);
+		},
+		[transactions, pockets, isTxInAnyCustomPocket]
+	);
+
+	// Total Balance Allocated across all Custom Pockets
+	const getAllocatedPocketsBalance = React.useCallback(
+		(txList: any[] = transactions) => {
+			if (pockets.length === 0) return 0;
+			return txList
+				.filter(t => isTxInAnyCustomPocket(t, pockets))
+				.reduce((sum, t) => sum + t.amount, 0);
+		},
+		[transactions, pockets, isTxInAnyCustomPocket]
+	);
+
+	// Get Pocket Balance implementation
+	const getPocketBalance = React.useCallback(
+		(pocket: PocketDef, txList: any[] = transactions) => {
+			if (pocket.id === "net_worth" || pocket.id === "main_pocket") {
+				return getMainPocketBalance(txList);
+			}
+			return txList
+				.filter(t => isTxInPocket(t, pocket))
+				.reduce((sum, t) => sum + t.amount, 0);
+		},
+		[transactions, getMainPocketBalance, isTxInPocket]
+	);
+
+	// Move Funds implementation (Internal Transfer / Mutasi)
 	const handleMoveFunds = async (fromPocketId: string, toPocketId: string, amount: number, note?: string) => {
 		setLoading(true);
 		try {
-			const fromPocket = pockets.find(p => p.id === fromPocketId || p.name === fromPocketId);
-			const toPocket = pockets.find(p => p.id === toPocketId || p.name === toPocketId);
-			if (!fromPocket || !toPocket) throw new Error("Pocket not found");
+			const isMainPocketRef = (ref: string) =>
+				!ref || ref === "net_worth" || ref === "main_pocket";
 
-			const fromName = fromPocket.name;
-			const toName = toPocket.name;
+			const fromIsMain = isMainPocketRef(fromPocketId);
+			const toIsMain = isMainPocketRef(toPocketId);
+
+			if (fromIsMain && toIsMain) {
+				throw new Error(
+					language === "en"
+						? "Source and destination pockets must be different."
+						: "Kantong sumber dan tujuan harus berbeda."
+				);
+			}
+
+			const fromPocket = fromIsMain
+				? null
+				: pockets.find(p => p.id === fromPocketId || p.name === fromPocketId);
+			const toPocket = toIsMain
+				? null
+				: pockets.find(p => p.id === toPocketId || p.name === toPocketId);
+
+			if (!fromIsMain && !fromPocket) {
+				throw new Error(
+					language === "en" ? "Source pocket not found." : "Kantong sumber tidak ditemukan."
+				);
+			}
+			if (!toIsMain && !toPocket) {
+				throw new Error(
+					language === "en" ? "Destination pocket not found." : "Kantong tujuan tidak ditemukan."
+				);
+			}
+			if (!fromIsMain && !toIsMain && fromPocket?.id === toPocket?.id) {
+				throw new Error(
+					language === "en"
+						? "Source and destination pockets must be different."
+						: "Kantong sumber dan tujuan harus berbeda."
+				);
+			}
+
+			const mainPocketLabel =
+				language === "en" ? "Main Pocket (Unallocated)" : "Dompet Utama (Saldo Bebas)";
+			const fromDisplayName = fromIsMain ? mainPocketLabel : fromPocket!.name;
+			const toDisplayName = toIsMain ? mainPocketLabel : toPocket!.name;
+
+			const activeTxList = isDemoMode ? demoTransactions : transactions;
+			const availableSourceBalance = fromIsMain
+				? getMainPocketBalance(activeTxList)
+				: getPocketBalance(fromPocket!, activeTxList);
+
+			const transferAmt = Math.abs(amount);
+			if (transferAmt <= 0) {
+				throw new Error(
+					language === "en"
+						? "Transfer amount must be greater than 0."
+						: "Nominal transfer harus lebih dari 0."
+				);
+			}
+
+			// Balance Validation: source pocket (Main Pocket or Custom Pocket) cannot go negative
+			if (transferAmt > availableSourceBalance) {
+				setStatusModal({
+					isOpen: true,
+					type: "error",
+					title: language === "en" ? "Insufficient Balance" : "Saldo Tidak Mencukupi",
+					description:
+						language === "en"
+							? `Cannot move ${formatCurrency(transferAmt)}. Available balance in ${fromDisplayName} is ${formatCurrency(Math.max(0, availableSourceBalance))}.`
+							: `Tidak dapat memindahkan ${formatCurrency(transferAmt)}. Saldo tersedia di ${fromDisplayName} hanya ${formatCurrency(Math.max(0, availableSourceBalance))}.`
+				});
+				setLoading(false);
+				return;
+			}
+
+			const nowIso = new Date().toISOString();
+			const nowLocale = new Date().toLocaleString();
+			const transferCategory = "Transfer";
+			const transferNote = note || "Transfer antar kantong";
 
 			const txFrom = {
-				date: new Date().toISOString(),
-				name: `Pindahan Dana ke ${toName}`,
-				amount: -Math.abs(amount),
+				date: nowIso,
+				name:
+					language === "en"
+						? `Transfer to ${toDisplayName}`
+						: `Pindahan Dana ke ${toDisplayName}`,
+				amount: -transferAmt,
 				type: "expense",
-				category: "Lainnya",
-				note: note || "Transfer antar kantong",
-				pocket: fromName,
-				pocket_id: fromPocketId
+				category: transferCategory,
+				note: transferNote,
+				pocket: fromIsMain ? "" : fromPocket!.name,
+				pocket_id: fromIsMain ? null : fromPocket!.id
 			};
 
 			const txTo = {
-				date: new Date().toISOString(),
-				name: `Pindahan Dana dari ${fromName}`,
-				amount: Math.abs(amount),
+				date: nowIso,
+				name:
+					language === "en"
+						? `Transfer from ${fromDisplayName}`
+						: `Pindahan Dana dari ${fromDisplayName}`,
+				amount: transferAmt,
 				type: "income",
-				category: "Lainnya",
-				note: note || "Transfer antar kantong",
-				pocket: toName,
-				pocket_id: toPocketId
+				category: transferCategory,
+				note: transferNote,
+				pocket: toIsMain ? "" : toPocket!.name,
+				pocket_id: toIsMain ? null : toPocket!.id
 			};
 
-			if (supabaseUser) {
+			if (isDemoMode && addDemoTransaction) {
+				addDemoTransaction({
+					date: nowLocale,
+					name: txFrom.name,
+					amount: txFrom.amount,
+					type: "Pengeluaran / Expense",
+					category: txFrom.category,
+					note: txFrom.note,
+					pocket: txFrom.pocket,
+					raw: {}
+				});
+				addDemoTransaction({
+					date: nowLocale,
+					name: txTo.name,
+					amount: txTo.amount,
+					type: "Pemasukan / Income",
+					category: txTo.category,
+					note: txTo.note,
+					pocket: txTo.pocket,
+					raw: {}
+				});
+			} else if (supabaseUser) {
 				const hasMissingPocketId = localStorage.getItem("supabase_missing_pocket_id") === "true";
 				const payloadFrom: any = {
 					user_id: supabaseUser.id,
@@ -316,7 +477,10 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					amount: Math.abs(txFrom.amount),
 					type: "expense",
 					category: txFrom.category,
-					note: txFrom.note
+					note: txFrom.note,
+					custom_fields: txFrom.pocket_id
+						? { pocket_id: txFrom.pocket_id, pocket: txFrom.pocket }
+						: {}
 				};
 				const payloadTo: any = {
 					user_id: supabaseUser.id,
@@ -325,39 +489,62 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					amount: Math.abs(txTo.amount),
 					type: "income",
 					category: txTo.category,
-					note: txTo.note
+					note: txTo.note,
+					custom_fields: txTo.pocket_id
+						? { pocket_id: txTo.pocket_id, pocket: txTo.pocket }
+						: {}
 				};
 
 				if (!hasMissingPocketId) {
-					payloadFrom.pocket_id = fromPocketId;
-					payloadTo.pocket_id = toPocketId;
-				} else {
-					payloadFrom.custom_fields = { pocket_id: fromPocketId };
-					payloadTo.custom_fields = { pocket_id: toPocketId };
+					if (txFrom.pocket_id) payloadFrom.pocket_id = txFrom.pocket_id;
+					if (txTo.pocket_id) payloadTo.pocket_id = txTo.pocket_id;
 				}
 
 				let { error: errFrom } = await supabase.from("transactions").insert(payloadFrom);
 				if (errFrom && errFrom.message.includes("pocket_id")) {
 					localStorage.setItem("supabase_missing_pocket_id", "true");
 					delete payloadFrom.pocket_id;
-					payloadFrom.custom_fields = { pocket_id: fromPocketId };
-					await supabase.from("transactions").insert(payloadFrom);
+					const retryFrom = await supabase.from("transactions").insert(payloadFrom);
+					errFrom = retryFrom.error;
 				}
+				if (errFrom) throw errFrom;
 
 				let { error: errTo } = await supabase.from("transactions").insert(payloadTo);
 				if (errTo && errTo.message.includes("pocket_id")) {
 					localStorage.setItem("supabase_missing_pocket_id", "true");
 					delete payloadTo.pocket_id;
-					payloadTo.custom_fields = { pocket_id: toPocketId };
-					await supabase.from("transactions").insert(payloadTo);
+					const retryTo = await supabase.from("transactions").insert(payloadTo);
+					errTo = retryTo.error;
 				}
+				if (errTo) throw errTo;
 
 				await fetchSupabaseUserData(supabaseUser.id);
 			} else if (user?.accessToken && config.sheetId) {
-				const monthName = getCurrentMonthSheetName();
-				const valuesFrom = headers.map(h => {
+				const monthName = selectedMonth || getCurrentMonthSheetName();
+				let activeHeaders = [...headers];
+				const hasPocketCol = activeHeaders.some(
+					h => h.toLowerCase().includes("pocket") || h.toLowerCase().includes("kantong")
+				);
+				if (!hasPocketCol) {
+					activeHeaders.push("Pocket / Kantong");
+					const lastColLetter = String.fromCharCode(65 + activeHeaders.length - 1);
+					await fetch(
+						`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(monthName)}!A1:${lastColLetter}1?valueInputOption=RAW`,
+						{
+							method: "PUT",
+							headers: {
+								Authorization: `Bearer ${user.accessToken}`,
+								"Content-Type": "application/json"
+							},
+							body: JSON.stringify({ values: [activeHeaders] })
+						}
+					);
+					setHeaders(activeHeaders);
+				}
+
+				const valuesFrom = activeHeaders.map(h => {
 					const hL = h.toLowerCase();
-					if (hL.includes("tanggal") || hL.includes("date")) return new Date().toLocaleString();
+					if (hL.includes("tanggal") || hL.includes("date")) return nowLocale;
 					if (hL.includes("nama") || hL.includes("name")) return txFrom.name;
 					if (hL.includes("jumlah") || hL.includes("amount")) return Math.abs(txFrom.amount).toString();
 					if (hL.includes("tipe") || hL.includes("type")) return "Pengeluaran / Expense";
@@ -366,9 +553,9 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					if (hL.includes("pocket") || hL.includes("kantong")) return txFrom.pocket;
 					return "";
 				});
-				const valuesTo = headers.map(h => {
+				const valuesTo = activeHeaders.map(h => {
 					const hL = h.toLowerCase();
-					if (hL.includes("tanggal") || hL.includes("date")) return new Date().toLocaleString();
+					if (hL.includes("tanggal") || hL.includes("date")) return nowLocale;
 					if (hL.includes("nama") || hL.includes("name")) return txTo.name;
 					if (hL.includes("jumlah") || hL.includes("amount")) return Math.abs(txTo.amount).toString();
 					if (hL.includes("tipe") || hL.includes("type")) return "Pemasukan / Income";
@@ -386,7 +573,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				const currentList = JSON.parse(currentLocal);
 				const updatedList = [
 					{
-						date: new Date().toLocaleString(),
+						date: nowLocale,
 						name: txFrom.name,
 						amount: txFrom.amount,
 						type: "Pengeluaran / Expense",
@@ -395,7 +582,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 						pocket: txFrom.pocket
 					},
 					{
-						date: new Date().toLocaleString(),
+						date: nowLocale,
 						name: txTo.name,
 						amount: txTo.amount,
 						type: "Pemasukan / Income",
@@ -412,15 +599,18 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			setStatusModal({
 				isOpen: true,
 				type: "success",
-				title: "Pindahan Dana Berhasil",
-				description: `Dana sebesar ${formatCurrency(amount)} berhasil dipindahkan dari kantong ${fromName} ke ${toName}`
+				title: language === "en" ? "Transfer Successful" : "Pindahan Dana Berhasil",
+				description:
+					language === "en"
+						? `${formatCurrency(transferAmt)} has been moved from ${fromDisplayName} to ${toDisplayName}.`
+						: `Dana sebesar ${formatCurrency(transferAmt)} berhasil dipindahkan dari ${fromDisplayName} ke ${toDisplayName}.`
 			});
 		} catch (e: any) {
 			setStatusModal({
 				isOpen: true,
 				type: "error",
-				title: "Pindahan Dana Gagal",
-				description: e.message || "Terjadi kesalahan"
+				title: language === "en" ? "Transfer Failed" : "Pindahan Dana Gagal",
+				description: e.message || (language === "en" ? "An error occurred" : "Terjadi kesalahan")
 			});
 		} finally {
 			setLoading(false);
@@ -430,7 +620,18 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	// Update Pockets implementation
 	const handleUpdatePockets = async (updatedList: PocketDef[]) => {
 		const deletedPockets = pockets.filter(p => !updatedList.some(ul => ul.id === p.id));
+		const renamedMap = new Map<string, string>();
+		updatedList.forEach(ul => {
+			const prev = pockets.find(p => p.id === ul.id);
+			if (prev && prev.name !== ul.name) {
+				renamedMap.set(prev.name, ul.name);
+			}
+		});
+
 		setPockets(updatedList);
+		if (activePocketIdx > updatedList.length) {
+			setActivePocketIdx(0);
+		}
 
 		if (isDemoMode) {
 			localStorage.setItem("demo_pockets", JSON.stringify(updatedList));
@@ -445,10 +646,14 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 							tx.pocket_id = null;
 							tx.pocket = "";
 							changed = true;
+						} else if (tx.pocket && renamedMap.has(tx.pocket)) {
+							tx.pocket = renamedMap.get(tx.pocket);
+							changed = true;
 						}
 					});
 					if (changed) {
 						localStorage.setItem("demo_transactions", JSON.stringify(txs));
+						setTransactions([...txs]);
 					}
 				} catch (e) {}
 			}
@@ -467,19 +672,70 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					console.error("Failed to clean up pocket transactions in DB:", e);
 				}
 			}
+			await fetchSupabaseUserData(supabaseUser.id);
 		} else {
 			localStorage.setItem("customPockets", JSON.stringify(updatedList));
-		}
-	};
+			if (deletedPockets.length > 0 || renamedMap.size > 0) {
+				setTransactions(prev =>
+					prev.map(tx => {
+						const isDeleted = deletedPockets.some(
+							dp => dp.id === (tx as any).pocket_id || dp.name === tx.pocket
+						);
+						if (isDeleted) {
+							return { ...tx, pocket: "", pocket_id: null } as any;
+						}
+						if (tx.pocket && renamedMap.has(tx.pocket)) {
+							return { ...tx, pocket: renamedMap.get(tx.pocket)! };
+						}
+						return tx;
+					})
+				);
 
-	// Get Pocket Balance implementation
-	const getPocketBalance = (pocket: PocketDef) => {
-		if (pocket.id === "net_worth") {
-			return transactions.reduce((sum, t) => sum + t.amount, 0);
+				if (user?.accessToken && config.sheetId) {
+					const monthName = selectedMonth || getCurrentMonthSheetName();
+					try {
+						const res = await fetch(
+							`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(monthName)}!A1:Z1000`,
+							{ headers: { Authorization: `Bearer ${user.accessToken}` } }
+						);
+						const data = await res.json();
+						if (data.values && data.values.length > 1) {
+							const sheetHeaders: string[] = data.values[0];
+							const pocketColIdx = sheetHeaders.findIndex(
+								(h: string) =>
+									h.toLowerCase().includes("pocket") || h.toLowerCase().includes("kantong")
+							);
+							if (pocketColIdx !== -1) {
+								const colLetter = String.fromCharCode(65 + pocketColIdx);
+								const colValues = data.values.slice(1).map((row: any) => {
+									const val = row[pocketColIdx] || "";
+									if (deletedPockets.some(dp => dp.name === val || dp.id === val)) {
+										return [""];
+									}
+									if (renamedMap.has(val)) {
+										return [renamedMap.get(val)!];
+									}
+									return [val];
+								});
+								await fetch(
+									`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(monthName)}!${colLetter}2:${colLetter}${colValues.length + 1}?valueInputOption=RAW`,
+									{
+										method: "PUT",
+										headers: {
+											Authorization: `Bearer ${user.accessToken}`,
+											"Content-Type": "application/json"
+										},
+										body: JSON.stringify({ values: colValues })
+									}
+								);
+							}
+						}
+					} catch (e) {
+						console.error("Failed to sync pocket changes in Google Sheet:", e);
+					}
+				}
+			}
 		}
-		return transactions
-			.filter(t => t.pocket === pocket.name || t.pocket === pocket.id || (t as any).pocket_id === pocket.id)
-			.reduce((sum, t) => sum + t.amount, 0);
 	};
 
 	// Recurring templates checking implementation
@@ -538,7 +794,8 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				if (supabaseUser) {
 					const hasMissingPocketId = localStorage.getItem("supabase_missing_pocket_id") === "true";
 					for (const tx of newTxs) {
-						const pocketId = pockets.find(p => p.name === tx.pocket)?.id || "pocket_1";
+						const matchedPocket = pockets.find(p => p.name === tx.pocket || p.id === tx.pocket);
+						const pocketId = matchedPocket?.id || null;
 						const insertPayload: any = {
 							user_id: supabaseUser.id,
 							date: new Date().toISOString(),
@@ -546,18 +803,16 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 							amount: Math.abs(tx.amount),
 							type: tx.amount < 0 ? "expense" : "income",
 							category: tx.category,
-							note: tx.note
+							note: tx.note,
+							custom_fields: pocketId ? { pocket_id: pocketId, pocket: matchedPocket?.name || "" } : {}
 						};
-						if (!hasMissingPocketId) {
+						if (pocketId && !hasMissingPocketId) {
 							insertPayload.pocket_id = pocketId;
-						} else {
-							insertPayload.custom_fields = { pocket_id: pocketId };
 						}
 						let { error } = await supabase.from("transactions").insert(insertPayload);
 						if (error && error.message.includes("pocket_id")) {
 							localStorage.setItem("supabase_missing_pocket_id", "true");
 							delete insertPayload.pocket_id;
-							insertPayload.custom_fields = { pocket_id: pocketId };
 							const retryResult = await supabase.from("transactions").insert(insertPayload);
 							error = retryResult.error;
 						}
@@ -616,9 +871,20 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		localStorage.setItem("recurringTemplates", JSON.stringify(updated));
 	};
 
+	const tRef = React.useRef(t);
+	const languageRef = React.useRef(language);
+	const isDemoModeRef = React.useRef(isDemoMode);
+	const loadedSupabaseUserIdRef = React.useRef<string | null>(null);
+	React.useEffect(() => {
+		tRef.current = t;
+		languageRef.current = language;
+		isDemoModeRef.current = isDemoMode;
+	}, [t, language, isDemoMode]);
+
 	// Main Initialization logic
 	React.useEffect(() => {
 		let authSubscription: any = null;
+		let isMounted = true;
 		const init = async () => {
 			const urlParams = new URLSearchParams(window.location.search);
 			const code = urlParams.get("code");
@@ -684,8 +950,8 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					setStatusModal({ 
 						isOpen: true, 
 						type: "success", 
-						title: t("syncSuccessTitle") || "Success", 
-						description: t("syncSuccessDesc") || "Integration sequence finished successfully." 
+						title: tRef.current("syncSuccessTitle") || "Success", 
+						description: tRef.current("syncSuccessDesc") || "Integration sequence finished successfully." 
 					});
 					sessionStorage.removeItem("google_oauth_token");
 					setIsIntegrating(false);
@@ -696,8 +962,8 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				setStatusModal({ 
 					isOpen: true, 
 					type: "success", 
-					title: t("syncSuccessTitle") || "Success", 
-					description: t("syncSuccessDesc") || "Integration sequence finished successfully." 
+					title: tRef.current("syncSuccessTitle") || "Success", 
+					description: tRef.current("syncSuccessDesc") || "Integration sequence finished successfully." 
 				});
 				sessionStorage.removeItem("google_oauth_token");
 				window.history.replaceState({}, document.title, window.location.pathname);
@@ -714,33 +980,60 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 				window.history.replaceState({}, document.title, window.location.pathname);
 			}
 
-			const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+			const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
 				if (session && session.user) {
 					// Clear any standalone Google Sheets localStorage credentials so modes never collide
 					localStorage.removeItem("googleUser");
 					localStorage.removeItem("sheetId");
+					setSupabaseUser(session.user);
+
+					// Skip redundant full-screen reload if this user's initial session is already loaded
+					if (
+						loadedSupabaseUserIdRef.current === session.user.id &&
+						(event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION" || event === "SIGNED_IN")
+					) {
+						return;
+					}
+					loadedSupabaseUserIdRef.current = session.user.id;
+
+					const isGoogleAccount =
+						session.user?.app_metadata?.provider === "google" ||
+						session.user?.app_metadata?.providers?.includes("google") ||
+						session.user?.identities?.some((id: any) => id.provider === "google");
+
 					setIsIntegrating(true);
 					setLoading(true);
 					setStatusModal(prev => ({
 						...prev,
-						description: language === "en" ? "Synchronizing with Supabase..." : "Menyinkronkan dengan Supabase..."
+						description: isGoogleAccount
+							? (languageRef.current === "en" ? "Synchronizing Google Account..." : "Menyinkronkan Akun Google...")
+							: (languageRef.current === "en" ? "Synchronizing Account Data..." : "Menyinkronkan Data Akun...")
 					}));
-					setSupabaseUser(session.user);
-					try {
-						await Promise.all([
-							fetchSupabaseUserData(session.user.id),
-							checkGoogleConnectionStatus(session.access_token)
-						]);
-					} finally {
-						setIsIntegrating(false);
-						setLoading(false);
-					}
+
+					// Defer Supabase queries outside of onAuthStateChange synchronous execution stack
+					// to avoid navigator.locks deadlock on mobile browsers during token recovery/refresh.
+					const userId = session.user.id;
+					const accessToken = session.access_token;
+					setTimeout(async () => {
+						if (!isMounted) return;
+						// Check Google export connection status in the background without blocking dashboard load
+						void checkGoogleConnectionStatus(accessToken);
+						try {
+							await fetchSupabaseUserData(userId);
+						} finally {
+							if (isMounted) {
+								setIsIntegrating(false);
+								setLoading(false);
+							}
+						}
+					}, 0);
 				} else {
+					loadedSupabaseUserIdRef.current = null;
 					setSupabaseUser(null);
 					setIsGoogleConnected(false);
 					setGoogleEmail("");
 					
-					if (isDemoMode) {
+					if (isDemoModeRef.current) {
 						return;
 					}
 
@@ -809,7 +1102,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 						setIsIntegrating(true);
 						setStatusModal(prev => ({
 							...prev,
-							description: language === "en" ? "Synchronizing with Google Sheets..." : "Menyinkronkan dengan Google Sheets..."
+							description: languageRef.current === "en" ? "Synchronizing with Google Sheets..." : "Menyinkronkan dengan Google Sheets..."
 						}));
 
 						if (!globalInitPromise) {
@@ -842,8 +1135,8 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 											savedSheetId,
 											current,
 											parsedUser.accessToken,
-											t("initialBalance"),
-											t("fromPreviousMonth"),
+											tRef.current("initialBalance"),
+											tRef.current("fromPreviousMonth"),
 											currentValues || undefined
 										);
 									}
@@ -905,11 +1198,12 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		init();
 
 		return () => {
+			isMounted = false;
 			if (authSubscription) {
 				authSubscription.unsubscribe();
 			}
 		};
-	}, [t, language]);
+	}, []);
 
 	// Asynchronous background OCR ping with retries
 	React.useEffect(() => {
@@ -1285,7 +1579,8 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					});
 
 					const pocketVal = activeFormData[pocketHeader] || activeSelectedPocket?.name || "";
-					const pocketId = pockets.find(p => p.name === pocketVal || p.id === pocketVal)?.id || activeSelectedPocket?.id || null;
+					const matchedPocket = pockets.find(p => p.name === pocketVal || p.id === pocketVal) || activeSelectedPocket || null;
+					const pocketId = matchedPocket?.id || null;
 					const hasMissingPocketId = localStorage.getItem("supabase_missing_pocket_id") === "true";
 
 					const payload: any = {
@@ -1296,23 +1591,20 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 						type: isExpense ? "expense" : "income",
 						category: activeFormData[catHeader] || "",
 						note: activeFormData[noteHeader] || "",
-						custom_fields: customFieldValues
+						custom_fields: {
+							...customFieldValues,
+							...(pocketId ? { pocket_id: pocketId, pocket: matchedPocket?.name || pocketVal } : {})
+						}
 					};
 
-					if (pocketId) {
-						if (!hasMissingPocketId) {
-							payload.pocket_id = pocketId;
-						} else {
-							payload.custom_fields.pocket_id = pocketId;
-						}
+					if (pocketId && !hasMissingPocketId) {
+						payload.pocket_id = pocketId;
 					}
 
 					let { error } = await supabase.from("transactions").insert(payload);
 					if (error && error.message.includes("pocket_id")) {
 						localStorage.setItem("supabase_missing_pocket_id", "true");
 						delete payload.pocket_id;
-						if (!payload.custom_fields) payload.custom_fields = {};
-						payload.custom_fields.pocket_id = pocketId;
 						const retryResult = await supabase.from("transactions").insert(payload);
 						error = retryResult.error;
 					}
@@ -1365,7 +1657,27 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					await cleanupDuplicateInitialBalances(activeSheetId, currentMonth, activeToken, undefined, internalSheetId);
 					initializedMonthsRef.current[currentMonth] = true;
 				}
-				const values = headers.map((h) => {
+				let activeHeaders = [...headers];
+				const hasPocketCol = activeHeaders.some(
+					h => h.toLowerCase().includes("pocket") || h.toLowerCase().includes("kantong")
+				);
+				if (!hasPocketCol) {
+					activeHeaders.push("Pocket / Kantong");
+					const lastColLetter = String.fromCharCode(65 + activeHeaders.length - 1);
+					await fetch(
+						`https://sheets.googleapis.com/v4/spreadsheets/${activeSheetId}/values/${encodeURIComponent(currentMonth)}!A1:${lastColLetter}1?valueInputOption=RAW`,
+						{
+							method: "PUT",
+							headers: {
+								Authorization: `Bearer ${activeToken}`,
+								"Content-Type": "application/json"
+							},
+							body: JSON.stringify({ values: [activeHeaders] })
+						}
+					);
+					setHeaders(activeHeaders);
+				}
+				const values = activeHeaders.map((h) => {
 					const hL = h.toLowerCase();
 					if (hL.includes("tanggal") || hL.includes("date")) return new Date().toLocaleString();
 					if (hL.includes("pocket") || hL.includes("kantong")) return activeFormData[h] || activeSelectedPocket?.name || "";
@@ -1409,7 +1721,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		supabaseUser, isGoogleConnected, googleEmail, isOcrReady,
 		exportToCSV, exportToGoogleSheets,
 		isAddToHomeOpen, setIsAddToHomeOpen, deferredPrompt, isInstallable, triggerInstall, isStandaloneMode,
-		pockets, activePocketIdx, setActivePocketIdx, handleUpdatePockets, getPocketBalance, handleMoveFunds,
+		pockets, activePocketIdx, setActivePocketIdx, handleUpdatePockets, getPocketBalance, getMainPocketBalance, getAllocatedPocketsBalance, handleMoveFunds,
 		recurringTemplates, handleAddRecurringTemplate, handleDeleteRecurringTemplate,
 		translateHeader: (header: string) => {
 			const h = header.toLowerCase();

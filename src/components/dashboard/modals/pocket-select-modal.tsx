@@ -4,7 +4,7 @@ import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, Wallet, Plus } from "lucide-react";
-import { PocketDef } from "@/hooks/use-dashboard-logic";
+import { PocketDef, isInternalTransfer } from "@/hooks/use-dashboard-logic";
 import { useLanguage } from "@/components/language-provider";
 
 interface PocketSelectModalProps {
@@ -37,7 +37,7 @@ export function PocketSelectModal({
 	const { t, language } = useLanguage();
 
 	const carouselPockets = React.useMemo<PocketDef[]>(() => [
-		{ id: "net_worth", name: language === "en" ? "Total Balance" : "Total Saldo", type: "default", color: "emerald", target: undefined } as PocketDef,
+		{ id: "net_worth", name: pockets.length > 0 ? (language === "en" ? "Unallocated Balance" : "Saldo Utama") : (language === "en" ? "Total Balance" : "Total Saldo"), type: "default", color: "emerald", target: undefined } as PocketDef,
 		...pockets
 	], [pockets, language]);
 
@@ -113,10 +113,17 @@ export function PocketSelectModal({
 							}
 						}[p.color || "emerald"];
 
+						const matchesPocket = (t: any) => {
+							if (p.id === "net_worth") {
+								return !pockets.some(pk => t.pocket === pk.name || t.pocket === pk.id || (t as any).pocket_id === pk.id);
+							}
+							return t.pocket === p.name || t.pocket === p.id || (t as any).pocket_id === p.id;
+						};
+
 						const pBalance = getPocketBalance(p);
-						const pInitial = transactions.filter(t => t.category === "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id || (t as any).pocket_id === p.id)).reduce((sum, t) => sum + t.amount, 0);
-						const pIncome = transactions.filter(t => t.category !== "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id || (t as any).pocket_id === p.id) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-						const pExpense = Math.abs(transactions.filter(t => t.category !== "Initial Balance" && (p.id === "net_worth" || t.pocket === p.name || t.pocket === p.id || (t as any).pocket_id === p.id) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
+						const pInitial = transactions.filter(t => t.category === "Initial Balance" && matchesPocket(t)).reduce((sum, t) => sum + t.amount, 0);
+						const pIncome = transactions.filter(t => t.category !== "Initial Balance" && !isInternalTransfer(t) && matchesPocket(t) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+						const pExpense = Math.abs(transactions.filter(t => t.category !== "Initial Balance" && !isInternalTransfer(t) && matchesPocket(t) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
 
 						return (
 							<button
@@ -132,7 +139,7 @@ export function PocketSelectModal({
 								<div className="flex justify-between items-start w-full">
 									<div className="flex flex-col max-w-[75%]">
 										<span className="text-[8px] font-black uppercase tracking-wider opacity-60">
-											{p.id === "net_worth" ? (language === "en" ? "Total Balance" : "Total Saldo") : "Pocket"}
+											{p.id === "net_worth" ? (pockets.length > 0 ? (language === "en" ? "Main Pocket" : "Dompet Utama") : (language === "en" ? "Total Balance" : "Total Saldo")) : "Pocket"}
 										</span>
 										<h4 className="text-xs font-black uppercase tracking-wide flex items-center gap-1 mt-0.5 truncate text-ellipsis overflow-hidden whitespace-nowrap">
 											<Wallet size={12} className="opacity-70 shrink-0" />
@@ -140,7 +147,7 @@ export function PocketSelectModal({
 										</h4>
 									</div>
 									<span className="opacity-70 text-[8px] uppercase font-black tracking-widest shrink-0">
-										{p.id === "net_worth" ? (language === "en" ? "Overview" : "Semua") : p.type}
+										{p.id === "net_worth" ? (pockets.length > 0 ? (language === "en" ? "Unallocated" : "Saldo Bebas") : (language === "en" ? "Overview" : "Semua")) : p.type}
 									</span>
 								</div>
 

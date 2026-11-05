@@ -8,12 +8,46 @@ import { useLanguage } from "@/components/language-provider";
 interface IntegrationLoadingProps {
 	isOpen: boolean;
 	description: string;
+	supabaseUser?: any;
 }
 
-export function IntegrationLoading({ isOpen, description }: IntegrationLoadingProps) {
-	const { t } = useLanguage();
+export function IntegrationLoading({ isOpen, description, supabaseUser }: IntegrationLoadingProps) {
+	const { t, language } = useLanguage();
 
 	if (!isOpen) return null;
+
+	const isGoogleAccount =
+		!!supabaseUser &&
+		(supabaseUser?.app_metadata?.provider === "google" ||
+			supabaseUser?.app_metadata?.providers?.includes("google") ||
+			supabaseUser?.identities?.some((id: any) => id.provider === "google"));
+	const isRegularAccount = !!supabaseUser && !isGoogleAccount;
+
+	const resolvedTitle = isGoogleAccount
+		? (language === "en" ? "Google Account Sync" : "Sinkronisasi Akun Google")
+		: isRegularAccount
+			? (language === "en" ? "Account Sync" : "Sinkronisasi Akun")
+			: t("integrationTitle");
+
+	const resolvedBadge = isGoogleAccount
+		? (description && !description.toLowerCase().includes("supabase")
+				? description
+				: (language === "en" ? "Synchronizing Google Account..." : "Menyinkronkan Akun Google..."))
+		: isRegularAccount
+			? (description && !description.toLowerCase().includes("supabase")
+					? description
+					: (language === "en" ? "Synchronizing Account Data..." : "Menyinkronkan Data Akun..."))
+			: description;
+
+	const resolvedWaitDesc = isGoogleAccount
+		? (language === "en"
+				? "Please wait while we synchronize your financial data with your Google account."
+				: "Mohon tunggu sementara kami menyinkronkan data keuangan dengan akun Google Anda.")
+		: isRegularAccount
+			? (language === "en"
+					? "Please wait while we load and synchronize your financial data from your account."
+					: "Mohon tunggu sementara kami memuat dan menyinkronkan data keuangan dari akun Anda.")
+			: (t("integrationWaitDesc") || "Please wait while we set up your personalized Expense Tracker in your Google Drive.");
 
 	return (
 		<motion.div 
@@ -54,16 +88,16 @@ export function IntegrationLoading({ isOpen, description }: IntegrationLoadingPr
 				</div>
 
 				<div className="space-y-3">
-					<h2 className="text-2xl font-black tracking-tight">{t("integrationTitle")}</h2>
+					<h2 className="text-2xl font-black tracking-tight">{resolvedTitle}</h2>
 					<div className="flex flex-col items-center gap-4">
 						<div className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-900 rounded-full border border-zinc-200 dark:border-zinc-800">
 							<Loader2 size={16} className="animate-spin text-emerald-500" />
 							<span className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-widest animate-pulse">
-								{description}
+								{resolvedBadge}
 							</span>
 						</div>
 						<p className="text-sm text-zinc-500 leading-relaxed px-4">
-							{t("integrationWaitDesc") || "Please wait while we set up your personalized Expense Tracker in your Google Drive."}
+							{resolvedWaitDesc}
 						</p>
 					</div>
 				</div>

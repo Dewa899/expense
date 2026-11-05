@@ -37,77 +37,92 @@ export function useSupabaseSync({
 }: UseSupabaseSyncOptions) {
 	const [supabaseUser, setSupabaseUser] = React.useState<any>(null);
 	const isSyncingCarryForwardRef = React.useRef(false);
+	const inFlightFetchRef = React.useRef<{ userId: string; promise: Promise<void> } | null>(null);
+	const tRef = React.useRef(t);
+	React.useEffect(() => {
+		tRef.current = t;
+	}, [t]);
 
 	const fetchSupabaseUserData = React.useCallback(async (userId: string) => {
-		try {
-			setLoading(true);
-			const { data: settings } = await supabase
-				.from("user_settings")
-				.select("*")
-				.eq("user_id", userId)
-				.single();
-				
-			let fields: CustomFieldDef[] = [];
-			let dbPockets: PocketDef[] = [];
-			if (settings) {
-				if (settings.custom_categories) setCategories(settings.custom_categories);
-				if (settings.custom_field_defs) {
-					setCustomFields(settings.custom_field_defs);
-					fields = settings.custom_field_defs;
-				}
-				if (settings.custom_chart_configs) setCustomChartConfigs(settings.custom_chart_configs);
-				if (settings.custom_pockets && Array.isArray(settings.custom_pockets)) {
-					dbPockets = settings.custom_pockets;
-					setPockets(dbPockets);
-				} else {
-					const stored = localStorage.getItem("customPockets");
-					if (stored) {
-						try {
-							dbPockets = JSON.parse(stored);
-							if (!Array.isArray(dbPockets)) {
+		if (inFlightFetchRef.current && inFlightFetchRef.current.userId === userId) {
+			return inFlightFetchRef.current.promise;
+		}
+
+		const runFetch = async () => {
+			try {
+				setLoading(true);
+				const [{ data: settings }, { data: txs }] = await Promise.all([
+					supabase
+						.from("user_settings")
+						.select("*")
+						.eq("user_id", userId)
+						.maybeSingle(),
+					supabase
+						.from("transactions")
+						.select("*")
+						.eq("user_id", userId)
+						.order("date", { ascending: false })
+				]);
+					
+				let fields: CustomFieldDef[] = [];
+				let dbPockets: PocketDef[] = [];
+				if (settings) {
+					if (settings.custom_categories) setCategories(settings.custom_categories);
+					if (settings.custom_field_defs) {
+						setCustomFields(settings.custom_field_defs);
+						fields = settings.custom_field_defs;
+					}
+					if (settings.custom_chart_configs) setCustomChartConfigs(settings.custom_chart_configs);
+					if (settings.custom_pockets && Array.isArray(settings.custom_pockets)) {
+						dbPockets = settings.custom_pockets;
+						setPockets(dbPockets);
+					} else {
+						const stored = localStorage.getItem("customPockets");
+						if (stored) {
+							try {
+								dbPockets = JSON.parse(stored);
+								if (!Array.isArray(dbPockets)) {
+									dbPockets = [];
+								}
+							} catch (e) {
 								dbPockets = [];
 							}
-						} catch (e) {
+						} else {
 							dbPockets = [];
 						}
-					} else {
-						dbPockets = [];
-					}
-					setPockets(dbPockets);
-					
-					const hasMissingColumn = localStorage.getItem("supabase_missing_custom_pockets") === "true";
-					if (hasMissingColumn) {
-						localStorage.setItem("customPockets", JSON.stringify(dbPockets));
-					} else {
-						try {
-							const payload: any = {
-								user_id: userId,
-								custom_pockets: dbPockets,
-								updated_at: new Date().toISOString()
-							};
-							const { error } = await supabase.from("user_settings").upsert(payload);
-							if (error && error.message.includes("custom_pockets")) {
-								localStorage.setItem("supabase_missing_custom_pockets", "true");
+						setPockets(dbPockets);
+						
+						if (dbPockets.length > 0) {
+							const hasMissingColumn = localStorage.getItem("supabase_missing_custom_pockets") === "true";
+							if (hasMissingColumn) {
 								localStorage.setItem("customPockets", JSON.stringify(dbPockets));
+							} else {
+								void (async () => {
+									try {
+										const payload: any = {
+											user_id: userId,
+											custom_pockets: dbPockets,
+											updated_at: new Date().toISOString()
+										};
+										const { error } = await supabase.from("user_settings").upsert(payload);
+										if (error && error.message.includes("custom_pockets")) {
+											localStorage.setItem("supabase_missing_custom_pockets", "true");
+											localStorage.setItem("customPockets", JSON.stringify(dbPockets));
+										}
+									} catch (e) {
+										console.error("Failed to initialize custom_pockets in Supabase:", e);
+									}
+								})();
 							}
-						} catch (e) {
-							console.error("Failed to initialize custom_pockets in Supabase:", e);
 						}
 					}
+				} else {
+					dbPockets = [];
+					setPockets(dbPockets);
 				}
-			} else {
-				dbPockets = [];
-				setPockets(dbPockets);
-			}
-			setHeaders([...CORE_HEADERS_DUAL, ...fields.map((f: any) => f.name)]);
+				setHeaders([...CORE_HEADERS_DUAL, ...fields.map((f: any) => f.name)]);
 
-			const { data: txs } = await supabase
-				.from("transactions")
-				.select("*")
-				.eq("user_id", userId)
-				.order("date", { ascending: false });
-
-			let currentMonthTxs = txs || [];
+				let currentMonthTxs = txs || [];
 			const currentMonthName = getCurrentMonthSheetName();
 			const firstDayOfCurrentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
@@ -159,11 +174,11 @@ export function useSupabaseSync({
 							const { error: insertError } = await supabase.from("transactions").insert({
 								user_id: userId,
 								date: new Date().toISOString(),
-								name: `${t("initialBalance")} (${prevMonthName})`,
+								name: `${tRef.current("initialBalance")} (${prevMonthName})`,
 								amount: Math.abs(carryForwardBalance),
 								type: carryForwardBalance >= 0 ? "income" : "expense",
 								category: "Initial Balance",
-								note: t("fromPreviousMonth")
+								note: tRef.current("fromPreviousMonth")
 							});
 
 							if (!insertError) {
@@ -195,8 +210,8 @@ export function useSupabaseSync({
 									.update({
 										amount: Math.abs(carryForwardBalance),
 										type: carryForwardBalance >= 0 ? "income" : "expense",
-										name: `${t("initialBalance")} (${prevMonthName})`,
-										note: t("fromPreviousMonth")
+										name: `${tRef.current("initialBalance")} (${prevMonthName})`,
+										note: tRef.current("fromPreviousMonth")
 									})
 									.eq("id", currentMonthInitTx.id);
 
@@ -214,10 +229,23 @@ export function useSupabaseSync({
 
 			if (currentMonthTxs.length > 0) {
 				const parsedTxs = currentMonthTxs.map(t => {
-					const isExpense = t.type === "expense" || t.type.toLowerCase().includes("expense") || t.type.toLowerCase().includes("pengeluaran");
-					const resolvedPocketId = t.pocket_id || t.custom_fields?.pocket_id || null;
-					const matchedPocket = dbPockets.find(p => p.id === resolvedPocketId || p.name === resolvedPocketId);
-					const resolvedPocketName = t.pocket || matchedPocket?.name || "";
+					const isExpense =
+						t.type === "expense" ||
+						t.type?.toLowerCase().includes("expense") ||
+						t.type?.toLowerCase().includes("pengeluaran") ||
+						t.type?.toLowerCase().includes("out") ||
+						t.type?.toLowerCase().includes("keluar");
+					const rawPocketRef =
+						t.pocket_id ||
+						t.custom_fields?.pocket_id ||
+						t.pocket ||
+						t.custom_fields?.pocket ||
+						null;
+					const matchedPocket = rawPocketRef
+						? dbPockets.find(p => p.id === rawPocketRef || p.name === rawPocketRef)
+						: undefined;
+					const resolvedPocketId = matchedPocket ? matchedPocket.id : null;
+					const resolvedPocketName = matchedPocket ? matchedPocket.name : "";
 					return {
 						id: t.id,
 						date: new Date(t.date).toLocaleString(),
@@ -247,12 +275,21 @@ export function useSupabaseSync({
 				setAvailableMonths([getCurrentMonthSheetName()]);
 				setSelectedMonth(getCurrentMonthSheetName());
 			}
-		} catch (e) {
-			console.error("Error loading user data from Supabase:", e);
-		} finally {
-			setLoading(false);
-		}
-	}, [setLoading, setCategories, setCustomFields, setCustomChartConfigs, setHeaders, setAllTransactions, setAvailableMonths, setSelectedMonth, t, setPockets]);
+			} catch (e) {
+				console.error("Error loading user data from Supabase:", e);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		const promise = runFetch().finally(() => {
+			if (inFlightFetchRef.current?.userId === userId) {
+				inFlightFetchRef.current = null;
+			}
+		});
+		inFlightFetchRef.current = { userId, promise };
+		return promise;
+	}, [setLoading, setCategories, setCustomFields, setCustomChartConfigs, setHeaders, setAllTransactions, setAvailableMonths, setSelectedMonth, setPockets]);
 
 	const updateSupabaseSettings = React.useCallback(async (cats: string[], fields: CustomFieldDef[], charts: CustomChartConfig[], pks: PocketDef[] = pockets) => {
 		if (!supabaseUser) return;

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
-import { PocketDef } from "@/hooks/use-dashboard-logic";
+import { PocketDef, isInternalTransfer } from "@/hooks/use-dashboard-logic";
 import { useLanguage } from "@/components/language-provider";
 
 interface TransactionHistoryTableProps {
@@ -75,13 +75,19 @@ export function TransactionHistoryTable({
 						</tr>
 					</thead>
 					<tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/50">
-						{[...monthlyTransactions].reverse().map((t, i) => (
+						{[...monthlyTransactions].reverse().map((t, i) => {
+							const isTransfer = isInternalTransfer(t);
+							return (
 							<tr key={i} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
 								<td className="py-3 px-2 text-zinc-500 text-xs">{t.date.split(',')[0] || t.date}</td>
 								<td className="py-3 px-2 font-medium">{t.name}</td>
 								<td className="py-3 px-2">
-									<span className="bg-zinc-100 dark:bg-zinc-800 text-[10px] px-2 py-1 rounded-md font-medium text-zinc-600 dark:text-zinc-300">
-										{t.category}
+									<span className={`text-[10px] px-2 py-1 rounded-md font-medium ${
+										isTransfer
+											? "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold"
+											: "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"
+									}`}>
+										{isTransfer ? (language === "en" ? "Transfer" : "Mutasi / Transfer") : t.category}
 									</span>
 								</td>
 								{pockets && pockets.length > 0 && (
@@ -91,15 +97,21 @@ export function TransactionHistoryTable({
 												{t.pocket}
 											</span>
 										) : (
-											<span className="text-zinc-400 dark:text-zinc-650 text-xs font-semibold">-</span>
+											<span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] px-2 py-1 rounded-md font-bold">
+												{language === "en" ? "Main Pocket" : "Dompet Utama"}
+											</span>
 										)}
 									</td>
 								)}
-								<td className={`py-3 px-2 text-right font-bold ${t.amount >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+								<td className={`py-3 px-2 text-right font-bold ${
+									isTransfer
+										? "text-cyan-600 dark:text-cyan-400"
+										: t.amount >= 0 ? "text-emerald-600" : "text-red-500"
+								}`}>
 									{t.amount >= 0 ? "+" : "-"}{formatCurrency(Math.abs(t.amount))}
 								</td>
 							</tr>
-						))}
+						);})}
 						{monthlyTransactions.length === 0 && (
 							<tr>
 								<td colSpan={pockets && pockets.length > 0 ? 5 : 4} className="py-8 text-center text-zinc-400 text-xs font-medium">

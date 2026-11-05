@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/components/language-provider";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Transaction, CustomFieldDef, CustomChartConfig, PocketDef } from "@/hooks/use-dashboard-logic";
+import { Transaction, CustomFieldDef, CustomChartConfig, PocketDef, isInternalTransfer } from "@/hooks/use-dashboard-logic";
 import { NumericKeyboard, formatRupiah, stripRupiah, evaluateExpression } from "@/components/dashboard/cards/numeric-keyboard";
 import { PocketSelectModal } from "@/components/dashboard/modals/pocket-select-modal";
 import { PocketSettingsModal } from "@/components/dashboard/modals/pocket-settings-modal";
@@ -256,10 +256,29 @@ export function AnalyticsView({
 		}
 	}[activePocket.color || "emerald"];
 
+	const overallTotalBalance = React.useMemo(() => {
+		return transactions.reduce((sum, t) => sum + t.amount, 0);
+	}, [transactions]);
+
+	const unallocatedBalance = React.useMemo(() => {
+		return transactions
+			.filter(t => !pockets.some(p => t.pocket === p.name || t.pocket === p.id || (t as any).pocket_id === p.id))
+			.reduce((sum, t) => sum + t.amount, 0);
+	}, [transactions, pockets]);
+
+	const allocatedPocketsBalance = React.useMemo(() => {
+		if (pockets.length === 0) return 0;
+		return transactions
+			.filter(t => pockets.some(p => t.pocket === p.name || t.pocket === p.id || (t as any).pocket_id === p.id))
+			.reduce((sum, t) => sum + t.amount, 0);
+	}, [transactions, pockets]);
+
 	const pocketTransactions = React.useMemo(() => {
-		if (activePocket.id === "net_worth") return transactions;
+		if (activePocket.id === "net_worth") {
+			return transactions.filter(t => !pockets.some(p => t.pocket === p.name || t.pocket === p.id || (t as any).pocket_id === p.id));
+		}
 		return transactions.filter(t => t.pocket === activePocket.name || t.pocket === activePocket.id || (t as any).pocket_id === activePocket.id);
-	}, [transactions, activePocket]);
+	}, [transactions, activePocket, pockets]);
 
 	const initialBalanceEntries = React.useMemo(() => {
 		return pocketTransactions.filter(t => t.category === "Initial Balance");
@@ -277,7 +296,7 @@ export function AnalyticsView({
 		if (activePocket.type === "budget") {
 			return Math.abs(
 				pocketTransactions
-					.filter(t => t.category !== "Initial Balance" && t.amount < 0)
+					.filter(t => t.category !== "Initial Balance" && !isInternalTransfer(t) && t.amount < 0)
 					.reduce((sum, t) => sum + t.amount, 0)
 			);
 		}
@@ -329,14 +348,15 @@ export function AnalyticsView({
 
 
 	const monthlyTransactions = pocketTransactions.filter(t => t.category !== "Initial Balance");
-	const incomeTotal = monthlyTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-	const expenseTotal = Math.abs(monthlyTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
+	const nonTransferTransactions = monthlyTransactions.filter(t => !isInternalTransfer(t));
+	const incomeTotal = nonTransferTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+	const expenseTotal = Math.abs(nonTransferTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
 	
-	const netBalance = startingBalance + incomeTotal - expenseTotal;
+	const netBalance = pocketTransactions.reduce((sum, t) => sum + t.amount, 0);
 
 	const getDailyData = () => {
 		const dailyMap: Record<string, { income: number, expense: number }> = {};
-		monthlyTransactions.forEach(t => {
+		nonTransferTransactions.forEach(t => {
 			const day = t.date.split(',')[0];
 			if (!dailyMap[day]) dailyMap[day] = { income: 0, expense: 0 };
 			if (t.amount > 0) {
@@ -350,7 +370,7 @@ export function AnalyticsView({
 
 	const getGroupedCategoryData = (isExpense: boolean) => {
 		const catMap: Record<string, number> = {};
-		monthlyTransactions.filter(t => isExpense ? t.amount < 0 : t.amount > 0).forEach(t => {
+		nonTransferTransactions.filter(t => isExpense ? t.amount < 0 : t.amount > 0).forEach(t => {
 			const cat = t.category || "Uncategorized";
 			catMap[cat] = (catMap[cat] || 0) + Math.abs(t.amount);
 		});
@@ -363,7 +383,7 @@ export function AnalyticsView({
 		const fieldIdx = headers.findIndex(h => h.toLowerCase() === fieldNameLower);
 		if (fieldIdx === -1) return [];
 
-		monthlyTransactions.filter(t => type === "expense" ? t.amount < 0 : t.amount > 0).forEach(t => {
+		nonTransferTransactions.filter(t => type === "expense" ? t.amount < 0 : t.amount > 0).forEach(t => {
 			let val = "N/A";
 			if (t.raw) {
 				if (Array.isArray(t.raw)) {
@@ -449,6 +469,11 @@ export function AnalyticsView({
 				percentage={percentage}
 				currentProgress={currentProgress}
 				onManagePockets={() => setIsPocketSettingsOpen(true)}
+				pocketsCount={pockets.length}
+				overallTotalBalance={overallTotalBalance}
+				unallocatedBalance={unallocatedBalance}
+				allocatedPocketsBalance={allocatedPocketsBalance}
+				isPrivate={isPrivate}
 			/>
 
 			{loading ? (
@@ -527,6 +552,8 @@ export function AnalyticsView({
 				pockets={pockets}
 				activePocket={activePocket}
 				onMoveFunds={onMoveFunds}
+				transactions={transactions}
+				formatCurrency={formatCurrency}
 				themeColors={themeColors}
 			/>
 		</motion.div>
