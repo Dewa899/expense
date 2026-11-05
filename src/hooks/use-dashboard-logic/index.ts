@@ -89,7 +89,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		}
 		return false;
 	});
-	const [isOcrReady, setIsOcrReady] = React.useState(false);
+	const [isOcrReady, setIsOcrReady] = React.useState(() => !process.env.NEXT_PUBLIC_OCR_API_URL);
 	const [totalAmount, setTotalAmount] = React.useState(0);
 
 	const [statusModal, setStatusModal] = React.useState<StatusModalState>({
@@ -1232,6 +1232,8 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			if (active && retryCount < maxRetries) {
 				retryCount++;
 				timeoutId = setTimeout(pingOcr, 5000);
+			} else if (active) {
+				setIsOcrReady(true);
 			}
 		};
 

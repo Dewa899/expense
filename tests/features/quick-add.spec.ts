@@ -102,8 +102,8 @@ test.describe('Dashboard Comprehensive Features Test', () => {
     // Click Quick Add/Tambah Cepat to submit the transaction
     await page.getByRole('button', { name: /Quick Add|Tambah Cepat/ }).click();
 
-    // Wait for the "Transaction Saved!" status modal and close it using its close button
-    const successDialog = page.getByRole('dialog').filter({ hasText: /Transaction Saved!|Transaksi Tersimpan!/ });
+    // Wait for the "Transaction Saved!" status modal or toast and close it using its close button
+    const successDialog = page.getByRole('dialog').filter({ hasText: /Transaction Saved!|Transaksi Berhasil Disimpan!|Transaksi Tersimpan!/ });
     await expect(successDialog).toBeVisible();
     await successDialog.locator('[data-slot="dialog-close"]').click();
     await expect(successDialog).not.toBeVisible();
@@ -158,7 +158,7 @@ test.describe('Dashboard Comprehensive Features Test', () => {
     await ocrBtn.click();
     
     // Wait for the OCR Privacy Dialog or modal to appear
-    const ocrDialog = page.getByRole('dialog').filter({ hasText: /Scan Receipt|Pindai Struk/ });
+    const ocrDialog = page.getByRole('dialog').filter({ hasText: /Scan Receipt|Pindai Struk|Scan Struk Belanja/ });
     await expect(ocrDialog).toBeVisible();
     
     // Close the OCR scanner dialog using close button

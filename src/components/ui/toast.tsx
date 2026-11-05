@@ -29,6 +29,7 @@ export function ToastNotification({ toast, onClose }: ToastNotificationProps) {
 		<AnimatePresence>
 			{toast.isOpen && (
 				<motion.div
+					role="dialog"
 					initial={{ opacity: 0, y: 50, scale: 0.95 }}
 					animate={{ opacity: 1, y: 0, scale: 1 }}
 					exit={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -56,6 +57,7 @@ export function ToastNotification({ toast, onClose }: ToastNotificationProps) {
 						</div>
 
 						<button
+							data-slot="dialog-close"
 							onClick={onClose}
 							className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
 						>

@@ -224,7 +224,7 @@ export function DashboardView({
 				onOpenChange={(open) => setDeleteConfirm(prev => ({ ...prev, isOpen: open }))}
 				onConfirm={async () => {
 					logic.setDeleteConfirmIndex(deleteConfirm.index);
-					await logic.handleDeleteField();
+					await logic.handleDeleteField(deleteConfirm.index);
 					setDeleteConfirm({ isOpen: false, fieldName: "", index: -1 });
 				}}
 			/>

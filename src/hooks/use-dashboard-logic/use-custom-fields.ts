@@ -59,6 +59,7 @@ export function useCustomFields({
 			setLoading(true);
 			try {
 				setCustomFields(updatedFields);
+				setHeaders([...CORE_HEADERS_DUAL, ...updatedFields.map(f => f.name)]);
 				await updateSupabaseSettings(categories, updatedFields, customChartConfigs);
 				setNewFieldName("");
 				setNewFieldRequired(true);
@@ -125,10 +126,11 @@ export function useCustomFields({
 		} catch (e) { alert("Failed to update field"); } finally { setLoading(false); }
 	};
 
-	const handleDeleteField = async () => {
-		if (deleteConfirmIndex === -1) return;
-		const updatedFields = customFields.filter((_, i) => i !== deleteConfirmIndex);
-		const fieldNameToDelete = customFields[deleteConfirmIndex].name;
+	const handleDeleteField = async (overrideIdx?: number) => {
+		const targetIdx = typeof overrideIdx === "number" ? overrideIdx : deleteConfirmIndex;
+		if (targetIdx === -1 || !customFields[targetIdx]) return;
+		const updatedFields = customFields.filter((_, i) => i !== targetIdx);
+		const fieldNameToDelete = customFields[targetIdx].name;
 		const updatedCharts = customChartConfigs.filter(c => c.fieldName !== fieldNameToDelete);
 
 		if (isDemoMode) {
@@ -144,6 +146,7 @@ export function useCustomFields({
 			try {
 				setCustomChartConfigs(updatedCharts);
 				setCustomFields(updatedFields);
+				setHeaders([...CORE_HEADERS_DUAL, ...updatedFields.map(f => f.name)]);
 				await updateSupabaseSettings(categories, updatedFields, updatedCharts);
 				setDeleteConfirmIndex(-1);
 			} catch (e) {
