@@ -224,7 +224,9 @@ export function PocketCarouselCard({
 							onCardClick();
 						}
 					}}
-					className={`bg-gradient-to-br ${themeColors.gradient} p-6 rounded-3xl text-black shadow-lg ${themeColors.shadow} flex flex-col justify-between min-h-[140px] relative overflow-hidden transition-all duration-300 ${
+					className={`bg-gradient-to-br ${themeColors.gradient} ${
+						variant === "form" ? "px-5 py-3.5 min-h-[124px]" : "p-5 min-h-[140px]"
+					} rounded-3xl text-black shadow-lg ${themeColors.shadow} flex flex-col justify-between relative overflow-hidden transition-all duration-300 ${
 						onCardClick ? "cursor-pointer hover:shadow-xl active:scale-[0.99]" : ""
 					}`}
 				>
@@ -237,145 +239,132 @@ export function PocketCarouselCard({
 							animate={{ x: 0, opacity: 1 }}
 							exit={{ x: -20, opacity: 0 }}
 							transition={{ duration: 0.15 }}
-							className="w-full flex flex-col justify-between gap-y-4"
+							className="w-full flex flex-col justify-between flex-1 gap-y-2"
 						>
-							<div>
-								<div className="flex justify-between items-start">
-									<div className="flex flex-col max-w-[70%]">
-										<span className="text-[9px] font-black uppercase tracking-wider opacity-60 flex items-center gap-1.5">
-											{activePocket.id === "net_worth"
-												? pockets.length > 0
-													? (language === "en" ? "Main Pocket" : "Dompet Utama")
-													: (language === "en" ? "Total Balance" : "Total Saldo")
-												: "Pocket"}
-											{isSyncing && <Loader2 size={10} className="animate-spin text-emerald-500 shrink-0" />}
+							<div className="flex justify-between items-start gap-2">
+								<div className="flex flex-col min-w-0 max-w-[70%]">
+									<span className="text-[9px] font-black uppercase tracking-wider opacity-60 flex items-center gap-1.5 leading-none">
+										{activePocket.id === "net_worth"
+											? pockets.length > 0
+												? (language === "en" ? "Main Pocket" : "Dompet Utama")
+												: (language === "en" ? "Total Balance" : "Total Saldo")
+											: "Pocket"}
+										{isSyncing && <Loader2 size={10} className="animate-spin text-emerald-500 shrink-0" />}
+									</span>
+									<h4 className="text-xs sm:text-sm font-black uppercase tracking-wide flex items-center gap-1.5 mt-1 truncate text-ellipsis overflow-hidden whitespace-nowrap leading-tight">
+										<Wallet size={13} className="opacity-70 shrink-0" />
+										<span className="truncate">
+											{activePocket.id === "net_worth" && pockets.length > 0
+												? (language === "en" ? "Unallocated Balance" : "Saldo Utama")
+												: activePocket.name}
 										</span>
-										<h4 className="text-sm font-black uppercase tracking-wide flex items-center gap-1.5 mt-0.5 truncate text-ellipsis overflow-hidden whitespace-nowrap">
-											<Wallet size={14} className="opacity-70 shrink-0" />
-											<span className="truncate">
-												{activePocket.id === "net_worth" && pockets.length > 0
-													? (language === "en" ? "Unallocated Balance" : "Saldo Utama")
-													: activePocket.name}
-											</span>
-										</h4>
-									</div>
-									<div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
-										{pockets.length > 0 && onMoveFundsClick && (
-											<Button 
-												size="icon" 
-												variant="ghost" 
-												onClick={(e) => { e.stopPropagation(); onMoveFundsClick(); }}
-												disabled={isSyncing}
-												className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center bg-transparent"
-												aria-label="Pindah Dana"
-												title={language === "en" ? "Move Funds" : "Pindah Dana"}
-											>
-												<ArrowLeftRight size={14} />
-											</Button>
-										)}
-
+									</h4>
+								</div>
+								<div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+									{pockets.length > 0 && onMoveFundsClick && (
 										<Button 
 											size="icon" 
 											variant="ghost" 
-											onClick={(e) => { e.stopPropagation(); togglePrivacy(); }}
+											onClick={(e) => { e.stopPropagation(); onMoveFundsClick(); }}
 											disabled={isSyncing}
-											className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center bg-transparent"
+											className="h-7 w-7 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center bg-transparent"
+											aria-label="Pindah Dana"
+											title={language === "en" ? "Move Funds" : "Pindah Dana"}
 										>
-											{isPrivate ? <EyeOff size={14} /> : <Eye size={14} />}
+											<ArrowLeftRight size={13} />
 										</Button>
-										
-										{/* Settings gear icon button inside card - Only visible in homepage form variant */}
-										{variant === "form" && onSettingsClick && (
-											<Button 
-												size="icon" 
-												variant="ghost" 
-												onClick={(e) => { e.stopPropagation(); onSettingsClick(); }}
-												disabled={isSyncing}
-												className="h-8 w-8 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center bg-transparent"
-												aria-label="Pengaturan Dasbor"
-											>
-												<Settings size={14} />
-											</Button>
-										)}
-									</div>
-								</div>
+									)}
 
-								<div className="flex items-baseline justify-between mt-3 w-full">
-									<h2 className="text-3xl font-black tracking-tight text-left">
-										{maskValue(formatCurrency(displayedBalance))}
-									</h2>
-									{variant === "form" && (
-										<span className="text-[9px] font-black uppercase tracking-widest opacity-40 select-none pointer-events-none shrink-0 text-right">
-											{language === "en" ? "Click for details" : "Klik untuk detail"}
-										</span>
+									<Button 
+										size="icon" 
+										variant="ghost" 
+										onClick={(e) => { e.stopPropagation(); togglePrivacy(); }}
+										disabled={isSyncing}
+										className="h-7 w-7 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center bg-transparent"
+									>
+										{isPrivate ? <EyeOff size={13} /> : <Eye size={13} />}
+									</Button>
+									
+									{/* Settings gear icon button inside card - Only visible in homepage form variant */}
+									{variant === "form" && onSettingsClick && (
+										<Button 
+											size="icon" 
+											variant="ghost" 
+											onClick={(e) => { e.stopPropagation(); onSettingsClick(); }}
+											disabled={isSyncing}
+											className="h-7 w-7 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center bg-transparent"
+											aria-label="Pengaturan Dasbor"
+										>
+											<Settings size={13} />
+										</Button>
 									)}
 								</div>
+							</div>
 
-								{/* Static balance details directly inside card - Only visible in homepage form variant */}
+							<div className="flex items-baseline justify-between w-full">
+								<h2 className="text-2xl sm:text-3xl font-black tracking-tight text-left leading-none">
+									{maskValue(formatCurrency(displayedBalance))}
+								</h2>
 								{variant === "form" && (
-									<div className="mt-2 flex items-center justify-between text-[10px] font-black opacity-80 flex-wrap gap-y-1.5 w-full">
-										<div className="flex items-center gap-1.5">
-											<Wallet size={12} className="opacity-50" />
-											<span>{maskValue(formatCurrency(transactions.filter(t => t.category === "Initial Balance" && matchesActivePocket(t)).reduce((sum, t) => sum + t.amount, 0)))}</span>
-										</div>
-										
-										<div className="flex items-center gap-3">
-											<div className="flex items-center gap-1 text-emerald-950/80">
-												<ChevronLeft size={12} className="rotate-90" />
-												<span>{maskValue(formatCurrency(transactions.filter(t => t.category !== "Initial Balance" && !isInternalTransfer(t) && matchesActivePocket(t) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0)))}</span>
-											</div>
-											<div className="w-1 h-1 rounded-full bg-black/10" />
-											<div className="flex items-center gap-1 text-red-950/80">
-												<ChevronRight size={12} className="rotate-90" />
-												<span>{maskValue(formatCurrency(Math.abs(transactions.filter(t => t.category !== "Initial Balance" && !isInternalTransfer(t) && matchesActivePocket(t) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0))))}</span>
-											</div>
-										</div>
-									</div>
+									<span className="text-[9px] font-black uppercase tracking-widest opacity-40 select-none pointer-events-none shrink-0 text-right">
+										{language === "en" ? "Click for details" : "Klik untuk detail"}
+									</span>
 								)}
 							</div>
 
-							{/* Navigation controls < ... > at the bottom of the card content */}
-							{pockets.length > 0 && (
-								<div className="pt-2 border-t border-black/5 flex items-center justify-between mt-4" onClick={(e) => e.stopPropagation()}>
-									<button
-										type="button"
-										onClick={(e) => {
-											e.stopPropagation();
-											setActivePocketIdx((activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
-										}}
-										className={`w-8 h-8 bg-transparent hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer transition-all border-none ${themeColors.navText}`}
-										aria-label="Previous Pocket"
-									>
-										<ChevronLeft size={16} />
-									</button>
+							{/* Static balance details (Initial Balance / Income / Expense) moved to detail (analytics) page */}
+							{variant === "analytics" && (
+								<div className="pt-1.5 border-t border-black/10 flex items-center justify-between text-[10px] font-black opacity-85 flex-wrap gap-y-1 w-full">
+									<div className="flex items-center gap-1.5">
+										<Wallet size={12} className="opacity-60" />
+										<span>{maskValue(formatCurrency(transactions.filter(t => t.category === "Initial Balance" && matchesActivePocket(t)).reduce((sum, t) => sum + t.amount, 0)))}</span>
+									</div>
 									
-									{/* Titik 3 Button to open direct selection dialog */}
-									<button
-										type="button"
-										onClick={(e) => {
-											e.stopPropagation();
-											onPocketSelectClick();
-										}}
-										className={`px-4 py-1.5 bg-transparent hover:scale-105 active:scale-95 text-[11px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center justify-center gap-1 border-none ${themeColors.navText}`}
-									>
-										<span className="w-1.5 h-1.5 rounded-full bg-current" />
-										<span className="w-1.5 h-1.5 rounded-full bg-current" />
-										<span className="w-1.5 h-1.5 rounded-full bg-current" />
-									</button>
-									
-									<button
-										type="button"
-										onClick={(e) => {
-											e.stopPropagation();
-											setActivePocketIdx((activePocketIdx + 1) % carouselPockets.length);
-										}}
-										className={`w-8 h-8 bg-transparent hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer transition-all border-none ${themeColors.navText}`}
-										aria-label="Next Pocket"
-									>
-										<ChevronRight size={16} />
-									</button>
+									<div className="flex items-center gap-3">
+										<div className="flex items-center gap-1 text-emerald-950/85">
+											<ChevronLeft size={12} className="rotate-90" />
+											<span>{maskValue(formatCurrency(transactions.filter(t => t.category !== "Initial Balance" && !isInternalTransfer(t) && matchesActivePocket(t) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0)))}</span>
+										</div>
+										<div className="w-1 h-1 rounded-full bg-black/15" />
+										<div className="flex items-center gap-1 text-red-950/85">
+											<ChevronRight size={12} className="rotate-90" />
+											<span>{maskValue(formatCurrency(Math.abs(transactions.filter(t => t.category !== "Initial Balance" && !isInternalTransfer(t) && matchesActivePocket(t) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0))))}</span>
+										</div>
+									</div>
 								</div>
 							)}
+
+							{/* Compact Dot Indicator at the bottom (no left/right arrows needed since swipe is enabled) */}
+							<div className="flex items-center justify-center pt-0.5" onClick={(e) => e.stopPropagation()}>
+								<button
+									type="button"
+									onClick={(e) => {
+										e.stopPropagation();
+										onPocketSelectClick();
+									}}
+									aria-label={language === "en" ? "Select Pocket" : "Pilih Kantong"}
+									className={`px-3 py-1 bg-transparent hover:scale-105 active:scale-95 cursor-pointer transition-all flex items-center justify-center gap-1.5 border-none ${themeColors.navText}`}
+								>
+									{pockets.length > 0 ? (
+										carouselPockets.map((p, idx) => (
+											<span
+												key={p.id}
+												className={`h-1.5 rounded-full transition-all duration-300 ${
+													idx === activePocketIdx
+														? "w-4 bg-black/70"
+														: "w-1.5 bg-black/25 hover:bg-black/40"
+												}`}
+											/>
+										))
+									) : (
+										<>
+											<span className="w-3.5 h-1.5 rounded-full bg-black/50" />
+											<span className="w-1.5 h-1.5 rounded-full bg-black/20" />
+											<span className="w-1.5 h-1.5 rounded-full bg-black/20" />
+										</>
+									)}
+								</button>
+							</div>
 						</motion.div>
 					</AnimatePresence>
 				</div>

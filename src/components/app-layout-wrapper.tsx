@@ -84,6 +84,16 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
 					<Button 
 						variant="ghost" 
 						size="icon" 
+						onClick={() => openSupportModal("bug")}
+						className="rounded-full h-8 w-8 text-zinc-600 dark:text-zinc-400 hover:text-emerald-500"
+						title="Support / Report Bug"
+					>
+						<MessageSquare size={16} />
+					</Button>
+
+					<Button 
+						variant="ghost" 
+						size="icon" 
 						onClick={() => setIsPatchNotesOpen(true)}
 						className="rounded-full h-8 w-8 text-zinc-600 dark:text-zinc-400 hover:text-emerald-500"
 						title="Patch Notes"
@@ -118,14 +128,16 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
 				{children}
 			</main>
 
-			<div className="fixed bottom-6 right-6 z-[60]">
-				<Button 
-					onClick={() => openSupportModal("bug")}
-					className="w-12 h-12 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-black shadow-xl hover:scale-110 active:scale-95 transition-all p-0 flex items-center justify-center group"
-				>
-					<MessageSquare size={20} className="group-hover:text-emerald-500 transition-colors" />
-				</Button>
-			</div>
+			{pathname !== "/" && (
+				<div className="fixed bottom-6 right-6 z-[60]">
+					<Button 
+						onClick={() => openSupportModal("bug")}
+						className="w-12 h-12 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-black shadow-xl hover:scale-110 active:scale-95 transition-all p-0 flex items-center justify-center group"
+					>
+						<MessageSquare size={20} className="group-hover:text-emerald-500 transition-colors" />
+					</Button>
+				</div>
+			)}
 
 			<SupportModal 
 				isOpen={isSupportModalOpen}

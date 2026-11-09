@@ -96,7 +96,8 @@ test.describe('Dashboard Comprehensive Features Test', () => {
     await categoryOption.click();
     await expect(categoryCombobox).not.toHaveText(/Select a category|Pilih kategori/);
     
-    // Fill optional notes
+    // Expand and fill optional notes
+    await page.getByRole('button', { name: /^(Note|Catatan)$/ }).click();
     await page.getByPlaceholder('Note...').fill('Automated Test Note');
     
     // Click Quick Add/Tambah Cepat to submit the transaction

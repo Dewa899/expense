@@ -151,12 +151,14 @@ export function FormView(props: FormViewProps) {
 	// Privacy State
 	const [isPrivate, setIsPrivate] = React.useState(false);
 	
-	// Clean Display & Pocket direct selector state
-	const [isCleanDisplay, setIsCleanDisplay] = React.useState(false);
+	// Clean Display & Pocket direct selector state (Clean Display defaults to ON)
+	const [isCleanDisplay, setIsCleanDisplay] = React.useState(true);
+	const [isNoteExpanded, setIsNoteExpanded] = React.useState(false);
 	const [isPocketSelectOpen, setIsPocketSelectOpen] = React.useState(false);
 	const [isMoveFundsOpen, setIsMoveFundsOpen] = React.useState(false);
 	React.useEffect(() => {
-		setIsCleanDisplay(localStorage.getItem("clean_display") === "true");
+		const saved = localStorage.getItem("clean_display");
+		setIsCleanDisplay(saved === null ? true : saved === "true");
 	}, []);
 
 	// Local form data state for performance optimization (stops full parent re-renders on keystroke)
@@ -239,6 +241,7 @@ export function FormView(props: FormViewProps) {
 
 	const handleLocalSubmit = () => {
 		props.onSubmit(localFormData);
+		setIsNoteExpanded(false);
 	};
 
 	const displayHeaders = props.headers.length > 0 ? props.headers : ["Nama Pengeluaran", "Jumlah", "Tipe", "Kategori", "Catatan"];
@@ -374,7 +377,7 @@ export function FormView(props: FormViewProps) {
 	return (
 		<motion.div 
 			initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-			className="space-y-6"
+			className="space-y-3"
 		>
 			<PocketCarouselCard
 				pockets={props.pockets}
@@ -649,30 +652,33 @@ export function FormView(props: FormViewProps) {
 				themeColors={themeColors}
 			/>
 
-			<section className="rounded-3xl p-6 glass-card">
-				<div className="flex items-center justify-between mb-6">
-					<div className="flex flex-col">
-						<h3 className="text-lg font-bold flex items-center gap-2">{t("transactionEntry")}</h3>
+			<section className="rounded-3xl p-4 sm:p-5 glass-card">
+				<div className="flex items-center justify-between gap-2 mb-3">
+					<div className="flex items-center gap-1.5 min-w-0 flex-1">
+						<h3 className="text-xs font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 shrink-0">
+							{t("transactionEntry")}
+						</h3>
 						{props.pockets.length > 0 && activePocket && (
-							<span className={`text-xs font-bold ${themeColors.textDark} mt-0.5`}>
-								{activePocket.id === "net_worth"
-									? (language === "en" ? "Source: Main Pocket (Unallocated)" : "Sumber Dana: Dompet Utama (Saldo Bebas)")
-									: (language === "en" ? `On Pocket: ${activePocket.name}` : `Di Kantong: ${activePocket.name}`)}
-							</span>
+							<>
+								<span className="text-zinc-300 dark:text-zinc-700 text-xs shrink-0">•</span>
+								<span className={`text-xs font-bold ${themeColors.textDark} truncate`}>
+									{activePocket.id === "net_worth"
+										? (language === "en" ? "Main Pocket" : "Dompet Utama")
+										: activePocket.name}
+								</span>
+							</>
 						)}
 					</div>
 					
-					{!isCleanDisplay && (
-						<Button 
-							size="sm" 
-							variant="outline" 
-							disabled={isSyncing} 
-							className={`h-8 text-[10px] font-black ${themeColors.textDark} ${themeColors.bgLight} border ${themeColors.border} ${themeColors.hoverBg} px-2.5 rounded-xl cursor-pointer flex items-center gap-1.5 transition-all shadow-sm`}
-							onClick={handleManageFieldsClick}
-						>
-							<Settings size={14} /> {t("manageFields")}
-						</Button>
-					)}
+					<Button 
+						size="sm" 
+						variant="outline" 
+						disabled={isSyncing} 
+						className={`h-7 text-[10px] font-black ${themeColors.textDark} ${themeColors.bgLight} border ${themeColors.border} ${themeColors.hoverBg} px-2 rounded-lg cursor-pointer flex items-center gap-1 transition-all shadow-none shrink-0`}
+						onClick={handleManageFieldsClick}
+					>
+						<Settings size={12} /> {t("manageFields")}
+					</Button>
 
 					<ManageFieldsModal
 						isOpen={props.isManageFieldsOpen}
@@ -699,9 +705,9 @@ export function FormView(props: FormViewProps) {
 						themeColors={themeColors}
 					/>
 				</div>
-				<div className="space-y-5">
+				<div className="space-y-3">
 					{props.loading && props.headers.length === 0 ? (
-						<div className="py-10 text-center text-zinc-500 font-medium">Connecting...</div>
+						<div className="py-6 text-center text-zinc-500 font-medium text-sm">Connecting...</div>
 					) : (
 						displayHeaders.map((header) => {
 							const hL = header.toLowerCase();
@@ -709,64 +715,112 @@ export function FormView(props: FormViewProps) {
 							const isCoreCat = hL.includes("kategori") || hL.includes("category");
 							const isType = hL.includes("tipe") || hL.includes("type");
 							const isAmount = hL.includes("jumlah") || hL.includes("amount");
+							const isName = hL.includes("nama") || hL.includes("name");
 							const customFieldIdx = props.customFields.findIndex(f => f.name.toLowerCase() === hL);
 							const customField = customFieldIdx !== -1 ? props.customFields[customFieldIdx] : null;
 							const isNote = hL.includes("catatan") || hL.includes("note");
 
-							return (
-								<div key={header} ref={isAmount ? amountFieldRef : undefined} className="space-y-2">
-									<div className="flex items-center justify-between ml-1">
-										<Label className="text-xs text-zinc-550 dark:text-zinc-400">
-											{isAmount ? t("amountLabel") : props.translateHeader(header)} 
-											{customField?.required && <span className="text-red-500 ml-1">*</span>}
-											{isNote && <span className="text-[10px] opacity-60 font-normal ml-1">({t("optionalLabel")})</span>}
-										</Label>
-										{(isCoreCat || customField?.type === "dropdown") && (
-											<Dialog>
-												<DialogTrigger render={<Button variant="ghost" size="sm" disabled={isInteractionDisabled} className={`h-6 text-[10px] font-bold ${themeColors.textDark} ${themeColors.hoverBg} px-2 rounded-lg cursor-pointer bg-transparent`} />}>
-													{t("manageOptions")}
-												</DialogTrigger>
-												<DialogContent className="sm:max-w-[400px] rounded-3xl">
-													<DialogHeader><DialogTitle>{isCoreCat ? t("manageCategories") : `${t("manageOptions")}: ${header}`}</DialogTitle></DialogHeader>
-													<div className="space-y-4 py-4">
-														<div className="flex gap-2"><Input placeholder={isCoreCat ? t("newCategory") : t("newOption")} value={isCoreCat ? props.newCategoryInput : props.newOptionInput} onChange={(e) => isCoreCat ? props.setNewCategoryInput(e.target.value) : props.setNewOptionInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-xl" /><Button onClick={() => isCoreCat ? props.onAddCategory() : props.onAddOption(customFieldIdx, props.newOptionInput)} disabled={isInteractionDisabled} className={`bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-bold rounded-xl cursor-pointer border-none shadow-md`}>{t("add")}</Button></div>
-														<div className="max-h-[200px] overflow-y-auto space-y-2">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<div key={opt} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800">
-															<span className="text-sm font-medium">{opt}</span><Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => isCoreCat ? props.onDeleteCategory(opt) : props.onDeleteOption(customFieldIdx, opt)} className="cursor-pointer"><Trash2 size={14} /></Button></div>))}</div>
-													</div>
-												</DialogContent>
-											</Dialog>
+							// Collapsible optional Note field behind "+ Note" button
+							if (isNote) {
+								const showNoteInput = isNoteExpanded || Boolean(localFormData[header]);
+								if (!showNoteInput) {
+									return (
+										<div key={header} className="pt-0.5">
+											<button
+												type="button"
+												disabled={isInteractionDisabled}
+												onClick={() => setIsNoteExpanded(true)}
+												className={`inline-flex items-center gap-1 text-xs font-bold ${themeColors.textDark} ${themeColors.bgLight} border ${themeColors.border} ${themeColors.hoverBg} px-3 py-1.5 rounded-xl transition-all cursor-pointer disabled:opacity-50`}
+											>
+												<Plus size={13} />
+												<span>{props.translateHeader(header)}</span>
+											</button>
+										</div>
+									);
+								}
+								return (
+									<div key={header} className="relative flex items-center">
+										<Input
+											type="text"
+											autoFocus={isNoteExpanded && !localFormData[header]}
+											disabled={isInteractionDisabled}
+											placeholder={`${props.translateHeader(header)}...`}
+											className={`h-11 pr-9 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium text-sm transition-colors ${themeColors.focusRingInput}`}
+											value={localFormData[header] || ""}
+											onChange={(e) => handleLocalInputChange(header, e.target.value)}
+										/>
+										{!localFormData[header] && (
+											<button
+												type="button"
+												onClick={() => setIsNoteExpanded(false)}
+												className="absolute right-2.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 rounded-lg cursor-pointer bg-transparent border-none"
+												aria-label="Hide Note"
+											>
+												<ChevronUp size={15} />
+											</button>
 										)}
 									</div>
+								);
+							}
+
+							// Only render compact label header row for Category, Dropdowns, or custom fields (Name, Amount, Type labels omitted for compactness)
+							const showFieldHeader = isCoreCat || Boolean(customField) || (!isName && !isAmount && !isType);
+
+							return (
+								<div key={header} ref={isAmount ? amountFieldRef : undefined} className="space-y-1">
+									{showFieldHeader && (
+										<div className="flex items-center justify-between ml-1">
+											<Label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 leading-none">
+												{props.translateHeader(header)}
+												{customField?.required && <span className="text-red-500 ml-1">*</span>}
+											</Label>
+											{(isCoreCat || customField?.type === "dropdown") && (
+												<Dialog>
+													<DialogTrigger render={<Button variant="ghost" size="sm" disabled={isInteractionDisabled} className={`h-5 text-[10px] font-bold ${themeColors.textDark} ${themeColors.hoverBg} px-1.5 rounded-md cursor-pointer bg-transparent`} />}>
+														{t("manageOptions")}
+													</DialogTrigger>
+													<DialogContent className="sm:max-w-[400px] rounded-3xl">
+														<DialogHeader><DialogTitle>{isCoreCat ? t("manageCategories") : `${t("manageOptions")}: ${header}`}</DialogTitle></DialogHeader>
+														<div className="space-y-4 py-4">
+															<div className="flex gap-2"><Input placeholder={isCoreCat ? t("newCategory") : t("newOption")} value={isCoreCat ? props.newCategoryInput : props.newOptionInput} onChange={(e) => isCoreCat ? props.setNewCategoryInput(e.target.value) : props.setNewOptionInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-xl" /><Button onClick={() => isCoreCat ? props.onAddCategory() : props.onAddOption(customFieldIdx, props.newOptionInput)} disabled={isInteractionDisabled} className={`bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-bold rounded-xl cursor-pointer border-none shadow-md`}>{t("add")}</Button></div>
+															<div className="max-h-[200px] overflow-y-auto space-y-2">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<div key={opt} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800">
+																<span className="text-sm font-medium">{opt}</span><Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => isCoreCat ? props.onDeleteCategory(opt) : props.onDeleteOption(customFieldIdx, opt)} className="cursor-pointer"><Trash2 size={14} /></Button></div>))}</div>
+														</div>
+													</DialogContent>
+												</Dialog>
+											)}
+										</div>
+									)}
 									{(isCoreCat || (customField?.type === "dropdown")) ? (
 										<Select value={localFormData[header] || ""} disabled={isInteractionDisabled} onValueChange={(val) => handleLocalInputChange(header, val || "")}>
-											<SelectTrigger className={`h-12 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 cursor-pointer transition-colors ${themeColors.focusRingInput}`}><SelectValue placeholder={t("selectCategory")} /></SelectTrigger>
+											<SelectTrigger className={`h-11 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 cursor-pointer transition-colors text-sm ${themeColors.focusRingInput}`}><SelectValue placeholder={t("selectCategory")} /></SelectTrigger>
 											<SelectContent className="rounded-xl w-auto min-w-[240px]">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<SelectItem key={opt} value={opt} className="cursor-pointer">{opt}</SelectItem>))}</SelectContent>
 										</Select>
 									) : isType ? (
-										<div className="flex bg-white/30 dark:bg-zinc-950/20 p-1.5 rounded-xl gap-1 border border-zinc-250 dark:border-zinc-850">
+										<div className="flex bg-white/30 dark:bg-zinc-950/20 p-1 rounded-xl gap-1 border border-zinc-250 dark:border-zinc-850">
 											<button
 												type="button"
-												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${localFormData[header] === "Pemasukan / Income" ? `bg-white/80 dark:bg-zinc-900/60 ${themeColors.textDark} shadow-sm border border-white/40 dark:border-white/5` : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
+												className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${localFormData[header] === "Pemasukan / Income" ? `bg-white/80 dark:bg-zinc-900/60 ${themeColors.textDark} shadow-sm border border-white/40 dark:border-white/5` : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
 												onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleLocalInputChange(header, "Pemasukan / Income"); }}
 												disabled={isInteractionDisabled}
 											>
-												<TrendingUp size={18} />
+												<TrendingUp size={16} />
 												{t("income")}
 											</button>
 											<button
 												type="button"
-												className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${localFormData[header] === "Pengeluaran / Expense" ? "bg-white/80 dark:bg-zinc-900/60 text-red-650 shadow-sm border border-white/40 dark:border-white/5" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
+												className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${localFormData[header] === "Pengeluaran / Expense" ? "bg-white/80 dark:bg-zinc-900/60 text-red-650 shadow-sm border border-white/40 dark:border-white/5" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
 												onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleLocalInputChange(header, "Pengeluaran / Expense"); }}
 												disabled={isInteractionDisabled}
 											>
-												<TrendingDown size={18} />
+												<TrendingDown size={16} />
 												{t("expense")}
 											</button>
 										</div>
 									) : isAmount ? (
 										<>
 											<div className="relative flex items-center w-full">
-												<span className="absolute left-4 text-[10px] font-black text-zinc-400 dark:text-zinc-500 select-none pointer-events-none">
+												<span className="absolute left-3.5 text-[10px] font-black text-zinc-400 dark:text-zinc-500 select-none pointer-events-none">
 													Rp
 												</span>
 												<Input
@@ -775,7 +829,7 @@ export function FormView(props: FormViewProps) {
 													readOnly={isMobile}
 													disabled={isInteractionDisabled}
 													placeholder={t("amountPlaceholder")}
-													className={`h-12 w-full pl-9 pr-4 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium text-base transition-colors ${themeColors.focusRingInput}`}
+													className={`h-11 w-full pl-9 pr-4 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium text-base transition-colors ${themeColors.focusRingInput}`}
 													value={localFormData[header] || ""}
 													onChange={(e) => handleAmountChange(header, e.target.value)}
 													onFocus={() => isMobile && setMobileKbHeader(header)}
@@ -794,91 +848,140 @@ export function FormView(props: FormViewProps) {
 											)}
 										</>
 									) : (
-										<Input type="text" disabled={isInteractionDisabled} placeholder={`${props.translateHeader(header)}...`} className={`h-12 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium transition-colors ${themeColors.focusRingInput}`} value={localFormData[header] || ""} onChange={(e) => handleLocalInputChange(header, e.target.value)} />
+										<Input type="text" disabled={isInteractionDisabled} placeholder={`${props.translateHeader(header)}...`} className={`h-11 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium text-sm transition-colors ${themeColors.focusRingInput}`} value={localFormData[header] || ""} onChange={(e) => handleLocalInputChange(header, e.target.value)} />
 									)}
 								</div>
 							);
 						})
 					)}
-					
-					{(() => {
-						const isOcrDisabled = props.ocrLoading || props.isOcrReady === false || isInteractionDisabled || (!props.supabaseUser && !props.user && !props.isDemoMode);
-						
-						return (props.supabaseUser || props.user || props.isDemoMode) ? (
-							<div className="flex flex-col items-center w-full gap-2">
-								<div className="flex items-center gap-3 mt-4 w-full">
-									<Button 
-										disabled={isInteractionDisabled} 
-										onClick={handleLocalSubmit} 
-										className={`flex-grow h-14 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black text-lg rounded-2xl shadow-lg ${themeColors.buttonShadow} cursor-pointer border-none transition-all active:scale-[0.98]`}
-									>
-										{(activePocket && activePocket.id !== "net_worth")
-											? (language === "en" ? `Add to ${activePocket.name}` : `Catat ke ${activePocket.name}`)
-											: t("addExpense")}
-									</Button>
-									<Button
-										type="button"
-										variant="outline"
-										disabled={isOcrDisabled}
-										onClick={props.onOcrClick}
-										className={`h-14 w-14 rounded-2xl border ${themeColors.border} ${themeColors.bgLight} ${themeColors.hoverBg} flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 bg-transparent`}
-										aria-label="Scan Struk / OCR Receipt Scan"
-									>
-										{props.ocrLoading ? (
-											<Loader2 size={24} className={`${themeColors.text} animate-spin`} />
-										) : (
-											<Camera size={24} className={themeColors.text} />
-										)}
-									</Button>
-								</div>
-
-								{/* PWA Install Button position moved to bottom of quickAdd card */}
-								{props.isInstallable && (
-									<button
-										type="button"
-										onClick={props.triggerInstall}
-										className="text-xs font-semibold text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors underline underline-offset-2 cursor-pointer mt-2 bg-transparent border-none"
-									>
-										{language === "en" ? "Install Application" : "Instal Aplikasi"}
-									</button>
-								)}
-							</div>
-						) : (
-							<div className="flex flex-col items-center gap-2 w-full">
-								<div className="flex items-center gap-3 mt-4 w-full">
-									<Button onClick={props.onLoginClick} disabled={isSyncing} className={`flex-grow h-14 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black text-lg rounded-2xl shadow-lg ${themeColors.buttonShadow} cursor-pointer border-none transition-all active:scale-[0.98]`}>
-										{t("signIn")}
-									</Button>
-									<Button
-										type="button"
-										variant="outline"
-										disabled={true}
-										className="h-14 w-14 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/30 flex items-center justify-center opacity-40 cursor-not-allowed flex-shrink-0 bg-transparent"
-										aria-label="Scan Struk / OCR Receipt Scan"
-									>
-										<Camera size={24} className="text-zinc-400" />
-									</Button>
-								</div>
-								
-								<button
-									type="button"
-									onClick={enterDemo}
-									disabled={isSyncing}
-									className="text-xs font-semibold text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-2 cursor-pointer mt-2 disabled:opacity-50 bg-transparent border-none"
-								>
-									{t("tryDemo")}
-								</button>
-							</div>
-						);
-					})()}
 
 					{props.ocrMessage && (
-						<p className={`text-xs text-center font-medium mt-3 ${props.ocrMessage === t("ocrSuccess") ? "text-emerald-600" : "text-red-500"}`}>
+						<p className={`text-xs text-center font-medium mt-2 ${props.ocrMessage === t("ocrSuccess") ? "text-emerald-600" : "text-red-500"}`}>
 							{props.ocrMessage}
 						</p>
 					)}
+
+					{props.isInstallable && (
+						<div className="flex justify-center pt-1">
+							<button
+								type="button"
+								onClick={props.triggerInstall}
+								className="text-[11px] font-semibold text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors underline underline-offset-2 cursor-pointer bg-transparent border-none"
+							>
+								{language === "en" ? "Install Application" : "Instal Aplikasi"}
+							</button>
+						</div>
+					)}
 				</div>
 			</section>
+
+			{/* Sticky Bottom Action Navbar */}
+			<nav
+				aria-label={language === "en" ? "Quick Actions" : "Aksi Cepat"}
+				className="fixed bottom-0 left-0 right-0 z-50 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-xl border-t border-zinc-200/80 dark:border-zinc-800/80 px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgb(0,0,0,0.08)]"
+			>
+				<div className="max-w-md mx-auto flex items-center gap-2">
+					{(isCleanDisplay || props.activePocketIdx !== 0) && (
+						<>
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() => setIsPocketSettingsOpen(true)}
+								disabled={isSyncing}
+								aria-label={language === "en" ? "Manage Pockets" : "Kelola Kantong"}
+								title={language === "en" ? "Manage Pockets" : "Kelola Kantong"}
+								className="h-12 w-12 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex flex-col items-center justify-center gap-0.5 p-0 cursor-pointer shrink-0 text-zinc-700 dark:text-zinc-300"
+							>
+								<Wallet size={17} className={themeColors.text} />
+								<span className="text-[8px] font-black uppercase tracking-tight leading-none">
+									{language === "en" ? "Pocket" : "Kantong"}
+								</span>
+							</Button>
+
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() => setIsRecurringModalOpen(true)}
+								disabled={isSyncing}
+								aria-label={language === "en" ? "Auto Transactions" : "Transaksi Otomatis"}
+								title={language === "en" ? "Auto Transactions" : "Transaksi Otomatis"}
+								className="h-12 w-12 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex flex-col items-center justify-center gap-0.5 p-0 cursor-pointer shrink-0 text-zinc-700 dark:text-zinc-300"
+							>
+								<CalendarDays size={17} className={themeColors.text} />
+								<span className="text-[8px] font-black uppercase tracking-tight leading-none">
+									{language === "en" ? "Auto" : "Otomatis"}
+								</span>
+							</Button>
+						</>
+					)}
+
+					{(() => {
+						const isOcrDisabled = props.ocrLoading || props.isOcrReady === false || isInteractionDisabled || (!props.supabaseUser && !props.user && !props.isDemoMode);
+
+						return (props.supabaseUser || props.user || props.isDemoMode) ? (
+							<>
+								<Button 
+									disabled={isInteractionDisabled} 
+									onClick={handleLocalSubmit} 
+									className={`flex-1 h-12 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black text-sm sm:text-base rounded-2xl shadow-lg ${themeColors.buttonShadow} cursor-pointer border-none transition-all active:scale-[0.98] px-3 truncate`}
+								>
+									{(activePocket && activePocket.id !== "net_worth")
+										? (language === "en" ? `Add to ${activePocket.name}` : `Catat ke ${activePocket.name}`)
+										: t("addExpense")}
+								</Button>
+								<Button
+									type="button"
+									variant="outline"
+									disabled={isOcrDisabled}
+									onClick={props.onOcrClick}
+									className={`h-12 w-12 rounded-2xl border ${themeColors.border} ${themeColors.bgLight} ${themeColors.hoverBg} flex flex-col items-center justify-center gap-0.5 p-0 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 bg-transparent`}
+									aria-label="Scan Struk / OCR Receipt Scan"
+									title={language === "en" ? "Scan Receipt" : "Scan Struk"}
+								>
+									{props.ocrLoading ? (
+										<Loader2 size={18} className={`${themeColors.text} animate-spin`} />
+									) : (
+										<>
+											<Camera size={17} className={themeColors.text} />
+											<span className={`text-[8px] font-black uppercase tracking-tight leading-none ${themeColors.textDark}`}>
+												Scan
+											</span>
+										</>
+									)}
+								</Button>
+							</>
+						) : (
+							<>
+								<Button
+									onClick={props.onLoginClick}
+									disabled={isSyncing}
+									className={`flex-1 h-12 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black text-sm sm:text-base rounded-2xl shadow-lg ${themeColors.buttonShadow} cursor-pointer border-none transition-all active:scale-[0.98]`}
+								>
+									{t("signIn")}
+								</Button>
+								<Button
+									type="button"
+									variant="outline"
+									onClick={enterDemo}
+									disabled={isSyncing}
+									className="h-12 px-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-200 cursor-pointer shrink-0"
+								>
+									{t("tryDemo")}
+								</Button>
+								<Button
+									type="button"
+									variant="outline"
+									disabled={true}
+									className="h-12 w-12 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/30 flex items-center justify-center opacity-40 cursor-not-allowed shrink-0 bg-transparent p-0"
+									aria-label="Scan Struk / OCR Receipt Scan"
+								>
+									<Camera size={18} className="text-zinc-400" />
+								</Button>
+							</>
+						);
+					})()}
+				</div>
+			</nav>
 
 			{/* Close mobile keyboard when tapping outside */}
 			{isMobile && mobileKbHeader && (
