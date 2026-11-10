@@ -3,6 +3,7 @@ export type CustomFieldDef = {
 	type: "text" | "dropdown";
 	required: boolean;
 	options?: string[];
+	pocketId?: string;
 };
 
 export type CustomChartConfig = {

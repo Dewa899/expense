@@ -25,7 +25,9 @@ import {
 	CalendarDays,
 	ChevronUp,
 	ChevronDown,
-	AlertTriangle
+	AlertTriangle,
+	Menu,
+	X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -219,8 +221,9 @@ export function FormView(props: FormViewProps) {
 
 	const [isProfileModalOpen, setIsProfileModalOpen] = React.useState(false);
 	const [isDashboardSettingsOpen, setIsDashboardSettingsOpen] = React.useState(false);
+	const [isQuickMenuOpen, setIsQuickMenuOpen] = React.useState(false);
 
-	const handleManageFieldsClick = (e: React.MouseEvent) => {
+	const handleManageFieldsClick = (e?: React.MouseEvent) => {
 		if (!props.user && !props.supabaseUser && !props.isDemoMode) {
 			props.onLoginClick?.();
 		} else {
@@ -244,14 +247,23 @@ export function FormView(props: FormViewProps) {
 		setIsNoteExpanded(false);
 	};
 
-	const displayHeaders = props.headers.length > 0 ? props.headers : ["Nama Pengeluaran", "Jumlah", "Tipe", "Kategori", "Catatan"];
-
 	const carouselPockets = React.useMemo<PocketDef[]>(() => [
 		{ id: "net_worth", name: language === "en" ? "Total Balance" : "Total Saldo", type: "default", color: "emerald", target: undefined } as PocketDef,
 		...props.pockets
 	], [props.pockets, language]);
 
 	const activePocket = carouselPockets[props.activePocketIdx] || carouselPockets[0];
+	const activePocketId = activePocket?.id || "net_worth";
+
+	const displayHeaders = React.useMemo(() => {
+		const baseHeaders = props.headers.length > 0 ? props.headers : ["Nama Pengeluaran", "Jumlah", "Tipe", "Kategori", "Catatan"];
+		const allCustomNames = new Set(props.customFields.map(f => f.name.toLowerCase()));
+		const coreOnly = baseHeaders.filter(h => !allCustomNames.has(h.toLowerCase()));
+		const activePocketCustomHeaders = props.customFields
+			.filter(f => (f.pocketId || "net_worth") === activePocketId)
+			.map(f => f.name);
+		return [...coreOnly, ...activePocketCustomHeaders];
+	}, [props.headers, props.customFields, activePocketId]);
 
 	const themeColors = {
 		emerald: {
@@ -670,15 +682,17 @@ export function FormView(props: FormViewProps) {
 						)}
 					</div>
 					
-					<Button 
-						size="sm" 
-						variant="outline" 
-						disabled={isSyncing} 
-						className={`h-7 text-[10px] font-black ${themeColors.textDark} ${themeColors.bgLight} border ${themeColors.border} ${themeColors.hoverBg} px-2 rounded-lg cursor-pointer flex items-center gap-1 transition-all shadow-none shrink-0`}
-						onClick={handleManageFieldsClick}
-					>
-						<Settings size={12} /> {t("manageFields")}
-					</Button>
+					{!isCleanDisplay && (
+						<Button 
+							size="sm" 
+							variant="outline" 
+							disabled={isSyncing} 
+							className={`h-7 text-[10px] font-black ${themeColors.textDark} ${themeColors.bgLight} border ${themeColors.border} ${themeColors.hoverBg} px-2 rounded-lg cursor-pointer flex items-center gap-1 transition-all shadow-none shrink-0`}
+							onClick={handleManageFieldsClick}
+						>
+							<Settings size={12} /> {t("manageFields")}
+						</Button>
+					)}
 
 					<ManageFieldsModal
 						isOpen={props.isManageFieldsOpen}
@@ -703,6 +717,9 @@ export function FormView(props: FormViewProps) {
 						isSyncing={!!isSyncing}
 						isCleanDisplay={!!isCleanDisplay}
 						themeColors={themeColors}
+						pockets={props.pockets}
+						activePocketIdx={props.activePocketIdx}
+						setActivePocketIdx={props.setActivePocketIdx}
 					/>
 				</div>
 				<div className="space-y-3">
@@ -716,7 +733,7 @@ export function FormView(props: FormViewProps) {
 							const isType = hL.includes("tipe") || hL.includes("type");
 							const isAmount = hL.includes("jumlah") || hL.includes("amount");
 							const isName = hL.includes("nama") || hL.includes("name");
-							const customFieldIdx = props.customFields.findIndex(f => f.name.toLowerCase() === hL);
+							const customFieldIdx = props.customFields.findIndex(f => f.name.toLowerCase() === hL && (f.pocketId || "net_worth") === activePocketId);
 							const customField = customFieldIdx !== -1 ? props.customFields[customFieldIdx] : null;
 							const isNote = hL.includes("catatan") || hL.includes("note");
 
@@ -875,45 +892,128 @@ export function FormView(props: FormViewProps) {
 				</div>
 			</section>
 
+			{/* Backdrop for Quick Hamburger Menu */}
+			<AnimatePresence>
+				{isQuickMenuOpen && (
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						onClick={() => setIsQuickMenuOpen(false)}
+						className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]"
+					/>
+				)}
+			</AnimatePresence>
+
 			{/* Sticky Bottom Action Navbar */}
 			<nav
 				aria-label={language === "en" ? "Quick Actions" : "Aksi Cepat"}
 				className="fixed bottom-0 left-0 right-0 z-50 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-xl border-t border-zinc-200/80 dark:border-zinc-800/80 px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgb(0,0,0,0.08)]"
 			>
-				<div className="max-w-md mx-auto flex items-center gap-2">
-					{(isCleanDisplay || props.activePocketIdx !== 0) && (
-						<>
-							<Button
-								type="button"
-								variant="outline"
-								onClick={() => setIsPocketSettingsOpen(true)}
-								disabled={isSyncing}
-								aria-label={language === "en" ? "Manage Pockets" : "Kelola Kantong"}
-								title={language === "en" ? "Manage Pockets" : "Kelola Kantong"}
-								className="h-12 w-12 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex flex-col items-center justify-center gap-0.5 p-0 cursor-pointer shrink-0 text-zinc-700 dark:text-zinc-300"
+				<div className="max-w-md mx-auto flex items-center gap-2 relative">
+					{/* Floating Hamburger Menu Popover */}
+					<AnimatePresence>
+						{isQuickMenuOpen && (
+							<motion.div
+								initial={{ opacity: 0, y: 10, scale: 0.96 }}
+								animate={{ opacity: 1, y: 0, scale: 1 }}
+								exit={{ opacity: 0, y: 10, scale: 0.96 }}
+								transition={{ duration: 0.15 }}
+								className="absolute bottom-[calc(100%+0.75rem)] left-0 w-64 rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200/90 dark:border-zinc-800 p-1.5 shadow-2xl z-50 space-y-1"
 							>
-								<Wallet size={17} className={themeColors.text} />
-								<span className="text-[8px] font-black uppercase tracking-tight leading-none">
-									{language === "en" ? "Pocket" : "Kantong"}
-								</span>
-							</Button>
+								<button
+									type="button"
+									disabled={isSyncing}
+									onClick={() => {
+										setIsQuickMenuOpen(false);
+										setIsPocketSettingsOpen(true);
+									}}
+									className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${themeColors.hoverBg} text-zinc-800 dark:text-zinc-100 disabled:opacity-50`}
+								>
+									<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} border ${themeColors.border} flex items-center justify-center shrink-0`}>
+										<Wallet size={15} className={themeColors.textDark} />
+									</div>
+									<div className="min-w-0 flex-1">
+										<p className="text-xs font-bold leading-tight truncate">
+											{language === "en" ? "Manage Pockets" : "Kelola Kantong"}
+										</p>
+										<p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+											{language === "en" ? "Add, edit, or delete pockets" : "Tambah, ubah, atau hapus kantong"}
+										</p>
+									</div>
+								</button>
 
-							<Button
-								type="button"
-								variant="outline"
-								onClick={() => setIsRecurringModalOpen(true)}
-								disabled={isSyncing}
-								aria-label={language === "en" ? "Auto Transactions" : "Transaksi Otomatis"}
-								title={language === "en" ? "Auto Transactions" : "Transaksi Otomatis"}
-								className="h-12 w-12 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex flex-col items-center justify-center gap-0.5 p-0 cursor-pointer shrink-0 text-zinc-700 dark:text-zinc-300"
-							>
-								<CalendarDays size={17} className={themeColors.text} />
-								<span className="text-[8px] font-black uppercase tracking-tight leading-none">
-									{language === "en" ? "Auto" : "Otomatis"}
-								</span>
-							</Button>
-						</>
-					)}
+								<button
+									type="button"
+									disabled={isSyncing}
+									onClick={() => {
+										setIsQuickMenuOpen(false);
+										setIsRecurringModalOpen(true);
+									}}
+									className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${themeColors.hoverBg} text-zinc-800 dark:text-zinc-100 disabled:opacity-50`}
+								>
+									<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} border ${themeColors.border} flex items-center justify-center shrink-0`}>
+										<CalendarDays size={15} className={themeColors.textDark} />
+									</div>
+									<div className="min-w-0 flex-1">
+										<p className="text-xs font-bold leading-tight truncate">
+											{language === "en" ? "Auto Transactions" : "Transaksi Otomatis"}
+										</p>
+										<p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+											{language === "en" ? "Scheduled & recurring entries" : "Jadwal transaksi rutin"}
+										</p>
+									</div>
+								</button>
+
+								<button
+									type="button"
+									disabled={isSyncing}
+									onClick={(e) => {
+										setIsQuickMenuOpen(false);
+										handleManageFieldsClick(e);
+									}}
+									className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${themeColors.hoverBg} text-zinc-800 dark:text-zinc-100 disabled:opacity-50`}
+								>
+									<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} border ${themeColors.border} flex items-center justify-center shrink-0`}>
+										<Settings size={15} className={themeColors.textDark} />
+									</div>
+									<div className="min-w-0 flex-1">
+										<div className="flex items-center gap-1.5">
+											<p className="text-xs font-bold leading-tight truncate">
+												{t("manageFields")}
+											</p>
+										</div>
+										<p className={`text-[10px] font-semibold ${themeColors.textDark} truncate`}>
+											{activePocket?.id === "net_worth"
+												? (language === "en" ? "Main Pocket" : "Dompet Utama")
+												: activePocket?.name}
+										</p>
+									</div>
+								</button>
+							</motion.div>
+						)}
+					</AnimatePresence>
+
+					{/* Left Symmetrical Hamburger Button (Menu Garis Tiga) */}
+					<Button
+						type="button"
+						variant="outline"
+						onClick={() => setIsQuickMenuOpen(prev => !prev)}
+						disabled={isSyncing}
+						aria-label={language === "en" ? "Quick Menu" : "Menu Cepat"}
+						aria-expanded={isQuickMenuOpen}
+						title={language === "en" ? "Menu (Pockets, Auto, Fields)" : "Menu (Kantong, Otomatis, Field)"}
+						className={`h-12 w-12 rounded-2xl border ${isQuickMenuOpen ? `${themeColors.border} ${themeColors.bgLight}` : "border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 hover:bg-zinc-100 dark:hover:bg-zinc-800"} flex flex-col items-center justify-center gap-0.5 p-0 cursor-pointer shrink-0 text-zinc-700 dark:text-zinc-300 transition-colors`}
+					>
+						{isQuickMenuOpen ? (
+							<X size={17} className={themeColors.text} />
+						) : (
+							<Menu size={17} className={themeColors.text} />
+						)}
+						<span className={`text-[8px] font-black uppercase tracking-tight leading-none ${isQuickMenuOpen ? themeColors.textDark : ""}`}>
+							Menu
+						</span>
+					</Button>
 
 					{(() => {
 						const isOcrDisabled = props.ocrLoading || props.isOcrReady === false || isInteractionDisabled || (!props.supabaseUser && !props.user && !props.isDemoMode);

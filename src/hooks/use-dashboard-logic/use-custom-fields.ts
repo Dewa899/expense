@@ -17,6 +17,7 @@ interface UseCustomFieldsOptions {
 	handleAuthError: () => void;
 	fetchSheetData: (sheetId: string, token: string, sheetName: string) => Promise<any>;
 	updateSupabaseSettings: (cats: string[], fields: CustomFieldDef[], charts: CustomChartConfig[]) => Promise<void>;
+	activePocketId?: string;
 }
 
 export function useCustomFields({
@@ -33,7 +34,8 @@ export function useCustomFields({
 	setLoading,
 	handleAuthError,
 	fetchSheetData,
-	updateSupabaseSettings
+	updateSupabaseSettings,
+	activePocketId = "net_worth"
 }: UseCustomFieldsOptions) {
 	const [newFieldName, setNewFieldName] = React.useState("");
 	const [newFieldType, setNewFieldType] = React.useState<"text" | "dropdown">("text");
@@ -43,8 +45,16 @@ export function useCustomFields({
 	const [isManageFieldsOpen, setIsManageFieldsOpen] = React.useState(false);
 
 	const handleAddField = async () => {
-		if (!newFieldName.trim() || customFields.length >= 2) return;
-		const newField: CustomFieldDef = { name: newFieldName.trim(), type: newFieldType, required: newFieldRequired, options: newFieldType === "dropdown" ? ["Default"] : [] };
+		const targetPocketId = activePocketId || "net_worth";
+		const pocketFields = customFields.filter(f => (f.pocketId || "net_worth") === targetPocketId);
+		if (!newFieldName.trim() || pocketFields.length >= 2) return;
+		const newField: CustomFieldDef = {
+			name: newFieldName.trim(),
+			type: newFieldType,
+			required: newFieldRequired,
+			options: newFieldType === "dropdown" ? ["Default"] : [],
+			pocketId: targetPocketId
+		};
 		const updatedFields = [...customFields, newField];
 
 		if (isDemoMode) {

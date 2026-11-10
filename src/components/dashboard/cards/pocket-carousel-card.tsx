@@ -334,19 +334,35 @@ export function PocketCarouselCard({
 								</div>
 							)}
 
-							{/* Compact Dot Indicator at the bottom (no left/right arrows needed since swipe is enabled) */}
-							<div className="flex items-center justify-center pt-0.5" onClick={(e) => e.stopPropagation()}>
-								<button
-									type="button"
-									onClick={(e) => {
-										e.stopPropagation();
-										onPocketSelectClick();
-									}}
-									aria-label={language === "en" ? "Select Pocket" : "Pilih Kantong"}
-									className={`px-3 py-1 bg-transparent hover:scale-105 active:scale-95 cursor-pointer transition-all flex items-center justify-center gap-1.5 border-none ${themeColors.navText}`}
+							{/* Dedicated navigation area < ... > at the bottom of the card content (prevents accidental click-through to detail page) */}
+							{pockets.length > 0 && (
+								<div
+									className="pt-1.5 border-t border-black/10 flex items-center justify-between mt-1"
+									onClick={(e) => e.stopPropagation()}
 								>
-									{pockets.length > 0 ? (
-										carouselPockets.map((p, idx) => (
+									<button
+										type="button"
+										onClick={(e) => {
+											e.stopPropagation();
+											setActivePocketIdx((activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
+										}}
+										className={`w-7 h-7 bg-transparent hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer transition-all border-none rounded-full hover:bg-black/5 ${themeColors.navText}`}
+										aria-label="Previous Pocket"
+									>
+										<ChevronLeft size={16} />
+									</button>
+
+									{/* Dot indicator button to open direct pocket selection dialog */}
+									<button
+										type="button"
+										onClick={(e) => {
+											e.stopPropagation();
+											onPocketSelectClick();
+										}}
+										aria-label={language === "en" ? "Select Pocket" : "Pilih Kantong"}
+										className={`px-4 py-1.5 bg-transparent hover:scale-105 active:scale-95 cursor-pointer transition-all flex items-center justify-center gap-1.5 border-none rounded-full hover:bg-black/5 ${themeColors.navText}`}
+									>
+										{carouselPockets.map((p, idx) => (
 											<span
 												key={p.id}
 												className={`h-1.5 rounded-full transition-all duration-300 ${
@@ -355,16 +371,22 @@ export function PocketCarouselCard({
 														: "w-1.5 bg-black/25 hover:bg-black/40"
 												}`}
 											/>
-										))
-									) : (
-										<>
-											<span className="w-3.5 h-1.5 rounded-full bg-black/50" />
-											<span className="w-1.5 h-1.5 rounded-full bg-black/20" />
-											<span className="w-1.5 h-1.5 rounded-full bg-black/20" />
-										</>
-									)}
-								</button>
-							</div>
+										))}
+									</button>
+
+									<button
+										type="button"
+										onClick={(e) => {
+											e.stopPropagation();
+											setActivePocketIdx((activePocketIdx + 1) % carouselPockets.length);
+										}}
+										className={`w-7 h-7 bg-transparent hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer transition-all border-none rounded-full hover:bg-black/5 ${themeColors.navText}`}
+										aria-label="Next Pocket"
+									>
+										<ChevronRight size={16} />
+									</button>
+								</div>
+							)}
 						</motion.div>
 					</AnimatePresence>
 				</div>

@@ -25,8 +25,9 @@ test('Alur Tambah Pocket Baru', async ({ page }) => {
   const quickAddBtn = page.getByRole('button', { name: 'Quick Add' });
   await expect(quickAddBtn).toBeVisible({ timeout: 15000 });
 
-  // 7. Klik tombol Kelola Kantong (Manage Pockets)
-  await page.getByRole('button', { name: 'Manage Pockets' }).click();
+  // 7. Buka Menu Cepat (Hamburger) lalu klik tombol Kelola Kantong (Manage Pockets)
+  await page.getByRole('button', { name: /Quick Menu|Menu Cepat/ }).click();
+  await page.getByRole('button', { name: /Manage Pockets|Kelola Kantong/ }).click();
   
   // 8. Bebaskan slot jika saku sudah penuh (Maksimal 3 saku)
   const addPocketBtn = page.getByRole('button', { name: 'Add Pocket' }).or(page.getByRole('button', { name: 'Add First Pocket' }));
@@ -52,7 +53,8 @@ test('Alur Tambah Pocket Baru', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Save Changes' })).not.toBeVisible();
 
   // 13. Bersihkan saku yang baru ditambahkan agar tes selalu dapat diulang secara mandiri
-  await page.getByRole('button', { name: 'Manage Pockets' }).click();
+  await page.getByRole('button', { name: /Quick Menu|Menu Cepat/ }).click();
+  await page.getByRole('button', { name: /Manage Pockets|Kelola Kantong/ }).click();
   await page.getByRole('button', { name: 'Delete Pocket' }).last().click();
   await page.getByRole('button', { name: 'Delete' }).click();
   await page.getByRole('button', { name: 'Save Changes' }).click();

@@ -28,6 +28,7 @@ test.describe('Dashboard Comprehensive Features Test', () => {
     await expect(quickAddBtn).toBeEnabled({ timeout: 15000 });
 
     // 5.1 Clean up any pre-existing custom fields to ensure form is in a clean state (no required custom fields)
+    await page.getByRole('button', { name: /Quick Menu|Menu Cepat/ }).click();
     await page.getByRole('button', { name: /Manage Fields|Kelola Kolom/ }).click();
     
     const manageFieldsDialog = page.getByRole('dialog').filter({ hasText: /Manage Fields|Kelola Kolom/ });
@@ -52,6 +53,7 @@ test.describe('Dashboard Comprehensive Features Test', () => {
     await expect(quickAddBtn).toBeEnabled();
 
     // 6. Test: Manage Pockets (Tambah Pocket)
+    await page.getByRole('button', { name: /Quick Menu|Menu Cepat/ }).click();
     await page.getByRole('button', { name: /Manage Pockets|Kelola Kantong/ }).click();
     
     // The "Add Pocket" button is hidden if there are already 3 pockets.
@@ -110,6 +112,7 @@ test.describe('Dashboard Comprehensive Features Test', () => {
     await expect(successDialog).not.toBeVisible();
 
     // 8. Test: Automatic Transactions (Auto Transactions / Recurring Templates)
+    await page.getByRole('button', { name: /Quick Menu|Menu Cepat/ }).click();
     await page.getByRole('button', { name: /Auto Transactions|Transaksi Otomatis/ }).click();
     
     const autoTxDialog = page.getByRole('dialog').filter({ hasText: /Recurring Transaction Templates|Template Transaksi Otomatis/ });
@@ -132,6 +135,7 @@ test.describe('Dashboard Comprehensive Features Test', () => {
     await expect(autoTxDialog).not.toBeVisible();
 
     // 9. Test: Manage Fields (Add Custom Field)
+    await page.getByRole('button', { name: /Quick Menu|Menu Cepat/ }).click();
     await page.getByRole('button', { name: /Manage Fields|Kelola Kolom/ }).click();
     await expect(manageFieldsDialog).toBeVisible();
     

@@ -1491,11 +1491,12 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 	const handleSubmit = async (overrideFormData?: Record<string, string>) => {
 		const activeFormData = overrideFormData || formData;
 		const activeSelectedPocket = activePocketIdx > 0 ? pockets[activePocketIdx - 1] : null;
+		const activeTargetPocketId = activeSelectedPocket?.id || "net_worth";
 		if (isDemoMode && addDemoTransaction) {
 			const missingFields = headers.filter(h => {
 				const hL = h.toLowerCase();
 				if (hL.includes("tanggal") || hL.includes("date") || hL.includes("catatan") || hL.includes("note") || hL.includes("pocket") || hL.includes("kantong")) return false;
-				const customField = customFields.find(f => f.name.toLowerCase() === hL);
+				const customField = customFields.find(f => f.name.toLowerCase() === hL && (f.pocketId || "net_worth") === activeTargetPocketId);
 				if (!customField && !CORE_HEADERS_DUAL.includes(h)) return false;
 				if (customField && !customField.required) return false;
 				return !activeFormData[h];
@@ -1518,11 +1519,9 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			const isExpense = typeVal.toLowerCase().includes("expense") || typeVal.toLowerCase().includes("pengeluaran");
 			const rawAmt = getAmountRaw(amountHeader);
 			const customFieldValues: Record<string, string> = {};
-			customFields.forEach(f => {
-				const headerName = headers.find(h => h.toLowerCase() === f.name.toLowerCase());
-				if (headerName) {
-					customFieldValues[f.name] = activeFormData[headerName] || "";
-				}
+			customFields.filter(f => (f.pocketId || "net_worth") === activeTargetPocketId).forEach(f => {
+				const headerName = headers.find(h => h.toLowerCase() === f.name.toLowerCase()) || f.name;
+				customFieldValues[f.name] = activeFormData[headerName] || "";
 			});
 
 			addDemoTransaction({
@@ -1544,7 +1543,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 			const missingFields = headers.filter(h => {
 				const hL = h.toLowerCase();
 				if (hL.includes("tanggal") || hL.includes("date") || hL.includes("catatan") || hL.includes("note") || hL.includes("pocket") || hL.includes("kantong")) return false;
-				const customField = customFields.find(f => f.name.toLowerCase() === hL);
+				const customField = customFields.find(f => f.name.toLowerCase() === hL && (f.pocketId || "net_worth") === activeTargetPocketId);
 				if (!customField && !CORE_HEADERS_DUAL.includes(h)) return false;
 				if (customField && !customField.required) return false;
 				return !activeFormData[h];
@@ -1573,11 +1572,9 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 					const rawAmt = cleanNumber(stripRupiah(activeFormData[amountHeader] || "0"));
 
 					const customFieldValues: Record<string, string> = {};
-					customFields.forEach(f => {
-						const headerName = headers.find(h => h.toLowerCase() === f.name.toLowerCase());
-						if (headerName) {
-							customFieldValues[f.name] = activeFormData[headerName] || "";
-						}
+					customFields.filter(f => (f.pocketId || "net_worth") === activeTargetPocketId).forEach(f => {
+						const headerName = headers.find(h => h.toLowerCase() === f.name.toLowerCase()) || f.name;
+						customFieldValues[f.name] = activeFormData[headerName] || "";
 					});
 
 					const pocketVal = activeFormData[pocketHeader] || activeSelectedPocket?.name || "";
@@ -1633,7 +1630,7 @@ export function useDashboardLogic(options: DashboardLogicOptions = {}) {
 		const missingFields = headers.filter(h => {
 			const hL = h.toLowerCase();
 			if (hL.includes("tanggal") || hL.includes("date") || hL.includes("catatan") || hL.includes("note") || hL.includes("pocket") || hL.includes("kantong")) return false;
-			const customField = customFields.find(f => f.name.toLowerCase() === hL);
+			const customField = customFields.find(f => f.name.toLowerCase() === hL && (f.pocketId || "net_worth") === activeTargetPocketId);
 			if (!customField && !CORE_HEADERS_DUAL.includes(h)) return false;
 			if (customField && !customField.required) return false;
 			return !activeFormData[h];
