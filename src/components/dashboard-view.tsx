@@ -104,7 +104,7 @@ export function DashboardView({
 	};
 
 	return (
-		<div className="flex flex-col px-4 pt-3 pb-24 gap-3 w-full min-h-screen relative mx-auto transition-all duration-500 bg-gradient-to-br from-zinc-50/10 via-emerald-500/5 to-teal-500/5 dark:from-zinc-950/10 dark:via-emerald-950/10 dark:to-zinc-950/10">
+		<div className="flex flex-col px-4 pt-3 pb-24 gap-3 w-full min-h-screen relative mx-auto transition-all duration-300 bg-transparent">
 			{/* Demo Mode Banner */}
 			<AnimatePresence>
 				{isDemoMode && (

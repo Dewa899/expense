@@ -49,71 +49,71 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: #F4F5F7;
   --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
+  --card: #FFFFFF;
   --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
+  --popover: #FFFFFF;
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+  --secondary: #F1F3F5;
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
+  --muted: #F1F3F5;
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  --accent: #F1F3F5;
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.922 0 0 / 0%);
+  --input: #F1F3F5;
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
+  --radius: 1rem;
+  --sidebar: #FFFFFF;
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent: #F1F3F5;
   --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-border: transparent;
   --sidebar-ring: oklch(0.708 0 0);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: #121212;
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: #1E1E1E;
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: #1E1E1E;
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --secondary: #252525;
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
+  --muted: #252525;
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --accent: #252525;
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --border: oklch(1 0 0 / 6%);
+  --input: #252525;
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
+  --sidebar: #1E1E1E;
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent: #252525;
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-border: transparent;
   --sidebar-ring: oklch(0.556 0 0);
 }
 @layer base {
@@ -143,64 +143,53 @@
   }
 }
 
-/* ─── Premium Glassmorphism Classes ─── */
+/* ─── Modern Solid Layered Surface Classes (Borderless, Subtle Downward Shadow) ─── */
 .glass-card {
-  backdrop-filter: blur(24px) saturate(120%);
-  -webkit-backdrop-filter: blur(24px) saturate(120%);
-  background-color: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 
-    0 10px 30px -10px rgba(0, 0, 0, 0.04),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.5);
+  background-color: #FFFFFF;
+  border: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
 }
 
 .dark .glass-card {
-  background-color: rgba(24, 24, 27, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 
-    0 10px 30px -10px rgba(0, 0, 0, 0.2),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+  background-color: #1E1E1E;
+  border: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.10);
 }
 
 .glass-card-hover {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card-hover:hover {
-  border-color: rgba(16, 185, 129, 0.3);
-  box-shadow: 
-    0 20px 40px -15px rgba(16, 185, 129, 0.08),
-    inset 0 1px 2px 0 rgba(255, 255, 255, 0.6);
-  transform: translateY(-2px);
+  background-color: #FAFAFB;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 .dark .glass-card-hover:hover {
-  border-color: rgba(52, 211, 153, 0.25);
-  box-shadow: 
-    0 20px 40px -15px rgba(52, 211, 153, 0.05),
-    inset 0 1px 2px 0 rgba(255, 255, 255, 0.2);
+  background-color: #242424;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
 }
 
 .glass-header {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  background-color: rgba(255, 255, 255, 0.7);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+  background-color: rgba(244, 245, 247, 0.88);
+  border-bottom: none;
 }
 
 .dark .glass-header {
-  background-color: rgba(9, 9, 11, 0.75);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: rgba(18, 18, 18, 0.88);
+  border-bottom: none;
 }
 
-/* Texture Pattern background */
+/* Clean flat background without neon dot grid */
 .bg-grid-pattern {
-  background-image: radial-gradient(circle, rgba(16, 185, 129, 0.08) 1.2px, transparent 1.2px);
-  background-size: 24px 24px;
+  background-image: none;
 }
 
 .dark .bg-grid-pattern {
-  background-image: radial-gradient(circle, rgba(52, 211, 153, 0.04) 1.2px, transparent 1.2px);
+  background-image: none;
 }
 
 /* Remove outlines on SVGs and Recharts elements */

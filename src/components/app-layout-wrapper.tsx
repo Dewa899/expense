@@ -324,23 +324,19 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
 
 	return (
 		<AppLayoutContext.Provider value={contextValue}>
-			<div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950 bg-grid-pattern text-zinc-900 dark:text-zinc-50 transition-colors duration-300 relative overflow-x-hidden">
-				{/* Ambient Glow Orbs */}
-				<div className="fixed top-0 right-0 w-[350px] h-[350px] md:w-[700px] md:h-[700px] rounded-full bg-emerald-500/20 dark:bg-emerald-500/10 blur-[120px] pointer-events-none select-none z-0" />
-				<div className="fixed bottom-0 left-0 w-[300px] h-[300px] md:w-[600px] md:h-[600px] rounded-full bg-teal-500/20 dark:bg-teal-500/8 blur-[120px] pointer-events-none select-none z-0" />
-				
+			<div className="flex flex-col min-h-screen bg-[#F4F5F7] dark:bg-[#121212] text-zinc-900 dark:text-zinc-50 transition-colors duration-300 relative overflow-x-hidden">
 				<header className="px-4 py-3 flex items-center justify-between sticky top-0 z-50 glass-header">
 					<Logo onClick={() => router.push("/dashboard")} />
 					
 					<div className="flex items-center gap-1.5">
 						{pathname === "/dashboard" && (
-							<Button variant="ghost" size="sm" onClick={() => router.push("/")} className="mr-1 text-xs font-bold text-emerald-500 cursor-pointer">
+							<Button variant="ghost" size="sm" onClick={() => router.push("/")} className="mr-1 text-xs font-bold text-emerald-500 cursor-pointer rounded-2xl">
 								<ArrowLeft size={14} className="mr-1" />
 								App
 							</Button>
 						)}
 						{pathname === "/login" && (
-							<Button variant="ghost" size="sm" onClick={() => router.push("/")} className="mr-1 text-xs font-bold text-emerald-500 cursor-pointer">
+							<Button variant="ghost" size="sm" onClick={() => router.push("/")} className="mr-1 text-xs font-bold text-emerald-500 cursor-pointer rounded-2xl">
 								<ArrowLeft size={14} className="mr-1" />
 								{language === "en" ? "Back" : "Kembali"}
 							</Button>
@@ -350,7 +346,7 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
 							variant="ghost"
 							size="icon"
 							onClick={() => setIsDashboardSettingsOpen(true)}
-							className="rounded-full h-9 w-9 text-zinc-600 dark:text-zinc-400 hover:text-emerald-500 hover:bg-emerald-500/10 cursor-pointer transition-colors"
+							className="rounded-2xl h-9 w-9 bg-[#EAECEF] dark:bg-[#1E1E1E] text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-zinc-200/80 dark:hover:bg-[#252525] border-none cursor-pointer transition-colors"
 							aria-label="Pengaturan Dasbor"
 							title={language === "en" ? "Dashboard Controls & Settings" : "Kontrol Dasbor & Pengaturan"}
 						>

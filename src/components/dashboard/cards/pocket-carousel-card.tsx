@@ -17,6 +17,7 @@ interface PocketCarouselCardProps {
 		shadow: string;
 		navText: string;
 		bgLight: string;
+		cardText?: string;
 	};
 	isPrivate: boolean;
 	togglePrivacy: () => void;
@@ -30,6 +31,26 @@ interface PocketCarouselCardProps {
 	onCardClick?: () => void;
 	onMoveFundsClick?: () => void;
 }
+
+const SOFT_POCKET_GRADIENTS: Record<string, string> = {
+	emerald: "from-[#6EE7B7] to-[#34D399]",
+	indigo: "from-[#A5B4FC] to-[#818CF8]",
+	amber: "from-[#FCD34D] to-[#FBBF24]",
+	rose: "from-[#FDA4AF] to-[#FB7185]",
+	cyan: "from-[#67E8F9] to-[#22D3EE]",
+	violet: "from-[#C4B5FD] to-[#A78BFA]",
+	orange: "from-[#FDBA74] to-[#FB923C]",
+};
+
+const SOFT_POCKET_TEXT: Record<string, string> = {
+	emerald: "text-[#063626]",
+	indigo: "text-[#1E1B4B]",
+	amber: "text-[#451A03]",
+	rose: "text-[#4C0519]",
+	cyan: "text-[#083344]",
+	violet: "text-[#2E1065]",
+	orange: "text-[#431407]",
+};
 
 export function PocketCarouselCard({
 	pockets,
@@ -55,24 +76,38 @@ export function PocketCarouselCard({
 	const dragY = useMotionValue(0);
 
 	// Custom transforms for background cards stack peek effect
-	const leftPeekX = useTransform(dragX, (x) => x > 0 ? x * -0.15 : 0);
-	const leftPeekOpacity = useTransform(dragX, (x) => x > 0 ? Math.min(x / 30, 0.95) : 0);
-	
-	const rightPeekX = useTransform(dragX, (x) => x < 0 ? x * -0.15 : 0);
-	const rightPeekOpacity = useTransform(dragX, (x) => x < 0 ? Math.min(Math.abs(x) / 30, 0.95) : 0);
+	// Left peek (previous pocket) appears when dragging right
+	const leftPeekX = useTransform(dragX, (x) => (x > 0 ? Math.min(x * 0.25, 24) : 0));
+	const leftPeekOpacity = useTransform(dragX, (x) => (x > 0 ? Math.min(x / 30, 0.95) : 0));
+
+	// Right peek (next pocket) is permanently peeking on the right edge like Apple Wallet!
+	// When dragging left (x < 0), it slides in and scales up smoothly.
+	const rightPeekX = useTransform(dragX, (x) => (x < 0 ? Math.max(x * 0.12, -14) : 0));
+	const rightPeekScale = useTransform(dragX, (x) => {
+		if (x < 0) {
+			return Math.min(0.94 + Math.abs(x) / 900, 0.99);
+		}
+		return 0.94;
+	});
+	const rightPeekOpacity = useTransform(dragX, (x) => {
+		if (x < 0) {
+			return Math.min(0.88 + Math.abs(x) / 400, 1);
+		}
+		return 0.88;
+	});
 
 	const horizontalPeekScale = useTransform(dragX, (x) => {
 		const absX = Math.abs(x);
-		return Math.min(0.90 + (absX / 600), 0.96);
+		return Math.min(0.92 + absX / 600, 0.98);
 	});
 
 	const verticalStack1Y = useTransform(dragY, (y) => Math.max(0, y * 0.45));
-	const verticalStack1Scale = useTransform(dragY, (y) => Math.min(0.95, 0.90 + (y / 1000)));
-	const verticalStack1Opacity = useTransform(dragY, (y) => y > 0 ? Math.min(y / 40, 0.9) : 0);
+	const verticalStack1Scale = useTransform(dragY, (y) => Math.min(0.95, 0.90 + y / 1000));
+	const verticalStack1Opacity = useTransform(dragY, (y) => (y > 0 ? Math.min(y / 40, 0.9) : 0));
 
 	const verticalStack2Y = useTransform(dragY, (y) => Math.max(0, y * 0.22));
-	const verticalStack2Scale = useTransform(dragY, (y) => Math.min(0.90, 0.84 + (y / 1500)));
-	const verticalStack2Opacity = useTransform(dragY, (y) => y > 0 ? Math.min(y / 60, 0.75) : 0);
+	const verticalStack2Scale = useTransform(dragY, (y) => Math.min(0.90, 0.84 + y / 1500));
+	const verticalStack2Opacity = useTransform(dragY, (y) => (y > 0 ? Math.min(y / 60, 0.75) : 0));
 
 	const carouselPockets = React.useMemo<PocketDef[]>(() => [
 		{ id: "net_worth", name: language === "en" ? "Total Balance" : "Total Saldo", type: "default" as const, color: "emerald", target: undefined },
@@ -82,39 +117,19 @@ export function PocketCarouselCard({
 	// Pre-calculated target pocket colors
 	const prevPocket = carouselPockets[(activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length];
 	const prevColorKey = prevPocket.color || "emerald";
-	const prevGradient = {
-		emerald: "from-emerald-500/80 to-teal-500/80",
-		indigo: "from-indigo-500/80 to-purple-500/80",
-		amber: "from-amber-500/80 to-rose-500/80",
-		rose: "from-rose-500/80 to-pink-500/80",
-		cyan: "from-cyan-500/80 to-blue-500/80",
-		violet: "from-violet-500/80 to-fuchsia-500/80",
-		orange: "from-orange-500/80 to-yellow-500/80"
-	}[prevColorKey];
+	const prevGradient = SOFT_POCKET_GRADIENTS[prevColorKey] || SOFT_POCKET_GRADIENTS.emerald;
 
 	const nextPocket = carouselPockets[(activePocketIdx + 1) % carouselPockets.length];
 	const nextColorKey = nextPocket.color || "emerald";
-	const nextGradient = {
-		emerald: "from-emerald-500/80 to-teal-500/80",
-		indigo: "from-indigo-500/80 to-purple-500/80",
-		amber: "from-amber-500/80 to-rose-500/80",
-		rose: "from-rose-500/80 to-pink-500/80",
-		cyan: "from-cyan-500/80 to-blue-500/80",
-		violet: "from-violet-500/80 to-fuchsia-500/80",
-		orange: "from-orange-500/80 to-yellow-500/80"
-	}[nextColorKey];
+	const nextGradient = SOFT_POCKET_GRADIENTS[nextColorKey] || SOFT_POCKET_GRADIENTS.emerald;
+	const nextTextClass = SOFT_POCKET_TEXT[nextColorKey] || SOFT_POCKET_TEXT.emerald;
 
 	const stack2Pocket = carouselPockets[(activePocketIdx + 2) % carouselPockets.length];
 	const stack2ColorKey = stack2Pocket.color || "emerald";
-	const stack2Gradient = {
-		emerald: "from-emerald-500/60 to-teal-500/60",
-		indigo: "from-indigo-500/60 to-purple-500/60",
-		amber: "from-amber-500/60 to-rose-500/60",
-		rose: "from-rose-500/60 to-pink-500/60",
-		cyan: "from-cyan-500/60 to-blue-500/60",
-		violet: "from-violet-500/60 to-fuchsia-500/60",
-		orange: "from-orange-500/60 to-yellow-500/60"
-	}[stack2ColorKey];
+	const stack2Gradient = SOFT_POCKET_GRADIENTS[stack2ColorKey] || SOFT_POCKET_GRADIENTS.emerald;
+
+	const activeColorKey = activePocket.color || "emerald";
+	const cardTextClass = themeColors.cardText || SOFT_POCKET_TEXT[activeColorKey] || "text-[#063626]";
 
 	const maskValue = (val: string) => isPrivate ? "******" : val;
 
@@ -145,7 +160,7 @@ export function PocketCarouselCard({
 
 	return (
 		<section className="relative z-0 isolate mt-2">
-			{/* Background Peek Card (Previous Pocket, peeks left) */}
+			{/* Background Peek Card (Previous Pocket, peeks left on drag) */}
 			{pockets.length > 0 && (
 				<motion.div
 					style={{
@@ -153,20 +168,31 @@ export function PocketCarouselCard({
 						opacity: leftPeekOpacity,
 						scale: horizontalPeekScale,
 					}}
-					className={`absolute inset-0 bg-gradient-to-br ${prevGradient} rounded-3xl -z-10 pointer-events-none`}
+					className={`absolute inset-y-1 left-0 right-4 bg-gradient-to-br ${prevGradient} rounded-3xl -z-10 pointer-events-none shadow-[0_4px_10px_rgba(0,0,0,0.08)]`}
 				/>
 			)}
 
-			{/* Background Peek Card (Next Pocket, peeks right) */}
+			{/* Permanent Apple Wallet-Style Peeking Next Card on Right Edge */}
 			{pockets.length > 0 && (
 				<motion.div
 					style={{
 						x: rightPeekX,
 						opacity: rightPeekOpacity,
-						scale: horizontalPeekScale,
+						scale: rightPeekScale,
 					}}
-					className={`absolute inset-0 bg-gradient-to-br ${nextGradient} rounded-3xl -z-10 pointer-events-none`}
-				/>
+					onClick={(e) => {
+						e.stopPropagation();
+						setActivePocketIdx((activePocketIdx + 1) % carouselPockets.length);
+					}}
+					title={
+						language === "en"
+							? `Next: ${nextPocket.name} (Swipe or tap)`
+							: `Berikutnya: ${nextPocket.name} (Geser atau ketuk)`
+					}
+					className={`absolute inset-y-1.5 left-8 right-0 bg-gradient-to-br ${nextGradient} ${nextTextClass} rounded-3xl -z-10 cursor-pointer shadow-[0_4px_10px_rgba(0,0,0,0.08)] flex items-center justify-end pr-1.5 transition-shadow`}
+				>
+					<ChevronRight size={14} className="opacity-50" />
+				</motion.div>
 			)}
 
 			{/* Vertical Stack Hint Cards (Swipe Down) */}
@@ -215,7 +241,7 @@ export function PocketCarouselCard({
 					animate(dragX, 0, { type: "spring", stiffness: 350, damping: 25 });
 					animate(dragY, 0, { type: "spring", stiffness: 350, damping: 25 });
 				}}
-				className="w-full cursor-grab active:cursor-grabbing select-none"
+				className={`${pockets.length > 0 ? "w-[calc(100%-14px)]" : "w-full"} cursor-grab active:cursor-grabbing select-none`}
 			>
 				<div 
 					onClick={(e) => {
@@ -225,13 +251,11 @@ export function PocketCarouselCard({
 						}
 					}}
 					className={`bg-gradient-to-br ${themeColors.gradient} ${
-						variant === "form" ? "px-5 py-3.5 min-h-[124px]" : "p-5 min-h-[140px]"
-					} rounded-3xl text-black shadow-lg ${themeColors.shadow} flex flex-col justify-between relative overflow-hidden transition-all duration-300 ${
-						onCardClick ? "cursor-pointer hover:shadow-xl active:scale-[0.99]" : ""
+						variant === "form" ? "px-6 py-5 min-h-[144px]" : "p-6 min-h-[160px]"
+					} rounded-3xl ${cardTextClass} shadow-[0_4px_10px_rgba(0,0,0,0.10)] flex flex-col justify-between relative overflow-hidden transition-all duration-300 ${
+						onCardClick ? "cursor-pointer active:scale-[0.99]" : ""
 					}`}
 				>
-					<div className="absolute -right-4 -top-4 w-24 h-24 bg-black/5 rounded-full blur-2xl pointer-events-none" />
-					
 					<AnimatePresence mode="wait">
 						<motion.div
 							key={activePocket.id}
@@ -239,20 +263,20 @@ export function PocketCarouselCard({
 							animate={{ x: 0, opacity: 1 }}
 							exit={{ x: -20, opacity: 0 }}
 							transition={{ duration: 0.15 }}
-							className="w-full flex flex-col justify-between flex-1 gap-y-2"
+							className="w-full flex flex-col justify-between flex-1 gap-y-3"
 						>
 							<div className="flex justify-between items-start gap-2">
-								<div className="flex flex-col min-w-0 max-w-[70%]">
-									<span className="text-[9px] font-black uppercase tracking-wider opacity-60 flex items-center gap-1.5 leading-none">
+								<div className="flex flex-col min-w-0 max-w-[72%]">
+									<span className="text-[10px] font-extrabold uppercase tracking-wider opacity-70 flex items-center gap-1.5 leading-none">
 										{activePocket.id === "net_worth"
 											? pockets.length > 0
 												? (language === "en" ? "Main Pocket" : "Dompet Utama")
 												: (language === "en" ? "Total Balance" : "Total Saldo")
 											: "Pocket"}
-										{isSyncing && <Loader2 size={10} className="animate-spin text-emerald-500 shrink-0" />}
+										{isSyncing && <Loader2 size={10} className="animate-spin shrink-0 opacity-80" />}
 									</span>
-									<h4 className="text-xs sm:text-sm font-black uppercase tracking-wide flex items-center gap-1.5 mt-1 truncate text-ellipsis overflow-hidden whitespace-nowrap leading-tight">
-										<Wallet size={13} className="opacity-70 shrink-0" />
+									<h4 className="text-xs sm:text-sm font-black uppercase tracking-wide flex items-center gap-1.5 mt-1.5 truncate text-ellipsis overflow-hidden whitespace-nowrap leading-tight">
+										<Wallet size={14} className="opacity-75 shrink-0" />
 										<span className="truncate">
 											{activePocket.id === "net_worth" && pockets.length > 0
 												? (language === "en" ? "Unallocated Balance" : "Saldo Utama")
@@ -260,18 +284,18 @@ export function PocketCarouselCard({
 										</span>
 									</h4>
 								</div>
-								<div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+								<div className="flex gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
 									{pockets.length > 0 && onMoveFundsClick && (
 										<Button 
 											size="icon" 
 											variant="ghost" 
 											onClick={(e) => { e.stopPropagation(); onMoveFundsClick(); }}
 											disabled={isSyncing}
-											className="h-7 w-7 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center bg-transparent"
+											className={`h-8 w-8 bg-black/8 hover:bg-black/15 ${cardTextClass} border-none rounded-xl cursor-pointer flex items-center justify-center transition-colors`}
 											aria-label="Pindah Dana"
 											title={language === "en" ? "Move Funds" : "Pindah Dana"}
 										>
-											<ArrowLeftRight size={13} />
+											<ArrowLeftRight size={14} />
 										</Button>
 									)}
 
@@ -280,19 +304,19 @@ export function PocketCarouselCard({
 										variant="ghost" 
 										onClick={(e) => { e.stopPropagation(); togglePrivacy(); }}
 										disabled={isSyncing}
-										className="h-7 w-7 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center bg-transparent"
+										className={`h-8 w-8 bg-black/8 hover:bg-black/15 ${cardTextClass} border-none rounded-xl cursor-pointer flex items-center justify-center transition-colors`}
 									>
-										{isPrivate ? <EyeOff size={13} /> : <Eye size={13} />}
+										{isPrivate ? <EyeOff size={14} /> : <Eye size={14} />}
 									</Button>
 								</div>
 							</div>
 
-							<div className="flex items-baseline justify-between w-full">
+							<div className="flex items-baseline justify-between w-full py-1">
 								<h2 className="text-2xl sm:text-3xl font-black tracking-tight text-left leading-none">
 									{maskValue(formatCurrency(displayedBalance))}
 								</h2>
 								{variant === "form" && (
-									<span className="text-[9px] font-black uppercase tracking-widest opacity-40 select-none pointer-events-none shrink-0 text-right">
+									<span className="text-[9px] font-extrabold uppercase tracking-widest opacity-55 select-none pointer-events-none shrink-0 text-right">
 										{language === "en" ? "Click for details" : "Klik untuk detail"}
 									</span>
 								)}
@@ -300,18 +324,18 @@ export function PocketCarouselCard({
 
 							{/* Static balance details (Initial Balance / Income / Expense) moved to detail (analytics) page */}
 							{variant === "analytics" && (
-								<div className="pt-1.5 border-t border-black/10 flex items-center justify-between text-[10px] font-black opacity-85 flex-wrap gap-y-1 w-full">
+								<div className="pt-2 border-t border-current/10 flex items-center justify-between text-[10px] font-black opacity-85 flex-wrap gap-y-1 w-full">
 									<div className="flex items-center gap-1.5">
-										<Wallet size={12} className="opacity-60" />
+										<Wallet size={12} className="opacity-70" />
 										<span>{maskValue(formatCurrency(transactions.filter(t => t.category === "Initial Balance" && matchesActivePocket(t)).reduce((sum, t) => sum + t.amount, 0)))}</span>
 									</div>
 									
 									<div className="flex items-center gap-3">
-										<div className="flex items-center gap-1 text-emerald-950/85">
+										<div className="flex items-center gap-1 opacity-90">
 											<ChevronLeft size={12} className="rotate-90" />
 											<span>{maskValue(formatCurrency(transactions.filter(t => t.category !== "Initial Balance" && !isInternalTransfer(t) && matchesActivePocket(t) && t.amount > 0).reduce((sum, t) => sum + t.amount, 0)))}</span>
 										</div>
-										<div className="w-1 h-1 rounded-full bg-black/15" />
+										<div className="w-1 h-1 rounded-full bg-current/25" />
 										<div className="flex items-center gap-1 text-red-950/85">
 											<ChevronRight size={12} className="rotate-90" />
 											<span>{maskValue(formatCurrency(Math.abs(transactions.filter(t => t.category !== "Initial Balance" && !isInternalTransfer(t) && matchesActivePocket(t) && t.amount < 0).reduce((sum, t) => sum + t.amount, 0))))}</span>
@@ -323,7 +347,7 @@ export function PocketCarouselCard({
 							{/* Dedicated navigation area < ... > at the bottom of the card content (prevents accidental click-through to detail page) */}
 							{pockets.length > 0 && (
 								<div
-									className="pt-1.5 border-t border-black/10 flex items-center justify-between mt-1"
+									className="pt-1.5 border-t border-current/10 flex items-center justify-between"
 									onClick={(e) => e.stopPropagation()}
 								>
 									<button
@@ -332,7 +356,7 @@ export function PocketCarouselCard({
 											e.stopPropagation();
 											setActivePocketIdx((activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
 										}}
-										className={`w-7 h-7 bg-transparent hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer transition-all border-none rounded-full hover:bg-black/5 ${themeColors.navText}`}
+										className={`w-7 h-7 bg-transparent hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer transition-all border-none rounded-xl hover:bg-black/8 ${themeColors.navText}`}
 										aria-label="Previous Pocket"
 									>
 										<ChevronLeft size={16} />
@@ -346,15 +370,15 @@ export function PocketCarouselCard({
 											onPocketSelectClick();
 										}}
 										aria-label={language === "en" ? "Select Pocket" : "Pilih Kantong"}
-										className={`px-4 py-1.5 bg-transparent hover:scale-105 active:scale-95 cursor-pointer transition-all flex items-center justify-center gap-1.5 border-none rounded-full hover:bg-black/5 ${themeColors.navText}`}
+										className={`px-4 py-1.5 bg-transparent hover:scale-105 active:scale-95 cursor-pointer transition-all flex items-center justify-center gap-1.5 border-none rounded-xl hover:bg-black/8 ${themeColors.navText}`}
 									>
 										{carouselPockets.map((p, idx) => (
 											<span
 												key={p.id}
 												className={`h-1.5 rounded-full transition-all duration-300 ${
 													idx === activePocketIdx
-														? "w-4 bg-black/70"
-														: "w-1.5 bg-black/25 hover:bg-black/40"
+														? "w-4 bg-current opacity-80"
+														: "w-1.5 bg-current opacity-30 hover:opacity-50"
 												}`}
 											/>
 										))}
@@ -366,7 +390,7 @@ export function PocketCarouselCard({
 											e.stopPropagation();
 											setActivePocketIdx((activePocketIdx + 1) % carouselPockets.length);
 										}}
-										className={`w-7 h-7 bg-transparent hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer transition-all border-none rounded-full hover:bg-black/5 ${themeColors.navText}`}
+										className={`w-7 h-7 bg-transparent hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer transition-all border-none rounded-xl hover:bg-black/8 ${themeColors.navText}`}
 										aria-label="Next Pocket"
 									>
 										<ChevronRight size={16} />

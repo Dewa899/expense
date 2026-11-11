@@ -97,7 +97,7 @@ export function DetailedBalanceSummary({
 				
 				<div className="lg:col-span-1 flex flex-col h-full">
 					{isNetWorth ? (
-						<div className="glass-card p-6 rounded-[32px] flex flex-col justify-between h-full min-h-[140px]">
+						<div className="glass-card p-6 rounded-3xl flex flex-col justify-between h-full min-h-[140px]">
 							<div>
 								<p className="text-[10px] uppercase font-bold text-zinc-400 mb-1">{t("startingBalance")}</p>
 								<h4 className="text-xl font-black text-zinc-900 dark:text-zinc-100">{formatCurrency(startingBalance)}</h4>
@@ -109,9 +109,9 @@ export function DetailedBalanceSummary({
 									<DialogTrigger render={
 										<Button 
 											variant="ghost" 
-											className="h-auto p-0 flex items-center gap-2 text-zinc-500 hover:text-zinc-700 hover:bg-transparent justify-start cursor-pointer group border-none bg-transparent"
+											className="h-auto p-0 flex items-center gap-2 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-transparent justify-start cursor-pointer group border-none bg-transparent"
 										>
-											<div className="w-7 h-7 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:scale-110 transition-transform">
+											<div className="w-7 h-7 rounded-xl bg-[#F1F3F5] dark:bg-[#252525] flex items-center justify-center group-hover:scale-110 transition-transform">
 												<Settings size={14} />
 											</div>
 											<span className="text-[10px] font-black uppercase tracking-tight">
@@ -132,7 +132,7 @@ export function DetailedBalanceSummary({
 										</DialogHeader>
 										<div className="py-4 space-y-4">
 											{isPastMonth && (
-												<div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 p-4 rounded-2xl text-xs font-medium space-y-1">
+												<div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 p-4 rounded-2xl text-xs font-medium space-y-1">
 													<p className="font-bold flex items-center gap-1.5">
 														{language === "en" ? "🔒 Locked Data (Previous Month)" : "🔒 Data Terkunci (Bulan Lalu)"}
 													</p>
@@ -144,7 +144,7 @@ export function DetailedBalanceSummary({
 												</div>
 											)}
 
-											<div className="bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800/80">
+											<div className="bg-[#F1F3F5] dark:bg-[#252525] p-4 rounded-2xl border-none">
 												<p className="text-[10px] uppercase font-bold text-zinc-400">
 													{language === "en" ? "Current Initial Balance" : "Saldo Awal Saat Ini"}
 												</p>
@@ -172,14 +172,14 @@ export function DetailedBalanceSummary({
 																onSyncPreviousBalance();
 																setIsSetupBalanceOpen(false);
 															}}
-															className="w-full justify-start text-left text-xs font-bold h-11 rounded-xl cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900"
+															className="w-full justify-start text-left text-xs font-bold h-11 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2E2E2E] cursor-pointer"
 														>
 															{language === "en" ? "Use Previous Month's Balance" : "Gunakan Saldo Bulan Sebelumnya"}
 														</Button>
 														<p className="text-[10px] text-zinc-400 dark:text-zinc-500">
 															{!isManualOverride && initialBalanceEntry 
 																? (language === "en" ? "Already using previous month balance (Default)" : "Sudah menggunakan saldo bulan sebelumnya (Default)")
-																: (language === "en" ? "Revert to automatic carry-over from last month" : "Kembalikan to automatic carry-over dari bulan lalu")}
+																: (language === "en" ? "Revert to automatic carry-over from last month" : "Kembalikan ke carry-over otomatis dari bulan lalu")}
 														</p>
 													</div>
 
@@ -191,12 +191,12 @@ export function DetailedBalanceSummary({
 															placeholder={language === "en" ? "e.g. 5.000.000" : "misal 5.000.000"}
 															value={manualBalanceInput} 
 															onChange={(e) => setManualBalanceInput(e.target.value)}
-															className="h-10 rounded-xl"
+															className="h-11 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] focus:bg-[#E9ECEF] dark:focus:bg-[#2E2E2E]"
 														/>
 														<Button 
 															onClick={() => setIsConfirmOpen(true)}
 															disabled={!manualBalanceInput}
-															className={`w-full bg-gradient-to-r ${themeColors.gradient} text-black font-black h-11 rounded-xl cursor-pointer border-none shadow-sm`}
+															className={`w-full bg-gradient-to-r ${themeColors.gradient} text-[#063626] font-black h-11 rounded-2xl cursor-pointer border-none shadow-[0_4px_10px_rgba(0,0,0,0.10)]`}
 														>
 															{language === "en" ? "Set Balance" : "Set Saldo"}
 														</Button>
@@ -225,7 +225,7 @@ export function DetailedBalanceSummary({
 											<Button
 												variant="outline"
 												onClick={() => setIsConfirmOpen(false)}
-												className="flex-1 h-12 rounded-xl font-bold cursor-pointer"
+												className="flex-1 h-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] font-bold cursor-pointer"
 											>
 												{language === "en" ? "Cancel" : "Batal"}
 											</Button>
@@ -236,7 +236,7 @@ export function DetailedBalanceSummary({
 													setIsSetupBalanceOpen(false);
 													setManualBalanceInput("");
 												}}
-												className="flex-1 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-black cursor-pointer border-none"
+												className="flex-1 h-12 rounded-2xl bg-amber-400 hover:bg-amber-500 text-[#451A03] font-black cursor-pointer border-none shadow-[0_4px_10px_rgba(0,0,0,0.10)]"
 											>
 												{language === "en" ? "Yes, Change Balance" : "Ya, Ubah Saldo"}
 											</Button>
@@ -246,7 +246,7 @@ export function DetailedBalanceSummary({
 							</div>
 						</div>
 					) : activePocket.type !== "default" && activePocket.target ? (
-						<div className="glass-card p-6 rounded-[32px] flex flex-col justify-between items-center text-center h-full min-h-[140px]">
+						<div className="glass-card p-6 rounded-3xl flex flex-col justify-between items-center text-center h-full min-h-[140px]">
 							<div className="w-full flex flex-col items-center justify-center flex-1">
 								<p className="text-[10px] uppercase font-bold text-zinc-400 mb-2">
 									{activePocket.type === "budget" 
@@ -296,7 +296,7 @@ export function DetailedBalanceSummary({
 							</div>
 						</div>
 					) : (
-						<div className="glass-card p-6 rounded-[32px] flex flex-col justify-between items-center text-center h-full min-h-[140px]">
+						<div className="glass-card p-6 rounded-3xl flex flex-col justify-between items-center text-center h-full min-h-[140px]">
 							<div className="w-full flex flex-col items-center justify-center flex-1">
 								<p className="text-[10px] uppercase font-bold text-zinc-400 mb-1">
 									{language === "en" ? "Pocket Type" : "Tipe Kantong"}
@@ -312,7 +312,7 @@ export function DetailedBalanceSummary({
 								<Button 
 									size="sm"
 									onClick={onManagePockets}
-									className={`h-8 text-[10px] font-black uppercase rounded-xl bg-gradient-to-r ${themeColors.gradient} text-black border-none shadow-md cursor-pointer hover:opacity-95`}
+									className={`h-8 text-[10px] font-black uppercase rounded-2xl bg-gradient-to-r ${themeColors.gradient} text-[#063626] border-none shadow-[0_4px_10px_rgba(0,0,0,0.10)] cursor-pointer hover:opacity-95`}
 								>
 									{language === "en" ? "Add Progression" : "Tambah Target"}
 								</Button>
@@ -325,7 +325,7 @@ export function DetailedBalanceSummary({
 			{/* Persistent 3-Level Balance Hierarchy Cards (Always visible when Pockets are active, even when switching pockets) */}
 			{pocketsCount > 0 && (
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-					<div className="glass-card p-5 rounded-[28px] flex flex-col justify-between">
+					<div className="glass-card p-5 rounded-3xl flex flex-col justify-between">
 						<div>
 							<p className="text-[10px] uppercase font-bold text-zinc-400 mb-1">
 								{language === "en" ? "Total Balance (All Funds)" : "Total Saldo Keseluruhan"}
@@ -339,7 +339,7 @@ export function DetailedBalanceSummary({
 						</p>
 					</div>
 
-					<div className="glass-card p-5 rounded-[28px] flex flex-col justify-between">
+					<div className="glass-card p-5 rounded-3xl flex flex-col justify-between">
 						<div>
 							<p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 mb-1">
 								{language === "en" ? "Main Pocket (Unallocated)" : "Saldo Utama (Unallocated)"}
@@ -353,7 +353,7 @@ export function DetailedBalanceSummary({
 						</p>
 					</div>
 
-					<div className="glass-card p-5 rounded-[28px] flex flex-col justify-between">
+					<div className="glass-card p-5 rounded-3xl flex flex-col justify-between">
 						<div>
 							<p className="text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 mb-1">
 								{language === "en" ? "Pockets Allocation" : "Alokasi Kantong"}
@@ -373,9 +373,9 @@ export function DetailedBalanceSummary({
 
 			{/* Second grid: Income & Expense (Desktop: side-by-side, Mobile: stacked) */}
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-				<div className="glass-card p-6 rounded-[32px] flex flex-col justify-between min-h-[120px]">
+				<div className="glass-card p-6 rounded-3xl flex flex-col justify-between min-h-[120px]">
 					<div className="flex flex-col">
-						<div className={`w-8 h-8 rounded-full ${themeColors.bgLight} ${themeColors.text} flex items-center justify-center mb-4`}>
+						<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} ${themeColors.text} flex items-center justify-center mb-4`}>
 							<TrendingUp size={16} />
 						</div>
 						<p className="text-[10px] uppercase font-bold text-zinc-400 mb-1">{t("incomeTotal")}</p>
@@ -383,9 +383,9 @@ export function DetailedBalanceSummary({
 					</div>
 				</div>
 
-				<div className="glass-card p-6 rounded-[32px] flex flex-col justify-between min-h-[120px]">
+				<div className="glass-card p-6 rounded-3xl flex flex-col justify-between min-h-[120px]">
 					<div className="flex flex-col">
-						<div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-500/10 text-red-600 flex items-center justify-center mb-4">
+						<div className="w-8 h-8 rounded-xl bg-red-100 dark:bg-red-500/10 text-red-600 flex items-center justify-center mb-4">
 							<TrendingDown size={16} />
 						</div>
 						<p className="text-[10px] uppercase font-bold text-zinc-400 mb-1">{t("expenseTotal")}</p>

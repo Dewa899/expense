@@ -33,7 +33,7 @@ export function SeparatedProgressBarCard({
 					transition={{ duration: 0.2, ease: "easeInOut" }}
 					className="overflow-hidden w-full"
 				>
-					<div className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200/60 dark:border-zinc-850 rounded-[28px] p-5 shadow-sm space-y-2 transition-all duration-300">
+					<div className="glass-card rounded-3xl p-5 space-y-2 transition-all duration-300">
 						<div className="flex justify-between text-[11px] font-black text-zinc-650 dark:text-zinc-350">
 							<span className="flex items-center gap-1.5">
 								<Wallet size={13} className={themeColors.text} />
@@ -43,7 +43,7 @@ export function SeparatedProgressBarCard({
 							</span>
 							<span className={themeColors.textDark}>{Math.round(progressBarPercent)}%</span>
 						</div>
-						<div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+						<div className="w-full h-2 bg-[#F1F3F5] dark:bg-[#252525] rounded-full overflow-hidden">
 							<motion.div 
 								initial={{ width: 0 }}
 								animate={{ width: `${Math.min(progressBarPercent, 100)}%` }}

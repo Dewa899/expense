@@ -272,102 +272,109 @@ export function FormView(props: FormViewProps) {
 
 	const themeColors = {
 		emerald: {
-			gradient: "from-emerald-500 to-teal-500",
-			shadow: "shadow-emerald-500/25",
-			buttonShadow: "shadow-emerald-500/20",
+			gradient: "from-[#6EE7B7] to-[#34D399]",
+			cardText: "text-[#063626]",
+			shadow: "shadow-[0_4px_10px_rgba(0,0,0,0.10)]",
+			buttonShadow: "shadow-[0_4px_10px_rgba(0,0,0,0.10)]",
 			text: "text-emerald-500",
 			textDark: "text-emerald-600 dark:text-emerald-400",
-			border: "border-emerald-500/35 dark:border-emerald-500/25",
-			bgLight: "bg-emerald-500/5 dark:bg-emerald-500/10",
+			border: "border-emerald-500/20 dark:border-emerald-500/20",
+			bgLight: "bg-emerald-500/10 dark:bg-emerald-500/15",
 			hoverBg: "hover:bg-emerald-500/15 dark:hover:bg-emerald-500/20",
 			focusRing: "focus-visible:outline-emerald-500",
-			focusRingInput: "focus:border-emerald-500 focus:ring-emerald-500 dark:focus:border-emerald-400 dark:focus:ring-emerald-400",
+			focusRingInput: "focus:ring-2 focus:ring-emerald-500/30 dark:focus:ring-emerald-400/30",
 			accentText: "text-emerald-700 dark:text-emerald-300",
-			navText: "text-emerald-950/50 hover:text-emerald-950/85",
+			navText: "text-[#063626]/65 hover:text-[#063626]",
 		},
 		indigo: {
-			gradient: "from-indigo-500 to-purple-500",
-			shadow: "shadow-indigo-500/25",
-			buttonShadow: "shadow-indigo-500/20",
+			gradient: "from-[#A5B4FC] to-[#818CF8]",
+			cardText: "text-[#1E1B4B]",
+			shadow: "shadow-[0_4px_10px_rgba(0,0,0,0.10)]",
+			buttonShadow: "shadow-[0_4px_10px_rgba(0,0,0,0.10)]",
 			text: "text-indigo-500",
 			textDark: "text-indigo-600 dark:text-indigo-400",
-			border: "border-indigo-500/35 dark:border-indigo-500/25",
-			bgLight: "bg-indigo-500/5 dark:bg-indigo-500/10",
+			border: "border-indigo-500/20 dark:border-indigo-500/20",
+			bgLight: "bg-indigo-500/10 dark:bg-indigo-500/15",
 			hoverBg: "hover:bg-indigo-500/15 dark:hover:bg-indigo-500/20",
 			focusRing: "focus-visible:outline-indigo-500",
-			focusRingInput: "focus:border-indigo-500 focus:ring-indigo-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400",
+			focusRingInput: "focus:ring-2 focus:ring-indigo-500/30 dark:focus:ring-indigo-400/30",
 			accentText: "text-indigo-700 dark:text-indigo-300",
-			navText: "text-indigo-950/50 hover:text-indigo-950/85",
+			navText: "text-[#1E1B4B]/65 hover:text-[#1E1B4B]",
 		},
 		amber: {
-			gradient: "from-amber-500 to-rose-500",
-			shadow: "shadow-amber-500/25",
-			buttonShadow: "shadow-amber-500/20",
+			gradient: "from-[#FCD34D] to-[#FBBF24]",
+			cardText: "text-[#451A03]",
+			shadow: "shadow-[0_4px_10px_rgba(0,0,0,0.10)]",
+			buttonShadow: "shadow-[0_4px_10px_rgba(0,0,0,0.10)]",
 			text: "text-amber-500",
 			textDark: "text-amber-600 dark:text-amber-400",
-			border: "border-amber-500/35 dark:border-amber-500/25",
-			bgLight: "bg-amber-500/5 dark:bg-amber-500/10",
+			border: "border-amber-500/20 dark:border-amber-500/20",
+			bgLight: "bg-amber-500/10 dark:bg-amber-500/15",
 			hoverBg: "hover:bg-amber-500/15 dark:hover:bg-amber-500/20",
 			focusRing: "focus-visible:outline-amber-500",
-			focusRingInput: "focus:border-amber-500 focus:ring-amber-500 dark:focus:border-amber-400 dark:focus:ring-amber-400",
+			focusRingInput: "focus:ring-2 focus:ring-amber-500/30 dark:focus:ring-amber-400/30",
 			accentText: "text-amber-700 dark:text-amber-300",
-			navText: "text-amber-950/50 hover:text-amber-950/85",
+			navText: "text-[#451A03]/65 hover:text-[#451A03]",
 		},
 		rose: {
-			gradient: "from-rose-500 to-pink-500",
-			shadow: "shadow-rose-500/25",
-			buttonShadow: "shadow-rose-500/20",
+			gradient: "from-[#FDA4AF] to-[#FB7185]",
+			cardText: "text-[#4C0519]",
+			shadow: "shadow-[0_4px_10px_rgba(0,0,0,0.10)]",
+			buttonShadow: "shadow-[0_4px_10px_rgba(0,0,0,0.10)]",
 			text: "text-rose-500",
 			textDark: "text-rose-600 dark:text-rose-400",
-			border: "border-rose-500/35 dark:border-rose-500/25",
-			bgLight: "bg-rose-500/5 dark:bg-rose-500/10",
+			border: "border-rose-500/20 dark:border-rose-500/20",
+			bgLight: "bg-rose-500/10 dark:bg-rose-500/15",
 			hoverBg: "hover:bg-rose-500/15 dark:hover:bg-rose-500/20",
 			focusRing: "focus-visible:outline-rose-500",
-			focusRingInput: "focus:border-rose-500 focus:ring-rose-500 dark:focus:border-rose-400 dark:focus:ring-rose-400",
+			focusRingInput: "focus:ring-2 focus:ring-rose-500/30 dark:focus:ring-rose-400/30",
 			accentText: "text-rose-700 dark:text-rose-300",
-			navText: "text-rose-950/50 hover:text-rose-950/85",
+			navText: "text-[#4C0519]/65 hover:text-[#4C0519]",
 		},
 		cyan: {
-			gradient: "from-cyan-500 to-blue-500",
-			shadow: "shadow-cyan-500/25",
-			buttonShadow: "shadow-cyan-500/20",
+			gradient: "from-[#67E8F9] to-[#22D3EE]",
+			cardText: "text-[#083344]",
+			shadow: "shadow-[0_4px_10px_rgba(0,0,0,0.10)]",
+			buttonShadow: "shadow-[0_4px_10px_rgba(0,0,0,0.10)]",
 			text: "text-cyan-500",
 			textDark: "text-cyan-600 dark:text-cyan-400",
-			border: "border-cyan-500/35 dark:border-cyan-500/25",
-			bgLight: "bg-cyan-500/5 dark:bg-cyan-500/10",
+			border: "border-cyan-500/20 dark:border-cyan-500/20",
+			bgLight: "bg-cyan-500/10 dark:bg-cyan-500/15",
 			hoverBg: "hover:bg-cyan-500/15 dark:hover:bg-cyan-500/20",
 			focusRing: "focus-visible:outline-cyan-500",
-			focusRingInput: "focus:border-cyan-500 focus:ring-cyan-500 dark:focus:border-cyan-400 dark:focus:ring-cyan-400",
+			focusRingInput: "focus:ring-2 focus:ring-cyan-500/30 dark:focus:ring-cyan-400/30",
 			accentText: "text-cyan-700 dark:text-cyan-300",
-			navText: "text-cyan-950/50 hover:text-cyan-950/85",
+			navText: "text-[#083344]/65 hover:text-[#083344]",
 		},
 		violet: {
-			gradient: "from-violet-500 to-fuchsia-500",
-			shadow: "shadow-violet-500/25",
-			buttonShadow: "shadow-violet-500/20",
+			gradient: "from-[#C4B5FD] to-[#A78BFA]",
+			cardText: "text-[#2E1065]",
+			shadow: "shadow-[0_4px_10px_rgba(0,0,0,0.10)]",
+			buttonShadow: "shadow-[0_4px_10px_rgba(0,0,0,0.10)]",
 			text: "text-violet-500",
 			textDark: "text-violet-600 dark:text-violet-400",
-			border: "border-violet-500/35 dark:border-violet-500/25",
-			bgLight: "bg-violet-500/5 dark:bg-violet-500/10",
+			border: "border-violet-500/20 dark:border-violet-500/20",
+			bgLight: "bg-violet-500/10 dark:bg-violet-500/15",
 			hoverBg: "hover:bg-violet-500/15 dark:hover:bg-violet-500/20",
 			focusRing: "focus-visible:outline-violet-500",
-			focusRingInput: "focus:border-violet-500 focus:ring-violet-500 dark:focus:border-violet-400 dark:focus:ring-violet-400",
+			focusRingInput: "focus:ring-2 focus:ring-violet-500/30 dark:focus:ring-violet-400/30",
 			accentText: "text-violet-700 dark:text-violet-300",
-			navText: "text-violet-950/50 hover:text-violet-950/85",
+			navText: "text-[#2E1065]/65 hover:text-[#2E1065]",
 		},
 		orange: {
-			gradient: "from-orange-500 to-yellow-500",
-			shadow: "shadow-orange-500/25",
-			buttonShadow: "shadow-orange-500/20",
+			gradient: "from-[#FDBA74] to-[#FB923C]",
+			cardText: "text-[#431407]",
+			shadow: "shadow-[0_4px_10px_rgba(0,0,0,0.10)]",
+			buttonShadow: "shadow-[0_4px_10px_rgba(0,0,0,0.10)]",
 			text: "text-orange-500",
 			textDark: "text-orange-600 dark:text-orange-400",
-			border: "border-orange-500/35 dark:border-orange-500/25",
-			bgLight: "bg-orange-500/5 dark:bg-orange-500/10",
+			border: "border-orange-500/20 dark:border-orange-500/20",
+			bgLight: "bg-orange-500/10 dark:bg-orange-500/15",
 			hoverBg: "hover:bg-orange-500/15 dark:hover:bg-orange-500/20",
 			focusRing: "focus-visible:outline-orange-500",
-			focusRingInput: "focus:border-orange-500 focus:ring-orange-500 dark:focus:border-orange-400 dark:focus:ring-orange-400",
+			focusRingInput: "focus:ring-2 focus:ring-orange-500/30 dark:focus:ring-orange-400/30",
 			accentText: "text-orange-700 dark:text-orange-300",
-			navText: "text-orange-950/50 hover:text-orange-950/85",
+			navText: "text-[#431407]/65 hover:text-[#431407]",
 		}
 	}[activePocket.color || "emerald"];
 
@@ -453,7 +460,7 @@ export function FormView(props: FormViewProps) {
 						variant="outline"
 						onClick={() => setIsRecurringModalOpen(true)}
 						disabled={isSyncing}
-						className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-950/25 hover:bg-zinc-50 dark:hover:bg-zinc-950 cursor-pointer text-zinc-800 dark:text-zinc-200 text-xs shadow-sm transition-all"
+						className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border-none bg-white dark:bg-[#1E1E1E] hover:bg-zinc-100 dark:hover:bg-[#252525] cursor-pointer text-zinc-800 dark:text-zinc-200 text-xs shadow-[0_4px_10px_rgba(0,0,0,0.08)] transition-all"
 					>
 						<CalendarDays size={16} className={themeColors.text} />
 						<span>{language === "en" ? "Auto Transactions" : "Transaksi Otomatis"}</span>
@@ -462,7 +469,7 @@ export function FormView(props: FormViewProps) {
 						variant="outline"
 						onClick={() => setIsPocketSettingsOpen(true)}
 						disabled={isSyncing}
-						className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-950/25 hover:bg-zinc-50 dark:hover:bg-zinc-950 cursor-pointer text-zinc-800 dark:text-zinc-200 text-xs shadow-sm transition-all"
+						className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border-none bg-white dark:bg-[#1E1E1E] hover:bg-zinc-100 dark:hover:bg-[#252525] cursor-pointer text-zinc-800 dark:text-zinc-200 text-xs shadow-[0_4px_10px_rgba(0,0,0,0.08)] transition-all"
 					>
 						<Plus size={16} className={themeColors.text} />
 						<span>{language === "en" ? "Manage Pockets" : "Kelola Kantong"}</span>
@@ -534,17 +541,17 @@ export function FormView(props: FormViewProps) {
 											setIsProfileModalOpen(true);
 										}
 									}}
-									className="w-full p-3.5 rounded-2xl border border-zinc-200/90 dark:border-zinc-800 bg-zinc-100/60 dark:bg-zinc-900/60 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 flex items-center justify-between gap-3 text-left transition-colors cursor-pointer group"
+									className="w-full p-3.5 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2C2C2C] flex items-center justify-between gap-3 text-left transition-colors cursor-pointer group"
 								>
 									<div className="flex items-center gap-3 min-w-0 flex-1">
 										{avatarUrl ? (
 											<img
 												src={avatarUrl}
 												alt="Profile"
-												className="w-10 h-10 rounded-xl object-cover border border-emerald-500/40 shrink-0"
+												className="w-10 h-10 rounded-xl object-cover shrink-0"
 											/>
 										) : (
-											<div className={`w-10 h-10 rounded-xl ${themeColors.bgLight} border ${themeColors.border} flex items-center justify-center shrink-0`}>
+											<div className={`w-10 h-10 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
 												{isSignedIn ? (
 													<span className={`${themeColors.textDark} font-black text-sm uppercase`}>
 														{displayName?.[0] || "U"}
@@ -561,7 +568,7 @@ export function FormView(props: FormViewProps) {
 													: (language === "en" ? "Sign In / Account" : "Masuk / Akun")}
 											</p>
 											<div className="flex items-center gap-1.5 mt-1">
-												<span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${themeColors.bgLight} ${themeColors.textDark} border ${themeColors.border}`}>
+												<span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${themeColors.bgLight} ${themeColors.textDark}`}>
 													{loginMethod}
 												</span>
 												{isSignedIn && (
@@ -585,14 +592,14 @@ export function FormView(props: FormViewProps) {
 
 						{/* Data Exports with Icons (Only if transactions exist) */}
 						{props.transactions.length > 0 && (
-							<div className={`grid ${props.isGoogleConnected ? "grid-cols-2" : "grid-cols-1"} gap-2 pt-1 border-t border-zinc-200/70 dark:border-zinc-800/70`}>
+							<div className={`grid ${props.isGoogleConnected ? "grid-cols-2" : "grid-cols-1"} gap-2 pt-2`}>
 								<Button
 									variant="outline"
 									onClick={() => {
 										setIsDashboardSettingsOpen(false);
 										props.exportToCSV?.();
 									}}
-									className="h-10 rounded-xl font-bold text-xs cursor-pointer bg-transparent border-zinc-200 dark:border-zinc-800 flex items-center justify-center gap-1.5"
+									className="h-11 rounded-2xl font-bold text-xs cursor-pointer bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2C2C2C] border-none flex items-center justify-center gap-1.5"
 								>
 									<Download size={14} className={themeColors.text} />
 									<span>{language === "en" ? "Export CSV" : "Ekspor CSV"}</span>
@@ -604,7 +611,7 @@ export function FormView(props: FormViewProps) {
 											setIsDashboardSettingsOpen(false);
 											props.exportToGoogleSheets?.();
 										}}
-										className="h-10 rounded-xl font-bold text-xs cursor-pointer text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 border-emerald-500/35 hover:bg-emerald-500/10 flex items-center justify-center gap-1.5"
+										className="h-11 rounded-2xl font-bold text-xs cursor-pointer text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/15 border-none flex items-center justify-center gap-1.5"
 									>
 										<RefreshCw size={14} className="text-emerald-500" />
 										<span>{language === "en" ? "Sync Sheets" : "Sinkron Sheets"}</span>
@@ -647,7 +654,7 @@ export function FormView(props: FormViewProps) {
 			/>
 
 			<section className="rounded-3xl p-4 sm:p-5 glass-card">
-				<div className="flex items-center justify-between gap-2 mb-3">
+				<div className="flex items-center justify-between gap-2 mb-3.5">
 					<div className="flex items-center gap-1.5 min-w-0 flex-1">
 						<h3 className="text-xs font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 shrink-0">
 							{t("transactionEntry")}
@@ -669,7 +676,7 @@ export function FormView(props: FormViewProps) {
 							size="sm" 
 							variant="outline" 
 							disabled={isSyncing} 
-							className={`h-7 text-[10px] font-black ${themeColors.textDark} ${themeColors.bgLight} border ${themeColors.border} ${themeColors.hoverBg} px-2 rounded-lg cursor-pointer flex items-center gap-1 transition-all shadow-none shrink-0`}
+							className={`h-7 text-[10px] font-black ${themeColors.textDark} ${themeColors.bgLight} border-none ${themeColors.hoverBg} px-2.5 rounded-xl cursor-pointer flex items-center gap-1 transition-all shadow-none shrink-0`}
 							onClick={handleManageFieldsClick}
 						>
 							<Settings size={12} /> {t("manageFields")}
@@ -719,7 +726,7 @@ export function FormView(props: FormViewProps) {
 							const customField = customFieldIdx !== -1 ? props.customFields[customFieldIdx] : null;
 							const isNote = hL.includes("catatan") || hL.includes("note");
 
-							// Collapsible optional Note field behind "+ Note" button
+							// Collapsible optional Note field behind "+ Note" button (Filled surface, no outline, rounded-2xl)
 							if (isNote) {
 								const showNoteInput = isNoteExpanded || Boolean(localFormData[header]);
 								if (!showNoteInput) {
@@ -729,7 +736,7 @@ export function FormView(props: FormViewProps) {
 												type="button"
 												disabled={isInteractionDisabled}
 												onClick={() => setIsNoteExpanded(true)}
-												className={`inline-flex items-center gap-1 text-xs font-bold ${themeColors.textDark} ${themeColors.bgLight} border ${themeColors.border} ${themeColors.hoverBg} px-3 py-1.5 rounded-xl transition-all cursor-pointer disabled:opacity-50`}
+												className={`inline-flex items-center gap-1 text-xs font-bold ${themeColors.textDark} bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2E2E2E] border-none px-3.5 py-2 rounded-2xl transition-all cursor-pointer disabled:opacity-50`}
 											>
 												<Plus size={13} />
 												<span>{props.translateHeader(header)}</span>
@@ -744,7 +751,7 @@ export function FormView(props: FormViewProps) {
 											autoFocus={isNoteExpanded && !localFormData[header]}
 											disabled={isInteractionDisabled}
 											placeholder={`${props.translateHeader(header)}...`}
-											className={`h-11 pr-9 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium text-sm transition-colors ${themeColors.focusRingInput}`}
+											className={`h-12 pr-9 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] focus:bg-[#EAECEF] dark:focus:bg-[#2E2E2E] shadow-none font-medium text-sm transition-colors ${themeColors.focusRingInput}`}
 											value={localFormData[header] || ""}
 											onChange={(e) => handleLocalInputChange(header, e.target.value)}
 										/>
@@ -752,7 +759,7 @@ export function FormView(props: FormViewProps) {
 											<button
 												type="button"
 												onClick={() => setIsNoteExpanded(false)}
-												className="absolute right-2.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 rounded-lg cursor-pointer bg-transparent border-none"
+												className="absolute right-2.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 rounded-xl cursor-pointer bg-transparent border-none"
 												aria-label="Hide Note"
 											>
 												<ChevronUp size={15} />
@@ -766,7 +773,7 @@ export function FormView(props: FormViewProps) {
 							const showFieldHeader = isCoreCat || Boolean(customField) || (!isName && !isAmount && !isType);
 
 							return (
-								<div key={header} ref={isAmount ? amountFieldRef : undefined} className="space-y-1">
+								<div key={header} ref={isAmount ? amountFieldRef : undefined} className="space-y-1.5">
 									{showFieldHeader && (
 										<div className="flex items-center justify-between ml-1">
 											<Label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 leading-none">
@@ -775,14 +782,14 @@ export function FormView(props: FormViewProps) {
 											</Label>
 											{(isCoreCat || customField?.type === "dropdown") && (
 												<Dialog>
-													<DialogTrigger render={<Button variant="ghost" size="sm" disabled={isInteractionDisabled} className={`h-5 text-[10px] font-bold ${themeColors.textDark} ${themeColors.hoverBg} px-1.5 rounded-md cursor-pointer bg-transparent`} />}>
+													<DialogTrigger render={<Button variant="ghost" size="sm" disabled={isInteractionDisabled} className={`h-5 text-[10px] font-bold ${themeColors.textDark} ${themeColors.hoverBg} px-1.5 rounded-lg cursor-pointer bg-transparent`} />}>
 														{t("manageOptions")}
 													</DialogTrigger>
 													<DialogContent className="sm:max-w-[400px] rounded-3xl">
 														<DialogHeader><DialogTitle>{isCoreCat ? t("manageCategories") : `${t("manageOptions")}: ${header}`}</DialogTitle></DialogHeader>
 														<div className="space-y-4 py-4">
-															<div className="flex gap-2"><Input placeholder={isCoreCat ? t("newCategory") : t("newOption")} value={isCoreCat ? props.newCategoryInput : props.newOptionInput} onChange={(e) => isCoreCat ? props.setNewCategoryInput(e.target.value) : props.setNewOptionInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-xl" /><Button onClick={() => isCoreCat ? props.onAddCategory() : props.onAddOption(customFieldIdx, props.newOptionInput)} disabled={isInteractionDisabled} className={`bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-bold rounded-xl cursor-pointer border-none shadow-md`}>{t("add")}</Button></div>
-															<div className="max-h-[200px] overflow-y-auto space-y-2">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<div key={opt} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800">
+															<div className="flex gap-2"><Input placeholder={isCoreCat ? t("newCategory") : t("newOption")} value={isCoreCat ? props.newCategoryInput : props.newOptionInput} onChange={(e) => isCoreCat ? props.setNewCategoryInput(e.target.value) : props.setNewOptionInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525]" /><Button onClick={() => isCoreCat ? props.onAddCategory() : props.onAddOption(customFieldIdx, props.newOptionInput)} disabled={isInteractionDisabled} className={`bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 ${themeColors.cardText} font-bold rounded-2xl cursor-pointer border-none shadow-[0_4px_10px_rgba(0,0,0,0.10)]`}>{t("add")}</Button></div>
+															<div className="max-h-[200px] overflow-y-auto space-y-2">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<div key={opt} className="flex items-center justify-between p-3 bg-[#F1F3F5] dark:bg-[#252525] rounded-2xl border-none">
 																<span className="text-sm font-medium">{opt}</span><Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => isCoreCat ? props.onDeleteCategory(opt) : props.onDeleteOption(customFieldIdx, opt)} className="cursor-pointer"><Trash2 size={14} /></Button></div>))}</div>
 														</div>
 													</DialogContent>
@@ -792,14 +799,14 @@ export function FormView(props: FormViewProps) {
 									)}
 									{(isCoreCat || (customField?.type === "dropdown")) ? (
 										<Select value={localFormData[header] || ""} disabled={isInteractionDisabled} onValueChange={(val) => handleLocalInputChange(header, val || "")}>
-											<SelectTrigger className={`h-11 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 cursor-pointer transition-colors text-sm ${themeColors.focusRingInput}`}><SelectValue placeholder={t("selectCategory")} /></SelectTrigger>
-											<SelectContent className="rounded-xl w-auto min-w-[240px]">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<SelectItem key={opt} value={opt} className="cursor-pointer">{opt}</SelectItem>))}</SelectContent>
+											<SelectTrigger className={`h-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2C2C2C] focus:bg-[#EAECEF] dark:focus:bg-[#2E2E2E] shadow-none cursor-pointer transition-colors text-sm ${themeColors.focusRingInput}`}><SelectValue placeholder={t("selectCategory")} /></SelectTrigger>
+											<SelectContent className="rounded-2xl w-auto min-w-[240px] border-none shadow-[0_8px_24px_rgba(0,0,0,0.18)]">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<SelectItem key={opt} value={opt} className="cursor-pointer rounded-xl">{opt}</SelectItem>))}</SelectContent>
 										</Select>
 									) : isType ? (
-										<div className="flex bg-white/30 dark:bg-zinc-950/20 p-1 rounded-xl gap-1 border border-zinc-250 dark:border-zinc-850">
+										<div className="flex bg-[#F1F3F5] dark:bg-[#252525] p-1 rounded-2xl gap-1 border-none">
 											<button
 												type="button"
-												className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${localFormData[header] === "Pemasukan / Income" ? `bg-white/80 dark:bg-zinc-900/60 ${themeColors.textDark} shadow-sm border border-white/40 dark:border-white/5` : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
+												className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer border-none ${localFormData[header] === "Pemasukan / Income" ? `bg-white dark:bg-[#323232] ${themeColors.textDark} shadow-[0_2px_6px_rgba(0,0,0,0.08)]` : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent"}`}
 												onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleLocalInputChange(header, "Pemasukan / Income"); }}
 												disabled={isInteractionDisabled}
 											>
@@ -808,7 +815,7 @@ export function FormView(props: FormViewProps) {
 											</button>
 											<button
 												type="button"
-												className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${localFormData[header] === "Pengeluaran / Expense" ? "bg-white/80 dark:bg-zinc-900/60 text-red-650 shadow-sm border border-white/40 dark:border-white/5" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-transparent"}`}
+												className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer border-none ${localFormData[header] === "Pengeluaran / Expense" ? "bg-white dark:bg-[#323232] text-red-500 shadow-[0_2px_6px_rgba(0,0,0,0.08)]" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent"}`}
 												onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleLocalInputChange(header, "Pengeluaran / Expense"); }}
 												disabled={isInteractionDisabled}
 											>
@@ -819,7 +826,7 @@ export function FormView(props: FormViewProps) {
 									) : isAmount ? (
 										<>
 											<div className="relative flex items-center w-full">
-												<span className="absolute left-3.5 text-[10px] font-black text-zinc-400 dark:text-zinc-500 select-none pointer-events-none">
+												<span className="absolute left-4 text-[11px] font-black text-zinc-400 dark:text-zinc-500 select-none pointer-events-none">
 													Rp
 												</span>
 												<Input
@@ -828,7 +835,7 @@ export function FormView(props: FormViewProps) {
 													readOnly={isMobile}
 													disabled={isInteractionDisabled}
 													placeholder={t("amountPlaceholder")}
-													className={`h-11 w-full pl-9 pr-4 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium text-base transition-colors ${themeColors.focusRingInput}`}
+													className={`h-12 w-full pl-10 pr-4 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] focus:bg-[#EAECEF] dark:focus:bg-[#2E2E2E] shadow-none font-semibold text-base transition-colors ${themeColors.focusRingInput}`}
 													value={localFormData[header] || ""}
 													onChange={(e) => handleAmountChange(header, e.target.value)}
 													onFocus={() => isMobile && setMobileKbHeader(header)}
@@ -847,7 +854,7 @@ export function FormView(props: FormViewProps) {
 											)}
 										</>
 									) : (
-										<Input type="text" disabled={isInteractionDisabled} placeholder={`${props.translateHeader(header)}...`} className={`h-11 rounded-xl border border-zinc-250 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/40 focus:bg-white/80 dark:focus:bg-zinc-950/80 font-medium text-sm transition-colors ${themeColors.focusRingInput}`} value={localFormData[header] || ""} onChange={(e) => handleLocalInputChange(header, e.target.value)} />
+										<Input type="text" disabled={isInteractionDisabled} placeholder={`${props.translateHeader(header)}...`} className={`h-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] focus:bg-[#EAECEF] dark:focus:bg-[#2E2E2E] shadow-none font-medium text-sm transition-colors ${themeColors.focusRingInput}`} value={localFormData[header] || ""} onChange={(e) => handleLocalInputChange(header, e.target.value)} />
 									)}
 								</div>
 							);
@@ -882,17 +889,17 @@ export function FormView(props: FormViewProps) {
 						animate={{ opacity: 1 }}
 						exit={{ opacity: 0 }}
 						onClick={() => setIsQuickMenuOpen(false)}
-						className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]"
+						className="fixed inset-0 z-40 bg-black/25 backdrop-blur-[1px]"
 					/>
 				)}
 			</AnimatePresence>
 
-			{/* Sticky Bottom Action Navbar */}
+			{/* Sticky Bottom Action Navbar (Borderless layered surface, unified rounded-2xl buttons, subtle shadow) */}
 			<nav
 				aria-label={language === "en" ? "Quick Actions" : "Aksi Cepat"}
-				className="fixed bottom-0 left-0 right-0 z-50 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-xl border-t border-zinc-200/80 dark:border-zinc-800/80 px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgb(0,0,0,0.08)]"
+				className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-[#181818]/95 backdrop-blur-xl border-none px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)]"
 			>
-				<div className="max-w-md mx-auto flex items-center gap-2 relative">
+				<div className="max-w-md mx-auto flex items-center gap-2.5 relative">
 					{/* Floating Hamburger Menu Popover */}
 					<AnimatePresence>
 						{isQuickMenuOpen && (
@@ -901,7 +908,7 @@ export function FormView(props: FormViewProps) {
 								animate={{ opacity: 1, y: 0, scale: 1 }}
 								exit={{ opacity: 0, y: 10, scale: 0.96 }}
 								transition={{ duration: 0.15 }}
-								className="absolute bottom-[calc(100%+0.75rem)] left-0 w-64 rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200/90 dark:border-zinc-800 p-1.5 shadow-2xl z-50 space-y-1"
+								className="absolute bottom-[calc(100%+0.75rem)] left-0 w-64 rounded-3xl bg-white dark:bg-[#1E1E1E] border-none p-2 shadow-[0_8px_24px_rgba(0,0,0,0.18)] z-50 space-y-1"
 							>
 								<button
 									type="button"
@@ -910,9 +917,9 @@ export function FormView(props: FormViewProps) {
 										setIsQuickMenuOpen(false);
 										setIsPocketSettingsOpen(true);
 									}}
-									className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${themeColors.hoverBg} text-zinc-800 dark:text-zinc-100 disabled:opacity-50`}
+									className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-colors cursor-pointer hover:bg-[#F1F3F5] dark:hover:bg-[#252525] text-zinc-800 dark:text-zinc-100 disabled:opacity-50`}
 								>
-									<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} border ${themeColors.border} flex items-center justify-center shrink-0`}>
+									<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
 										<Wallet size={15} className={themeColors.textDark} />
 									</div>
 									<div className="min-w-0 flex-1">
@@ -932,9 +939,9 @@ export function FormView(props: FormViewProps) {
 										setIsQuickMenuOpen(false);
 										setIsRecurringModalOpen(true);
 									}}
-									className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${themeColors.hoverBg} text-zinc-800 dark:text-zinc-100 disabled:opacity-50`}
+									className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-colors cursor-pointer hover:bg-[#F1F3F5] dark:hover:bg-[#252525] text-zinc-800 dark:text-zinc-100 disabled:opacity-50`}
 								>
-									<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} border ${themeColors.border} flex items-center justify-center shrink-0`}>
+									<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
 										<CalendarDays size={15} className={themeColors.textDark} />
 									</div>
 									<div className="min-w-0 flex-1">
@@ -954,9 +961,9 @@ export function FormView(props: FormViewProps) {
 										setIsQuickMenuOpen(false);
 										handleManageFieldsClick(e);
 									}}
-									className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${themeColors.hoverBg} text-zinc-800 dark:text-zinc-100 disabled:opacity-50`}
+									className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-colors cursor-pointer hover:bg-[#F1F3F5] dark:hover:bg-[#252525] text-zinc-800 dark:text-zinc-100 disabled:opacity-50`}
 								>
-									<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} border ${themeColors.border} flex items-center justify-center shrink-0`}>
+									<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
 										<Settings size={15} className={themeColors.textDark} />
 									</div>
 									<div className="min-w-0 flex-1">
@@ -985,7 +992,7 @@ export function FormView(props: FormViewProps) {
 						aria-label={language === "en" ? "Quick Menu" : "Menu Cepat"}
 						aria-expanded={isQuickMenuOpen}
 						title={language === "en" ? "Menu (Pockets, Auto, Fields)" : "Menu (Kantong, Otomatis, Field)"}
-						className={`h-12 w-12 rounded-2xl border ${isQuickMenuOpen ? `${themeColors.border} ${themeColors.bgLight}` : "border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 hover:bg-zinc-100 dark:hover:bg-zinc-800"} flex flex-col items-center justify-center gap-0.5 p-0 cursor-pointer shrink-0 text-zinc-700 dark:text-zinc-300 transition-colors`}
+						className={`h-12 w-12 rounded-2xl border-none ${isQuickMenuOpen ? themeColors.bgLight : "bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2E2E2E]"} flex flex-col items-center justify-center gap-0.5 p-0 cursor-pointer shrink-0 text-zinc-700 dark:text-zinc-300 transition-colors shadow-none`}
 					>
 						{isQuickMenuOpen ? (
 							<X size={17} className={themeColors.text} />
@@ -1005,7 +1012,7 @@ export function FormView(props: FormViewProps) {
 								<Button 
 									disabled={isInteractionDisabled} 
 									onClick={handleLocalSubmit} 
-									className={`flex-1 h-12 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black text-sm sm:text-base rounded-2xl shadow-lg ${themeColors.buttonShadow} cursor-pointer border-none transition-all active:scale-[0.98] px-3 truncate`}
+									className={`flex-1 h-12 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 ${themeColors.cardText} font-black text-sm sm:text-base rounded-2xl ${themeColors.buttonShadow} cursor-pointer border-none transition-all active:scale-[0.98] px-4 truncate`}
 								>
 									{(activePocket && activePocket.id !== "net_worth")
 										? (language === "en" ? `Add to ${activePocket.name}` : `Catat ke ${activePocket.name}`)
@@ -1016,7 +1023,7 @@ export function FormView(props: FormViewProps) {
 									variant="outline"
 									disabled={isOcrDisabled}
 									onClick={props.onOcrClick}
-									className={`h-12 w-12 rounded-2xl border ${themeColors.border} ${themeColors.bgLight} ${themeColors.hoverBg} flex flex-col items-center justify-center gap-0.5 p-0 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 bg-transparent`}
+									className={`h-12 w-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2E2E2E] flex flex-col items-center justify-center gap-0.5 p-0 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 shadow-none`}
 									aria-label="Scan Struk / OCR Receipt Scan"
 									title={language === "en" ? "Scan Receipt" : "Scan Struk"}
 								>
@@ -1037,7 +1044,7 @@ export function FormView(props: FormViewProps) {
 								<Button
 									onClick={props.onLoginClick}
 									disabled={isSyncing}
-									className={`flex-1 h-12 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black text-sm sm:text-base rounded-2xl shadow-lg ${themeColors.buttonShadow} cursor-pointer border-none transition-all active:scale-[0.98]`}
+									className={`flex-1 h-12 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 ${themeColors.cardText} font-black text-sm sm:text-base rounded-2xl ${themeColors.buttonShadow} cursor-pointer border-none transition-all active:scale-[0.98]`}
 								>
 									{t("signIn")}
 								</Button>
@@ -1046,7 +1053,7 @@ export function FormView(props: FormViewProps) {
 									variant="outline"
 									onClick={enterDemo}
 									disabled={isSyncing}
-									className="h-12 px-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-200 cursor-pointer shrink-0"
+									className="h-12 px-3 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2E2E2E] text-xs font-bold text-zinc-700 dark:text-zinc-200 cursor-pointer shrink-0 shadow-none"
 								>
 									{t("tryDemo")}
 								</Button>
@@ -1054,7 +1061,7 @@ export function FormView(props: FormViewProps) {
 									type="button"
 									variant="outline"
 									disabled={true}
-									className="h-12 w-12 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/30 flex items-center justify-center opacity-40 cursor-not-allowed shrink-0 bg-transparent p-0"
+									className="h-12 w-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] flex items-center justify-center opacity-40 cursor-not-allowed shrink-0 p-0 shadow-none"
 									aria-label="Scan Struk / OCR Receipt Scan"
 								>
 									<Camera size={18} className="text-zinc-400" />
