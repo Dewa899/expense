@@ -27,7 +27,8 @@ import {
 	ChevronDown,
 	AlertTriangle,
 	Menu,
-	X
+	X,
+	RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +60,7 @@ import { ManageFieldsModal } from "@/components/dashboard/modals/manage-fields-m
 import { PocketCarouselCard } from "@/components/dashboard/cards/pocket-carousel-card";
 import { MoveFundsModal } from "@/components/dashboard/modals/move-funds-modal";
 import { SeparatedProgressBarCard } from "@/components/dashboard/cards/separated-progress-bar-card";
-import { ProfileConnectionModal } from "@/components/dashboard/modals/profile-connection-modal";
+import { ProfileConnectionModal, getAccountDisplayInfo } from "@/components/dashboard/modals/profile-connection-modal";
 import { PwaDownloaderModal } from "@/components/dashboard/modals/pwa-downloader-modal";
 import { useAppLayout, SettingsPreferencesAndSupport } from "@/components/app-layout-wrapper";
 import { cleanNumber } from "@/lib/sheets-api";
@@ -481,7 +482,16 @@ export function FormView(props: FormViewProps) {
 			{/* Profile Connection Modal */}
 			<ProfileConnectionModal
 				isOpen={isProfileModalOpen}
-				onOpenChange={setIsProfileModalOpen}
+				onOpenChange={(open) => {
+					setIsProfileModalOpen(open);
+					if (!open) {
+						setIsDashboardSettingsOpen(true);
+					}
+				}}
+				onBackToSettings={() => {
+					setIsProfileModalOpen(false);
+					setIsDashboardSettingsOpen(true);
+				}}
 				user={props.user}
 				supabaseUser={props.supabaseUser}
 				isGoogleConnected={!!props.isGoogleConnected}
@@ -503,104 +513,89 @@ export function FormView(props: FormViewProps) {
 					</DialogHeader>
 					
 					<div className="grid grid-cols-1 gap-2.5 pt-3">
+						{/* Top Item: Profile & Sync (Displays Username & Login Method directly; click for Email & Sync details) */}
+						{(() => {
+							const { displayName, avatarUrl, loginMethod } = getAccountDisplayInfo(
+								props.supabaseUser,
+								props.user,
+								!!props.isDemoMode,
+								language
+							);
+							const isSignedIn = Boolean(props.supabaseUser || props.user);
+
+							return (
+								<button
+									type="button"
+									onClick={() => {
+										setIsDashboardSettingsOpen(false);
+										if (!isSignedIn) {
+											props.onLoginClick?.();
+										} else {
+											setIsProfileModalOpen(true);
+										}
+									}}
+									className="w-full p-3.5 rounded-2xl border border-zinc-200/90 dark:border-zinc-800 bg-zinc-100/60 dark:bg-zinc-900/60 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 flex items-center justify-between gap-3 text-left transition-colors cursor-pointer group"
+								>
+									<div className="flex items-center gap-3 min-w-0 flex-1">
+										{avatarUrl ? (
+											<img
+												src={avatarUrl}
+												alt="Profile"
+												className="w-10 h-10 rounded-xl object-cover border border-emerald-500/40 shrink-0"
+											/>
+										) : (
+											<div className={`w-10 h-10 rounded-xl ${themeColors.bgLight} border ${themeColors.border} flex items-center justify-center shrink-0`}>
+												{isSignedIn ? (
+													<span className={`${themeColors.textDark} font-black text-sm uppercase`}>
+														{displayName?.[0] || "U"}
+													</span>
+												) : (
+													<User size={18} className={themeColors.text} />
+												)}
+											</div>
+										)}
+										<div className="min-w-0 flex-1 leading-tight">
+											<p className="text-xs sm:text-sm font-black text-zinc-900 dark:text-zinc-100 truncate">
+												{isSignedIn
+													? displayName
+													: (language === "en" ? "Sign In / Account" : "Masuk / Akun")}
+											</p>
+											<div className="flex items-center gap-1.5 mt-1">
+												<span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${themeColors.bgLight} ${themeColors.textDark} border ${themeColors.border}`}>
+													{loginMethod}
+												</span>
+												{isSignedIn && (
+													<span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold truncate">
+														• {language === "en" ? "View details" : "Lihat detail"}
+													</span>
+												)}
+											</div>
+										</div>
+									</div>
+									<ChevronRight size={16} className="text-zinc-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+								</button>
+							);
+						})()}
+
 						{/* Smooth Animated Theme & Language Toggles + Tutorial (?), Patch Notes, and Contact Support */}
 						<SettingsPreferencesAndSupport
 							themeColors={themeColors}
 							onCloseSettings={() => setIsDashboardSettingsOpen(false)}
 						/>
 
-						{/* Item 1: Profile & Connections */}
-						<Button
-							variant="outline"
-							onClick={() => {
-								setIsDashboardSettingsOpen(false);
-								if (!props.supabaseUser && !props.user) {
-									props.onLoginClick?.();
-								} else {
-									setIsProfileModalOpen(true);
-								}
-							}}
-							className="h-13 rounded-2xl justify-start px-4 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
-						>
-							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
-								<User size={17} className={themeColors.text} />
-							</div>
-							<div className="text-left leading-none">
-								<p className="text-xs sm:text-sm font-black">{language === "en" ? "Profile & Sync" : "Profil & Sinkronisasi"}</p>
-								<p className="text-[10px] text-zinc-400 font-bold mt-0.5">{language === "en" ? "Manage account connections" : "Kelola koneksi akun"}</p>
-							</div>
-						</Button>
-
-						{/* Item 2: Manage Pockets (Always Available) */}
-						<Button
-							variant="outline"
-							onClick={() => {
-								setIsDashboardSettingsOpen(false);
-								setIsPocketSettingsOpen(true);
-							}}
-							className="h-13 rounded-2xl justify-start px-4 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
-						>
-							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
-								<Wallet size={17} className={themeColors.text} />
-							</div>
-							<div className="text-left leading-none">
-								<p className="text-xs sm:text-sm font-black">{language === "en" ? "Manage Pockets" : "Kelola Kantong"}</p>
-								<p className="text-[10px] text-zinc-400 font-bold mt-0.5">{language === "en" ? "Rename and configure budgets" : "Sesuaikan nama dan limit saku"}</p>
-							</div>
-						</Button>
-
-						{/* Item 3: Recurring Scheduler (Always Available) */}
-						<Button
-							variant="outline"
-							onClick={() => {
-								setIsDashboardSettingsOpen(false);
-								setIsRecurringModalOpen(true);
-							}}
-							className="h-13 rounded-2xl justify-start px-4 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
-						>
-							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
-								<CalendarDays size={17} className={themeColors.text} />
-							</div>
-							<div className="text-left leading-none">
-								<p className="text-xs sm:text-sm font-black">{language === "en" ? "Recurring Transactions" : "Transaksi Otomatis"}</p>
-								<p className="text-[10px] text-zinc-400 font-bold mt-0.5">{language === "en" ? "Automate weekly/monthly inputs" : "Atur pencatatan teratur otomatis"}</p>
-							</div>
-						</Button>
-
-						{/* Item 4: Manage custom fields */}
-						<Button
-							variant="outline"
-							onClick={(e) => {
-								setIsDashboardSettingsOpen(false);
-								if (!props.user && !props.supabaseUser && !props.isDemoMode) {
-									props.onLoginClick?.();
-								} else {
-									props.setIsManageFieldsOpen(true);
-								}
-							}}
-							className="h-13 rounded-2xl justify-start px-4 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
-						>
-							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
-								<ListTree size={17} className={themeColors.text} />
-							</div>
-							<div className="text-left leading-none">
-								<p className="text-xs sm:text-sm font-black">{t("manageFields")}</p>
-								<p className="text-[10px] text-zinc-400 font-bold mt-0.5">{language === "en" ? "Add fields and categories" : "Tambah kolom dan kategori baru"}</p>
-							</div>
-						</Button>
-
-						{/* Item 5 & 6: Data Exports (Only if transactions exist) */}
+						{/* Data Exports with Icons (Only if transactions exist) */}
 						{props.transactions.length > 0 && (
-							<div className="grid grid-cols-2 gap-2 pt-1 border-t border-zinc-100 dark:border-zinc-850">
+							<div className={`grid ${props.isGoogleConnected ? "grid-cols-2" : "grid-cols-1"} gap-2 pt-1 border-t border-zinc-200/70 dark:border-zinc-800/70`}>
 								<Button
 									variant="outline"
 									onClick={() => {
 										setIsDashboardSettingsOpen(false);
 										props.exportToCSV?.();
 									}}
-									className="h-10 rounded-xl font-bold text-xs cursor-pointer bg-transparent border-zinc-200 dark:border-zinc-800"
+									className="h-10 rounded-xl font-bold text-xs cursor-pointer bg-transparent border-zinc-200 dark:border-zinc-800 flex items-center justify-center gap-1.5"
 								>
-									{language === "en" ? "Export CSV" : "Ekspor CSV"}
+									<Download size={14} className={themeColors.text} />
+									<span>{language === "en" ? "Export CSV" : "Ekspor CSV"}</span>
 								</Button>
 								{props.isGoogleConnected && (
 									<Button
@@ -609,58 +604,14 @@ export function FormView(props: FormViewProps) {
 											setIsDashboardSettingsOpen(false);
 											props.exportToGoogleSheets?.();
 										}}
-										className={`h-10 rounded-xl font-bold text-xs cursor-pointer text-emerald-600 bg-emerald-500/5 border-emerald-500/35 hover:bg-emerald-500/10`}
+										className="h-10 rounded-xl font-bold text-xs cursor-pointer text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 border-emerald-500/35 hover:bg-emerald-500/10 flex items-center justify-center gap-1.5"
 									>
-										{language === "en" ? "Sync Sheets" : "Sinkron Sheets"}
+										<RefreshCw size={14} className="text-emerald-500" />
+										<span>{language === "en" ? "Sync Sheets" : "Sinkron Sheets"}</span>
 									</Button>
 								)}
 							</div>
 						)}
-
-						{/* Item 7: Clean Display Mode preference with Smooth Switch */}
-						<div className="flex flex-col gap-2 p-3.5 bg-zinc-550/5 dark:bg-zinc-950/40 rounded-2xl border border-zinc-150 dark:border-zinc-850">
-							<div className="flex items-center justify-between gap-3">
-								<Label
-									htmlFor="cleanDisplay"
-									onClick={() => {
-										const nextVal = !isCleanDisplay;
-										setIsCleanDisplay(nextVal);
-										localStorage.setItem("clean_display", String(nextVal));
-									}}
-									className="text-xs font-bold cursor-pointer text-zinc-800 dark:text-zinc-200"
-								>
-									{language === "en" ? "Clean Display Mode" : "Mode Tampilan Bersih"}
-								</Label>
-								<button
-									type="button"
-									id="cleanDisplay"
-									role="switch"
-									aria-checked={isCleanDisplay}
-									onClick={() => {
-										const nextVal = !isCleanDisplay;
-										setIsCleanDisplay(nextVal);
-										localStorage.setItem("clean_display", String(nextVal));
-									}}
-									className={`relative w-11 h-6 rounded-full p-0.5 transition-colors duration-200 cursor-pointer border-none flex items-center shrink-0 ${
-										isCleanDisplay
-											? `bg-gradient-to-r ${themeColors.gradient}`
-											: "bg-zinc-300 dark:bg-zinc-800"
-									}`}
-								>
-									<motion.span
-										initial={false}
-										animate={{ x: isCleanDisplay ? 20 : 0 }}
-										transition={{ type: "spring", stiffness: 500, damping: 30 }}
-										className="w-5 h-5 rounded-full bg-white shadow-sm block"
-									/>
-								</button>
-							</div>
-							<p className="text-[10px] text-zinc-450 dark:text-zinc-500 font-bold leading-normal">
-								{language === "en" 
-									? "Hide 'Auto Transactions' and 'Manage Pockets' shortcut buttons from the main screen. They remain accessible here anytime." 
-									: "Sembunyikan tombol pintasan 'Transaksi Otomatis' dan 'Kelola Kantong' dari layar utama. Fitur ini tetap dapat diakses dari menu ini."}
-							</p>
-						</div>
 					</div>
 				</DialogContent>
 			</Dialog>

@@ -18,9 +18,9 @@ import { PatchNotesModal } from "@/components/dashboard/modals/patch-notes-modal
 interface AppLayoutContextType {
 	isDashboardSettingsOpen: boolean;
 	setIsDashboardSettingsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-	openSupportModal: (category?: string, email?: string, title?: string, message?: string) => void;
-	openPatchNotes: () => void;
-	openTutorial: () => void;
+	openSupportModal: (category?: string, email?: string, title?: string, message?: string, fromSettings?: boolean) => void;
+	openPatchNotes: (fromSettings?: boolean) => void;
+	openTutorial: (fromSettings?: boolean) => void;
 }
 
 const AppLayoutContext = React.createContext<AppLayoutContextType | null>(null);
@@ -209,7 +209,7 @@ export function SettingsPreferencesAndSupport({
 					type="button"
 					onClick={() => {
 						onCloseSettings?.();
-						appLayout?.openTutorial();
+						appLayout?.openTutorial(true);
 					}}
 					className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer text-zinc-800 dark:text-zinc-200"
 				>
@@ -225,7 +225,7 @@ export function SettingsPreferencesAndSupport({
 					type="button"
 					onClick={() => {
 						onCloseSettings?.();
-						appLayout?.openPatchNotes();
+						appLayout?.openPatchNotes(true);
 					}}
 					className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer text-zinc-800 dark:text-zinc-200"
 				>
@@ -241,7 +241,7 @@ export function SettingsPreferencesAndSupport({
 					type="button"
 					onClick={() => {
 						onCloseSettings?.();
-						appLayout?.openSupportModal("bug");
+						appLayout?.openSupportModal("bug", "", "", "", true);
 					}}
 					className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer text-zinc-800 dark:text-zinc-200"
 				>
@@ -268,6 +268,7 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
 	const [isTutorialOpen, setIsTutorialOpen] = React.useState(false);
 	const [isSupportModalOpen, setIsSupportModalOpen] = React.useState(false);
 	const [isPatchNotesOpen, setIsPatchNotesOpen] = React.useState(false);
+	const returnToSettingsRef = React.useRef(false);
 	const [supportInitialData, setSupportInitialData] = React.useState({ category: "bug", email: "", title: "", message: "" });
 	const [statusModal, setStatusModal] = React.useState<{ isOpen: boolean; title: string; desc: string }>({
 		isOpen: false, title: "", desc: ""
@@ -285,22 +286,29 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
 	const handleCloseTutorial = React.useCallback(() => {
 		setIsTutorialOpen(false);
 		localStorage.setItem("onboarding_complete", "true");
+		if (returnToSettingsRef.current) {
+			returnToSettingsRef.current = false;
+			setIsDashboardSettingsOpen(true);
+		}
 	}, []);
 
 	const handleSupportSuccess = React.useCallback((title: string, desc: string) => {
 		setStatusModal({ isOpen: true, title, desc });
 	}, []);
 
-	const openSupportModal = React.useCallback((category = "bug", email = "", title = "", message = "") => {
+	const openSupportModal = React.useCallback((category = "bug", email = "", title = "", message = "", fromSettings = false) => {
+		returnToSettingsRef.current = fromSettings;
 		setSupportInitialData({ category, email, title, message });
 		setIsSupportModalOpen(true);
 	}, []);
 
-	const openPatchNotes = React.useCallback(() => {
+	const openPatchNotes = React.useCallback((fromSettings = false) => {
+		returnToSettingsRef.current = fromSettings;
 		setIsPatchNotesOpen(true);
 	}, []);
 
-	const openTutorial = React.useCallback(() => {
+	const openTutorial = React.useCallback((fromSettings = false) => {
+		returnToSettingsRef.current = fromSettings;
 		setIsTutorialOpen(true);
 	}, []);
 
@@ -376,7 +384,13 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
 
 				<SupportModal 
 					isOpen={isSupportModalOpen}
-					onOpenChange={setIsSupportModalOpen}
+					onOpenChange={(open) => {
+						setIsSupportModalOpen(open);
+						if (!open && returnToSettingsRef.current) {
+							returnToSettingsRef.current = false;
+							setIsDashboardSettingsOpen(true);
+						}
+					}}
 					onSuccess={handleSupportSuccess}
 					initialCategory={supportInitialData.category}
 					initialEmail={supportInitialData.email}
@@ -390,7 +404,9 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
 					isSynced={!!logic.user}
 					onGoogleLogin={logic.handleGoogleLogin}
 					onLoginClick={() => {
-						handleCloseTutorial();
+						returnToSettingsRef.current = false;
+						setIsTutorialOpen(false);
+						localStorage.setItem("onboarding_complete", "true");
 						router.push("/login");
 					}}
 					isInstallable={logic.isInstallable}
@@ -400,7 +416,13 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
 
 				<PatchNotesModal
 					isOpen={isPatchNotesOpen}
-					onOpenChange={setIsPatchNotesOpen}
+					onOpenChange={(open) => {
+						setIsPatchNotesOpen(open);
+						if (!open && returnToSettingsRef.current) {
+							returnToSettingsRef.current = false;
+							setIsDashboardSettingsOpen(true);
+						}
+					}}
 				/>
 
 				<footer className="p-8 text-center mt-auto border-t border-zinc-200 dark:border-zinc-800/50 flex flex-col items-center gap-2">
