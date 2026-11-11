@@ -284,20 +284,6 @@ export function PocketCarouselCard({
 									>
 										{isPrivate ? <EyeOff size={13} /> : <Eye size={13} />}
 									</Button>
-									
-									{/* Settings gear icon button inside card - Only visible in homepage form variant */}
-									{variant === "form" && onSettingsClick && (
-										<Button 
-											size="icon" 
-											variant="ghost" 
-											onClick={(e) => { e.stopPropagation(); onSettingsClick(); }}
-											disabled={isSyncing}
-											className="h-7 w-7 bg-black/10 hover:bg-black/25 text-black border-none rounded-full cursor-pointer flex items-center justify-center bg-transparent"
-											aria-label="Pengaturan Dasbor"
-										>
-											<Settings size={13} />
-										</Button>
-									)}
 								</div>
 							</div>
 

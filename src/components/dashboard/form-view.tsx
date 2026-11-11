@@ -61,6 +61,7 @@ import { MoveFundsModal } from "@/components/dashboard/modals/move-funds-modal";
 import { SeparatedProgressBarCard } from "@/components/dashboard/cards/separated-progress-bar-card";
 import { ProfileConnectionModal } from "@/components/dashboard/modals/profile-connection-modal";
 import { PwaDownloaderModal } from "@/components/dashboard/modals/pwa-downloader-modal";
+import { useAppLayout, SettingsPreferencesAndSupport } from "@/components/app-layout-wrapper";
 import { cleanNumber } from "@/lib/sheets-api";
 
 interface FormViewProps {
@@ -490,7 +491,7 @@ export function FormView(props: FormViewProps) {
 
 			{/* Dashboard Settings Modal (Central Control Center) */}
 			<Dialog open={isDashboardSettingsOpen} onOpenChange={setIsDashboardSettingsOpen}>
-				<DialogContent className="sm:max-w-[420px] rounded-3xl p-6">
+				<DialogContent className="sm:max-w-[420px] rounded-3xl p-5 sm:p-6 max-h-[85vh] overflow-y-auto">
 					<DialogHeader>
 						<DialogTitle className="flex items-center gap-2">
 							<Settings className={themeColors.text} size={20} />
@@ -498,7 +499,13 @@ export function FormView(props: FormViewProps) {
 						</DialogTitle>
 					</DialogHeader>
 					
-					<div className="grid grid-cols-1 gap-3 pt-4">
+					<div className="grid grid-cols-1 gap-2.5 pt-3">
+						{/* Smooth Animated Theme & Language Toggles + Tutorial (?), Patch Notes, and Contact Support */}
+						<SettingsPreferencesAndSupport
+							themeColors={themeColors}
+							onCloseSettings={() => setIsDashboardSettingsOpen(false)}
+						/>
+
 						{/* Item 1: Profile & Connections */}
 						<Button
 							variant="outline"
@@ -510,13 +517,13 @@ export function FormView(props: FormViewProps) {
 									setIsProfileModalOpen(true);
 								}
 							}}
-							className="h-14 rounded-2xl justify-start px-5 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
+							className="h-13 rounded-2xl justify-start px-4 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
 						>
-							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center`}>
-								<User size={18} className={themeColors.text} />
+							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
+								<User size={17} className={themeColors.text} />
 							</div>
 							<div className="text-left leading-none">
-								<p className="text-sm font-black">{language === "en" ? "Profile & Sync" : "Profil & Sinkronisasi"}</p>
+								<p className="text-xs sm:text-sm font-black">{language === "en" ? "Profile & Sync" : "Profil & Sinkronisasi"}</p>
 								<p className="text-[10px] text-zinc-400 font-bold mt-0.5">{language === "en" ? "Manage account connections" : "Kelola koneksi akun"}</p>
 							</div>
 						</Button>
@@ -528,13 +535,13 @@ export function FormView(props: FormViewProps) {
 								setIsDashboardSettingsOpen(false);
 								setIsPocketSettingsOpen(true);
 							}}
-							className="h-14 rounded-2xl justify-start px-5 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
+							className="h-13 rounded-2xl justify-start px-4 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
 						>
-							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center`}>
-								<Wallet size={18} className={themeColors.text} />
+							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
+								<Wallet size={17} className={themeColors.text} />
 							</div>
 							<div className="text-left leading-none">
-								<p className="text-sm font-black">{language === "en" ? "Manage Pockets" : "Kelola Kantong"}</p>
+								<p className="text-xs sm:text-sm font-black">{language === "en" ? "Manage Pockets" : "Kelola Kantong"}</p>
 								<p className="text-[10px] text-zinc-400 font-bold mt-0.5">{language === "en" ? "Rename and configure budgets" : "Sesuaikan nama dan limit saku"}</p>
 							</div>
 						</Button>
@@ -546,13 +553,13 @@ export function FormView(props: FormViewProps) {
 								setIsDashboardSettingsOpen(false);
 								setIsRecurringModalOpen(true);
 							}}
-							className="h-14 rounded-2xl justify-start px-5 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
+							className="h-13 rounded-2xl justify-start px-4 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
 						>
-							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center`}>
-								<CalendarDays size={18} className={themeColors.text} />
+							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
+								<CalendarDays size={17} className={themeColors.text} />
 							</div>
 							<div className="text-left leading-none">
-								<p className="text-sm font-black">{language === "en" ? "Recurring Transactions" : "Transaksi Otomatis"}</p>
+								<p className="text-xs sm:text-sm font-black">{language === "en" ? "Recurring Transactions" : "Transaksi Otomatis"}</p>
 								<p className="text-[10px] text-zinc-400 font-bold mt-0.5">{language === "en" ? "Automate weekly/monthly inputs" : "Atur pencatatan teratur otomatis"}</p>
 							</div>
 						</Button>
@@ -568,20 +575,20 @@ export function FormView(props: FormViewProps) {
 									props.setIsManageFieldsOpen(true);
 								}
 							}}
-							className="h-14 rounded-2xl justify-start px-5 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
+							className="h-13 rounded-2xl justify-start px-4 font-bold flex items-center gap-3 border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-800 dark:text-zinc-200 cursor-pointer"
 						>
-							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center`}>
-								<ListTree size={18} className={themeColors.text} />
+							<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
+								<ListTree size={17} className={themeColors.text} />
 							</div>
 							<div className="text-left leading-none">
-								<p className="text-sm font-black">{t("manageFields")}</p>
+								<p className="text-xs sm:text-sm font-black">{t("manageFields")}</p>
 								<p className="text-[10px] text-zinc-400 font-bold mt-0.5">{language === "en" ? "Add fields and categories" : "Tambah kolom dan kategori baru"}</p>
 							</div>
 						</Button>
 
 						{/* Item 5 & 6: Data Exports (Only if transactions exist) */}
 						{props.transactions.length > 0 && (
-							<div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-850">
+							<div className="grid grid-cols-2 gap-2 pt-1 border-t border-zinc-100 dark:border-zinc-850">
 								<Button
 									variant="outline"
 									onClick={() => {
@@ -606,23 +613,44 @@ export function FormView(props: FormViewProps) {
 								)}
 							</div>
 						)}
-						{/* Item 7: Clean Display Mode preference */}
-						<div className="flex flex-col gap-2 p-4 bg-zinc-550/5 dark:bg-zinc-950/40 rounded-2xl border border-zinc-150 dark:border-zinc-850 mt-2">
-							<div className="flex items-center justify-between">
-								<Label htmlFor="cleanDisplay" className="text-xs font-bold cursor-pointer text-zinc-800 dark:text-zinc-200">
+
+						{/* Item 7: Clean Display Mode preference with Smooth Switch */}
+						<div className="flex flex-col gap-2 p-3.5 bg-zinc-550/5 dark:bg-zinc-950/40 rounded-2xl border border-zinc-150 dark:border-zinc-850">
+							<div className="flex items-center justify-between gap-3">
+								<Label
+									htmlFor="cleanDisplay"
+									onClick={() => {
+										const nextVal = !isCleanDisplay;
+										setIsCleanDisplay(nextVal);
+										localStorage.setItem("clean_display", String(nextVal));
+									}}
+									className="text-xs font-bold cursor-pointer text-zinc-800 dark:text-zinc-200"
+								>
 									{language === "en" ? "Clean Display Mode" : "Mode Tampilan Bersih"}
 								</Label>
-								<input 
-									type="checkbox" 
-									id="cleanDisplay" 
-									checked={isCleanDisplay}
-									onChange={(e) => {
-										const checked = e.target.checked;
-										setIsCleanDisplay(checked);
-										localStorage.setItem("clean_display", String(checked));
+								<button
+									type="button"
+									id="cleanDisplay"
+									role="switch"
+									aria-checked={isCleanDisplay}
+									onClick={() => {
+										const nextVal = !isCleanDisplay;
+										setIsCleanDisplay(nextVal);
+										localStorage.setItem("clean_display", String(nextVal));
 									}}
-									className="w-4 h-4 rounded cursor-pointer accent-emerald-500"
-								/>
+									className={`relative w-11 h-6 rounded-full p-0.5 transition-colors duration-200 cursor-pointer border-none flex items-center shrink-0 ${
+										isCleanDisplay
+											? `bg-gradient-to-r ${themeColors.gradient}`
+											: "bg-zinc-300 dark:bg-zinc-800"
+									}`}
+								>
+									<motion.span
+										initial={false}
+										animate={{ x: isCleanDisplay ? 20 : 0 }}
+										transition={{ type: "spring", stiffness: 500, damping: 30 }}
+										className="w-5 h-5 rounded-full bg-white shadow-sm block"
+									/>
+								</button>
 							</div>
 							<p className="text-[10px] text-zinc-450 dark:text-zinc-500 font-bold leading-normal">
 								{language === "en" 
