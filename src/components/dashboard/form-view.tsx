@@ -220,8 +220,11 @@ export function FormView(props: FormViewProps) {
 
 	const maskValue = (val: string) => isPrivate ? "******" : val;
 
+	const appLayout = useAppLayout();
 	const [isProfileModalOpen, setIsProfileModalOpen] = React.useState(false);
-	const [isDashboardSettingsOpen, setIsDashboardSettingsOpen] = React.useState(false);
+	const [localIsDashboardSettingsOpen, setLocalIsDashboardSettingsOpen] = React.useState(false);
+	const isDashboardSettingsOpen = appLayout ? appLayout.isDashboardSettingsOpen : localIsDashboardSettingsOpen;
+	const setIsDashboardSettingsOpen = appLayout ? appLayout.setIsDashboardSettingsOpen : setLocalIsDashboardSettingsOpen;
 	const [isQuickMenuOpen, setIsQuickMenuOpen] = React.useState(false);
 
 	const handleManageFieldsClick = (e?: React.MouseEvent) => {
