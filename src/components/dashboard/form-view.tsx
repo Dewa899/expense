@@ -442,6 +442,10 @@ export function FormView(props: FormViewProps) {
 					setIsPocketSelectOpen(false);
 					setIsPocketSettingsOpen(true);
 				}}
+				onMoveFunds={() => {
+					setIsPocketSelectOpen(false);
+					setIsMoveFundsOpen(true);
+				}}
 			/>
 
 			{/* Separated Progress Bar Card */}
@@ -460,7 +464,7 @@ export function FormView(props: FormViewProps) {
 						variant="outline"
 						onClick={() => setIsRecurringModalOpen(true)}
 						disabled={isSyncing}
-						className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border-none bg-white dark:bg-[#1E1E1E] hover:bg-zinc-100 dark:hover:bg-[#252525] cursor-pointer text-zinc-800 dark:text-zinc-200 text-xs shadow-[0_4px_10px_rgba(0,0,0,0.08)] transition-all"
+						className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border-none bg-white dark:bg-[#222428] hover:bg-zinc-100 dark:hover:bg-[#2B2E33] cursor-pointer text-zinc-800 dark:text-zinc-200 text-xs shadow-[0_4px_10px_rgba(0,0,0,0.08)] transition-all"
 					>
 						<CalendarDays size={16} className={themeColors.text} />
 						<span>{language === "en" ? "Auto Transactions" : "Transaksi Otomatis"}</span>
@@ -469,7 +473,7 @@ export function FormView(props: FormViewProps) {
 						variant="outline"
 						onClick={() => setIsPocketSettingsOpen(true)}
 						disabled={isSyncing}
-						className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border-none bg-white dark:bg-[#1E1E1E] hover:bg-zinc-100 dark:hover:bg-[#252525] cursor-pointer text-zinc-800 dark:text-zinc-200 text-xs shadow-[0_4px_10px_rgba(0,0,0,0.08)] transition-all"
+						className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border-none bg-white dark:bg-[#222428] hover:bg-zinc-100 dark:hover:bg-[#2B2E33] cursor-pointer text-zinc-800 dark:text-zinc-200 text-xs shadow-[0_4px_10px_rgba(0,0,0,0.08)] transition-all"
 					>
 						<Plus size={16} className={themeColors.text} />
 						<span>{language === "en" ? "Manage Pockets" : "Kelola Kantong"}</span>
@@ -485,143 +489,6 @@ export function FormView(props: FormViewProps) {
 				triggerInstall={props.triggerInstall}
 				themeColors={themeColors}
 			/>
-
-			{/* Profile Connection Modal */}
-			<ProfileConnectionModal
-				isOpen={isProfileModalOpen}
-				onOpenChange={(open) => {
-					setIsProfileModalOpen(open);
-					if (!open) {
-						setIsDashboardSettingsOpen(true);
-					}
-				}}
-				onBackToSettings={() => {
-					setIsProfileModalOpen(false);
-					setIsDashboardSettingsOpen(true);
-				}}
-				user={props.user}
-				supabaseUser={props.supabaseUser}
-				isGoogleConnected={!!props.isGoogleConnected}
-				googleEmail={props.googleEmail || ""}
-				onGoogleLogin={props.onGoogleLogin}
-				onDisconnect={props.onDisconnect}
-				isSyncing={!!isSyncing}
-				themeColors={themeColors}
-			/>
-
-			{/* Dashboard Settings Modal (Central Control Center) */}
-			<Dialog open={isDashboardSettingsOpen} onOpenChange={setIsDashboardSettingsOpen}>
-				<DialogContent className="sm:max-w-[420px] rounded-3xl p-5 sm:p-6 max-h-[85vh] overflow-y-auto">
-					<DialogHeader>
-						<DialogTitle className="flex items-center gap-2">
-							<Settings className={themeColors.text} size={20} />
-							{language === "en" ? "Dashboard Controls" : "Kontrol Dasbor"}
-						</DialogTitle>
-					</DialogHeader>
-					
-					<div className="grid grid-cols-1 gap-2.5 pt-3">
-						{/* Top Item: Profile & Sync (Displays Username & Login Method directly; click for Email & Sync details) */}
-						{(() => {
-							const { displayName, avatarUrl, loginMethod } = getAccountDisplayInfo(
-								props.supabaseUser,
-								props.user,
-								!!props.isDemoMode,
-								language
-							);
-							const isSignedIn = Boolean(props.supabaseUser || props.user);
-
-							return (
-								<button
-									type="button"
-									onClick={() => {
-										setIsDashboardSettingsOpen(false);
-										if (!isSignedIn) {
-											props.onLoginClick?.();
-										} else {
-											setIsProfileModalOpen(true);
-										}
-									}}
-									className="w-full p-3.5 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2C2C2C] flex items-center justify-between gap-3 text-left transition-colors cursor-pointer group"
-								>
-									<div className="flex items-center gap-3 min-w-0 flex-1">
-										{avatarUrl ? (
-											<img
-												src={avatarUrl}
-												alt="Profile"
-												className="w-10 h-10 rounded-xl object-cover shrink-0"
-											/>
-										) : (
-											<div className={`w-10 h-10 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
-												{isSignedIn ? (
-													<span className={`${themeColors.textDark} font-black text-sm uppercase`}>
-														{displayName?.[0] || "U"}
-													</span>
-												) : (
-													<User size={18} className={themeColors.text} />
-												)}
-											</div>
-										)}
-										<div className="min-w-0 flex-1 leading-tight">
-											<p className="text-xs sm:text-sm font-black text-zinc-900 dark:text-zinc-100 truncate">
-												{isSignedIn
-													? displayName
-													: (language === "en" ? "Sign In / Account" : "Masuk / Akun")}
-											</p>
-											<div className="flex items-center gap-1.5 mt-1">
-												<span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${themeColors.bgLight} ${themeColors.textDark}`}>
-													{loginMethod}
-												</span>
-												{isSignedIn && (
-													<span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold truncate">
-														• {language === "en" ? "View details" : "Lihat detail"}
-													</span>
-												)}
-											</div>
-										</div>
-									</div>
-									<ChevronRight size={16} className="text-zinc-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
-								</button>
-							);
-						})()}
-
-						{/* Smooth Animated Theme & Language Toggles + Tutorial (?), Patch Notes, and Contact Support */}
-						<SettingsPreferencesAndSupport
-							themeColors={themeColors}
-							onCloseSettings={() => setIsDashboardSettingsOpen(false)}
-						/>
-
-						{/* Data Exports with Icons (Only if transactions exist) */}
-						{props.transactions.length > 0 && (
-							<div className={`grid ${props.isGoogleConnected ? "grid-cols-2" : "grid-cols-1"} gap-2 pt-2`}>
-								<Button
-									variant="outline"
-									onClick={() => {
-										setIsDashboardSettingsOpen(false);
-										props.exportToCSV?.();
-									}}
-									className="h-11 rounded-2xl font-bold text-xs cursor-pointer bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2C2C2C] border-none flex items-center justify-center gap-1.5"
-								>
-									<Download size={14} className={themeColors.text} />
-									<span>{language === "en" ? "Export CSV" : "Ekspor CSV"}</span>
-								</Button>
-								{props.isGoogleConnected && (
-									<Button
-										variant="outline"
-										onClick={() => {
-											setIsDashboardSettingsOpen(false);
-											props.exportToGoogleSheets?.();
-										}}
-										className="h-11 rounded-2xl font-bold text-xs cursor-pointer text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/15 border-none flex items-center justify-center gap-1.5"
-									>
-										<RefreshCw size={14} className="text-emerald-500" />
-										<span>{language === "en" ? "Sync Sheets" : "Sinkron Sheets"}</span>
-									</Button>
-								)}
-							</div>
-						)}
-					</div>
-				</DialogContent>
-			</Dialog>
 
 			<RecurringTemplatesModal
 				isOpen={isRecurringModalOpen}
@@ -736,7 +603,7 @@ export function FormView(props: FormViewProps) {
 												type="button"
 												disabled={isInteractionDisabled}
 												onClick={() => setIsNoteExpanded(true)}
-												className={`inline-flex items-center gap-1 text-xs font-bold ${themeColors.textDark} bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2E2E2E] border-none px-3.5 py-2 rounded-2xl transition-all cursor-pointer disabled:opacity-50`}
+												className={`inline-flex items-center gap-1 text-xs font-bold ${themeColors.textDark} bg-[#F1F3F5] dark:bg-[#2B2E33] hover:bg-[#EAECEF] dark:hover:bg-[#32363C] border-none px-3.5 py-2 rounded-2xl transition-all cursor-pointer disabled:opacity-50`}
 											>
 												<Plus size={13} />
 												<span>{props.translateHeader(header)}</span>
@@ -751,7 +618,7 @@ export function FormView(props: FormViewProps) {
 											autoFocus={isNoteExpanded && !localFormData[header]}
 											disabled={isInteractionDisabled}
 											placeholder={`${props.translateHeader(header)}...`}
-											className={`h-12 pr-9 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] focus:bg-[#EAECEF] dark:focus:bg-[#2E2E2E] shadow-none font-medium text-sm transition-colors ${themeColors.focusRingInput}`}
+											className={`h-12 pr-9 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] focus:bg-[#EAECEF] dark:focus:bg-[#32363C] shadow-none font-medium text-sm transition-colors ${themeColors.focusRingInput}`}
 											value={localFormData[header] || ""}
 											onChange={(e) => handleLocalInputChange(header, e.target.value)}
 										/>
@@ -788,8 +655,8 @@ export function FormView(props: FormViewProps) {
 													<DialogContent className="sm:max-w-[400px] rounded-3xl">
 														<DialogHeader><DialogTitle>{isCoreCat ? t("manageCategories") : `${t("manageOptions")}: ${header}`}</DialogTitle></DialogHeader>
 														<div className="space-y-4 py-4">
-															<div className="flex gap-2"><Input placeholder={isCoreCat ? t("newCategory") : t("newOption")} value={isCoreCat ? props.newCategoryInput : props.newOptionInput} onChange={(e) => isCoreCat ? props.setNewCategoryInput(e.target.value) : props.setNewOptionInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525]" /><Button onClick={() => isCoreCat ? props.onAddCategory() : props.onAddOption(customFieldIdx, props.newOptionInput)} disabled={isInteractionDisabled} className={`bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 ${themeColors.cardText} font-bold rounded-2xl cursor-pointer border-none shadow-[0_4px_10px_rgba(0,0,0,0.10)]`}>{t("add")}</Button></div>
-															<div className="max-h-[200px] overflow-y-auto space-y-2">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<div key={opt} className="flex items-center justify-between p-3 bg-[#F1F3F5] dark:bg-[#252525] rounded-2xl border-none">
+															<div className="flex gap-2"><Input placeholder={isCoreCat ? t("newCategory") : t("newOption")} value={isCoreCat ? props.newCategoryInput : props.newOptionInput} onChange={(e) => isCoreCat ? props.setNewCategoryInput(e.target.value) : props.setNewOptionInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33]" /><Button onClick={() => isCoreCat ? props.onAddCategory() : props.onAddOption(customFieldIdx, props.newOptionInput)} disabled={isInteractionDisabled} className={`bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 ${themeColors.cardText} font-bold rounded-2xl cursor-pointer border-none shadow-[0_4px_10px_rgba(0,0,0,0.10)]`}>{t("add")}</Button></div>
+															<div className="max-h-[200px] overflow-y-auto space-y-2">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<div key={opt} className="flex items-center justify-between p-3 bg-[#F1F3F5] dark:bg-[#2B2E33] rounded-2xl border-none">
 																<span className="text-sm font-medium">{opt}</span><Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => isCoreCat ? props.onDeleteCategory(opt) : props.onDeleteOption(customFieldIdx, opt)} className="cursor-pointer"><Trash2 size={14} /></Button></div>))}</div>
 														</div>
 													</DialogContent>
@@ -799,14 +666,14 @@ export function FormView(props: FormViewProps) {
 									)}
 									{(isCoreCat || (customField?.type === "dropdown")) ? (
 										<Select value={localFormData[header] || ""} disabled={isInteractionDisabled} onValueChange={(val) => handleLocalInputChange(header, val || "")}>
-											<SelectTrigger className={`h-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2C2C2C] focus:bg-[#EAECEF] dark:focus:bg-[#2E2E2E] shadow-none cursor-pointer transition-colors text-sm ${themeColors.focusRingInput}`}><SelectValue placeholder={t("selectCategory")} /></SelectTrigger>
+											<SelectTrigger className={`h-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] hover:bg-[#EAECEF] dark:hover:bg-[#32363C] focus:bg-[#EAECEF] dark:focus:bg-[#32363C] shadow-none cursor-pointer transition-colors text-sm ${themeColors.focusRingInput}`}><SelectValue placeholder={t("selectCategory")} /></SelectTrigger>
 											<SelectContent className="rounded-2xl w-auto min-w-[240px] border-none shadow-[0_8px_24px_rgba(0,0,0,0.18)]">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<SelectItem key={opt} value={opt} className="cursor-pointer rounded-xl">{opt}</SelectItem>))}</SelectContent>
 										</Select>
 									) : isType ? (
-										<div className="flex bg-[#F1F3F5] dark:bg-[#252525] p-1 rounded-2xl gap-1 border-none">
+										<div className="flex bg-[#F1F3F5] dark:bg-[#2B2E33] p-1 rounded-2xl gap-1 border-none">
 											<button
 												type="button"
-												className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer border-none ${localFormData[header] === "Pemasukan / Income" ? `bg-white dark:bg-[#323232] ${themeColors.textDark} shadow-[0_2px_6px_rgba(0,0,0,0.08)]` : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent"}`}
+												className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer border-none ${localFormData[header] === "Pemasukan / Income" ? `bg-white dark:bg-[#363A40] ${themeColors.textDark} shadow-[0_2px_6px_rgba(0,0,0,0.08)]` : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent"}`}
 												onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleLocalInputChange(header, "Pemasukan / Income"); }}
 												disabled={isInteractionDisabled}
 											>
@@ -815,7 +682,7 @@ export function FormView(props: FormViewProps) {
 											</button>
 											<button
 												type="button"
-												className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer border-none ${localFormData[header] === "Pengeluaran / Expense" ? "bg-white dark:bg-[#323232] text-red-500 shadow-[0_2px_6px_rgba(0,0,0,0.08)]" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent"}`}
+												className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer border-none ${localFormData[header] === "Pengeluaran / Expense" ? "bg-white dark:bg-[#363A40] text-red-500 shadow-[0_2px_6px_rgba(0,0,0,0.08)]" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent"}`}
 												onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleLocalInputChange(header, "Pengeluaran / Expense"); }}
 												disabled={isInteractionDisabled}
 											>
@@ -826,7 +693,7 @@ export function FormView(props: FormViewProps) {
 									) : isAmount ? (
 										<>
 											<div className="relative flex items-center w-full">
-												<span className="absolute left-4 text-[11px] font-black text-zinc-400 dark:text-zinc-500 select-none pointer-events-none">
+												<span className="absolute left-4 text-[11px] font-black text-zinc-400 dark:text-zinc-400 select-none pointer-events-none">
 													Rp
 												</span>
 												<Input
@@ -835,7 +702,7 @@ export function FormView(props: FormViewProps) {
 													readOnly={isMobile}
 													disabled={isInteractionDisabled}
 													placeholder={t("amountPlaceholder")}
-													className={`h-12 w-full pl-10 pr-4 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] focus:bg-[#EAECEF] dark:focus:bg-[#2E2E2E] shadow-none font-semibold text-base transition-colors ${themeColors.focusRingInput}`}
+													className={`h-12 w-full pl-10 pr-4 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] focus:bg-[#EAECEF] dark:focus:bg-[#32363C] shadow-none font-semibold text-base transition-colors ${themeColors.focusRingInput}`}
 													value={localFormData[header] || ""}
 													onChange={(e) => handleAmountChange(header, e.target.value)}
 													onFocus={() => isMobile && setMobileKbHeader(header)}
@@ -854,7 +721,7 @@ export function FormView(props: FormViewProps) {
 											)}
 										</>
 									) : (
-										<Input type="text" disabled={isInteractionDisabled} placeholder={`${props.translateHeader(header)}...`} className={`h-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] focus:bg-[#EAECEF] dark:focus:bg-[#2E2E2E] shadow-none font-medium text-sm transition-colors ${themeColors.focusRingInput}`} value={localFormData[header] || ""} onChange={(e) => handleLocalInputChange(header, e.target.value)} />
+										<Input type="text" disabled={isInteractionDisabled} placeholder={`${props.translateHeader(header)}...`} className={`h-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] focus:bg-[#EAECEF] dark:focus:bg-[#32363C] shadow-none font-medium text-sm transition-colors ${themeColors.focusRingInput}`} value={localFormData[header] || ""} onChange={(e) => handleLocalInputChange(header, e.target.value)} />
 									)}
 								</div>
 							);
@@ -897,7 +764,7 @@ export function FormView(props: FormViewProps) {
 			{/* Sticky Bottom Action Navbar (Borderless layered surface, unified rounded-2xl buttons, subtle shadow) */}
 			<nav
 				aria-label={language === "en" ? "Quick Actions" : "Aksi Cepat"}
-				className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-[#181818]/95 backdrop-blur-xl border-none px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)]"
+				className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-[#202226]/95 backdrop-blur-xl border-none px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)]"
 			>
 				<div className="max-w-md mx-auto flex items-center gap-2.5 relative">
 					{/* Floating Hamburger Menu Popover */}
@@ -908,7 +775,7 @@ export function FormView(props: FormViewProps) {
 								animate={{ opacity: 1, y: 0, scale: 1 }}
 								exit={{ opacity: 0, y: 10, scale: 0.96 }}
 								transition={{ duration: 0.15 }}
-								className="absolute bottom-[calc(100%+0.75rem)] left-0 w-64 rounded-3xl bg-white dark:bg-[#1E1E1E] border-none p-2 shadow-[0_8px_24px_rgba(0,0,0,0.18)] z-50 space-y-1"
+								className="absolute bottom-[calc(100%+0.75rem)] left-0 w-64 rounded-3xl bg-white dark:bg-[#222428] border-none p-2 shadow-[0_8px_24px_rgba(0,0,0,0.18)] z-50 space-y-1"
 							>
 								<button
 									type="button"
@@ -917,7 +784,7 @@ export function FormView(props: FormViewProps) {
 										setIsQuickMenuOpen(false);
 										setIsPocketSettingsOpen(true);
 									}}
-									className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-colors cursor-pointer hover:bg-[#F1F3F5] dark:hover:bg-[#252525] text-zinc-800 dark:text-zinc-100 disabled:opacity-50`}
+									className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-colors cursor-pointer hover:bg-[#F1F3F5] dark:hover:bg-[#2B2E33] text-zinc-800 dark:text-zinc-100 disabled:opacity-50`}
 								>
 									<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
 										<Wallet size={15} className={themeColors.textDark} />
@@ -939,7 +806,7 @@ export function FormView(props: FormViewProps) {
 										setIsQuickMenuOpen(false);
 										setIsRecurringModalOpen(true);
 									}}
-									className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-colors cursor-pointer hover:bg-[#F1F3F5] dark:hover:bg-[#252525] text-zinc-800 dark:text-zinc-100 disabled:opacity-50`}
+									className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-colors cursor-pointer hover:bg-[#F1F3F5] dark:hover:bg-[#2B2E33] text-zinc-800 dark:text-zinc-100 disabled:opacity-50`}
 								>
 									<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
 										<CalendarDays size={15} className={themeColors.textDark} />
@@ -961,7 +828,7 @@ export function FormView(props: FormViewProps) {
 										setIsQuickMenuOpen(false);
 										handleManageFieldsClick(e);
 									}}
-									className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-colors cursor-pointer hover:bg-[#F1F3F5] dark:hover:bg-[#252525] text-zinc-800 dark:text-zinc-100 disabled:opacity-50`}
+									className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-colors cursor-pointer hover:bg-[#F1F3F5] dark:hover:bg-[#2B2E33] text-zinc-800 dark:text-zinc-100 disabled:opacity-50`}
 								>
 									<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} flex items-center justify-center shrink-0`}>
 										<Settings size={15} className={themeColors.textDark} />
@@ -992,7 +859,7 @@ export function FormView(props: FormViewProps) {
 						aria-label={language === "en" ? "Quick Menu" : "Menu Cepat"}
 						aria-expanded={isQuickMenuOpen}
 						title={language === "en" ? "Menu (Pockets, Auto, Fields)" : "Menu (Kantong, Otomatis, Field)"}
-						className={`h-12 w-12 rounded-2xl border-none ${isQuickMenuOpen ? themeColors.bgLight : "bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2E2E2E]"} flex flex-col items-center justify-center gap-0.5 p-0 cursor-pointer shrink-0 text-zinc-700 dark:text-zinc-300 transition-colors shadow-none`}
+						className={`h-12 w-12 rounded-2xl border-none ${isQuickMenuOpen ? themeColors.bgLight : "bg-[#F1F3F5] dark:bg-[#2B2E33] hover:bg-[#EAECEF] dark:hover:bg-[#32363C]"} flex flex-col items-center justify-center gap-0.5 p-0 cursor-pointer shrink-0 text-zinc-700 dark:text-zinc-300 transition-colors shadow-none`}
 					>
 						{isQuickMenuOpen ? (
 							<X size={17} className={themeColors.text} />
@@ -1023,7 +890,7 @@ export function FormView(props: FormViewProps) {
 									variant="outline"
 									disabled={isOcrDisabled}
 									onClick={props.onOcrClick}
-									className={`h-12 w-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2E2E2E] flex flex-col items-center justify-center gap-0.5 p-0 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 shadow-none`}
+									className={`h-12 w-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] hover:bg-[#EAECEF] dark:hover:bg-[#32363C] flex flex-col items-center justify-center gap-0.5 p-0 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 shadow-none`}
 									aria-label="Scan Struk / OCR Receipt Scan"
 									title={language === "en" ? "Scan Receipt" : "Scan Struk"}
 								>
@@ -1053,7 +920,7 @@ export function FormView(props: FormViewProps) {
 									variant="outline"
 									onClick={enterDemo}
 									disabled={isSyncing}
-									className="h-12 px-3 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2E2E2E] text-xs font-bold text-zinc-700 dark:text-zinc-200 cursor-pointer shrink-0 shadow-none"
+									className="h-12 px-3 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] hover:bg-[#EAECEF] dark:hover:bg-[#32363C] text-xs font-bold text-zinc-700 dark:text-zinc-200 cursor-pointer shrink-0 shadow-none"
 								>
 									{t("tryDemo")}
 								</Button>
@@ -1061,7 +928,7 @@ export function FormView(props: FormViewProps) {
 									type="button"
 									variant="outline"
 									disabled={true}
-									className="h-12 w-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] flex items-center justify-center opacity-40 cursor-not-allowed shrink-0 p-0 shadow-none"
+									className="h-12 w-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] flex items-center justify-center opacity-40 cursor-not-allowed shrink-0 p-0 shadow-none"
 									aria-label="Scan Struk / OCR Receipt Scan"
 								>
 									<Camera size={18} className="text-zinc-400" />

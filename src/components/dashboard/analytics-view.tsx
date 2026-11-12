@@ -543,6 +543,14 @@ export function AnalyticsView({
 				formatCurrency={formatCurrency}
 				isPrivate={isPrivate}
 				togglePrivacy={togglePrivacy}
+				onManagePockets={() => {
+					setIsPocketSelectOpen(false);
+					setIsPocketSettingsOpen(true);
+				}}
+				onMoveFunds={() => {
+					setIsPocketSelectOpen(false);
+					setIsMoveFundsOpen(true);
+				}}
 			/>
 
 			<PocketSettingsModal

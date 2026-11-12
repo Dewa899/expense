@@ -8,6 +8,7 @@ import {
 import { useLanguage } from "@/components/language-provider";
 import { Sparkles, Bug, ArrowUpRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ModalScrollArea } from "@/components/ui/modal-scroll-area";
 
 interface PatchNotesModalProps {
 	isOpen: boolean;
@@ -503,79 +504,81 @@ export function PatchNotesModal({ isOpen, onOpenChange }: PatchNotesModalProps) 
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[550px] rounded-[36px] overflow-hidden p-0 max-h-[85vh] flex flex-col border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950" showCloseButton={false}>
+			<DialogContent className="sm:max-w-[550px] rounded-[32px] overflow-hidden p-5 max-h-[86vh] flex flex-col border-none bg-white dark:bg-[#222428] gap-3" showCloseButton={false}>
 				{/* Top Close Button - Bulat ketika hover */}
 				<button 
 					type="button"
 					onClick={() => onOpenChange(false)}
-					className="absolute top-6 right-6 rounded-full w-10 h-10 p-0 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600 dark:hover:text-zinc-200 z-[110] transition-colors flex items-center justify-center cursor-pointer"
+					className="absolute top-5 right-5 rounded-full w-9 h-9 p-0 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#2B2E33] hover:text-zinc-600 dark:hover:text-zinc-200 z-[110] transition-colors flex items-center justify-center cursor-pointer border-none bg-[#F1F3F5] dark:bg-[#2B2E33]"
 				>
-					<X size={20} />
+					<X size={18} />
 				</button>
 
 				{/* Fixed Modal Header */}
-				<div className="px-8 pt-8 pb-4 border-b border-zinc-100 dark:border-zinc-900/50 flex flex-col gap-1 bg-white dark:bg-zinc-950">
-					<h2 className="text-2xl font-black tracking-tight">{t("patchNotesTitle")}</h2>
-					<p className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-bold">
+				<div className="px-2 pt-1 pb-1 flex flex-col gap-0.5 pr-10">
+					<h2 className="text-xl font-black tracking-tight">{t("patchNotesTitle")}</h2>
+					<p className="text-[10px] text-zinc-400 dark:text-zinc-400 uppercase tracking-widest font-bold">
 						{t("patchNotesSubtitle")}
 					</p>
 				</div>
 
-				{/* Scrollable Version List Container */}
-				<div className="flex-1 p-8 space-y-6 overflow-y-auto no-scrollbar max-h-[60vh] bg-zinc-50/50 dark:bg-zinc-950">
-					{UPDATES.map((update, idx) => (
-						<div 
-							key={idx} 
-							className="bg-white dark:bg-zinc-900/60 rounded-[28px] p-6 border border-zinc-200/60 dark:border-zinc-800/40 shadow-sm flex flex-col gap-4 relative overflow-hidden"
-						>
-							{/* Release Tag, Date, Time & Version */}
-							<div className="flex items-center gap-2 flex-wrap text-[10px] font-bold uppercase tracking-wider">
-								<span className={`px-2 py-0.5 rounded-md text-[9px] font-black ${getTypeStyles(update.type)}`}>
-									{update.type} update
-								</span>
-								<span className="text-zinc-300 dark:text-zinc-700">·</span>
-								<span className="text-zinc-400 dark:text-zinc-500">
-									POSTED {update.date[language]} · {update.time}
-								</span>
-								<span className="ml-auto text-[10px] font-black bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-2.5 py-0.5 rounded-full border border-zinc-200/20 dark:border-zinc-700/30">
-									{update.version}
-								</span>
-							</div>
+				{/* Recessed Shaded Scrollable Version List Container with Circular Interactive Scrollbar */}
+				<ModalScrollArea maxHeightClass="max-h-[60vh]" className="flex-1" contentClassName="space-y-4">
+					<div className="space-y-4">
+						{UPDATES.map((update, idx) => (
+							<div 
+								key={idx} 
+								className="bg-white dark:bg-[#222428] rounded-3xl p-5 border-none shadow-[0_4px_10px_rgba(0,0,0,0.06)] flex flex-col gap-3.5 relative overflow-hidden"
+							>
+								{/* Release Tag, Date, Time & Version */}
+								<div className="flex items-center gap-2 flex-wrap text-[10px] font-bold uppercase tracking-wider">
+									<span className={`px-2 py-0.5 rounded-md text-[9px] font-black ${getTypeStyles(update.type)}`}>
+										{update.type} update
+									</span>
+									<span className="text-zinc-300 dark:text-zinc-700">·</span>
+									<span className="text-zinc-400 dark:text-zinc-400">
+										POSTED {update.date[language]} · {update.time}
+									</span>
+									<span className="ml-auto text-[10px] font-black bg-[#F1F3F5] dark:bg-[#2B2E33] text-zinc-600 dark:text-zinc-300 px-2.5 py-0.5 rounded-full">
+										{update.version}
+									</span>
+								</div>
 
-							{/* Title & Desc */}
-							<div className="space-y-1">
-								<h3 className="text-lg font-black tracking-tight text-zinc-950 dark:text-white">
-									{update.title[language]}
-								</h3>
-								<p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-									{update.description[language]}
-								</p>
-							</div>
+								{/* Title & Desc */}
+								<div className="space-y-1">
+									<h3 className="text-base font-black tracking-tight text-zinc-950 dark:text-white">
+										{update.title[language]}
+									</h3>
+									<p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+										{update.description[language]}
+									</p>
+								</div>
 
-							{/* Detailed List */}
-							<div className="space-y-4 pt-2 border-t border-zinc-100 dark:border-zinc-800/60">
-								{update.details.map((detail, dIdx) => (
-									<div key={dIdx} className="flex gap-3 text-left">
-										<div className={`flex-shrink-0 w-6 h-6 rounded-lg ${getDetailIconBg(detail.type)} flex items-center justify-center mt-0.5`}>
-											{getDetailIcon(detail.type)}
+								{/* Detailed List */}
+								<div className="space-y-3 pt-2.5 border-t border-zinc-100 dark:border-white/5">
+									{update.details.map((detail, dIdx) => (
+										<div key={dIdx} className="flex gap-3 text-left">
+											<div className={`flex-shrink-0 w-6 h-6 rounded-lg ${getDetailIconBg(detail.type)} flex items-center justify-center mt-0.5`}>
+												{getDetailIcon(detail.type)}
+											</div>
+											<div>
+												<p className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+													{detail.title[language]}
+												</p>
+												<p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed mt-0.5">
+													{detail.desc[language]}
+												</p>
+											</div>
 										</div>
-										<div>
-											<p className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
-												{detail.title[language]}
-											</p>
-											<p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed mt-0.5">
-												{detail.desc[language]}
-											</p>
-										</div>
-									</div>
-								))}
+									))}
+								</div>
 							</div>
-						</div>
-					))}
-				</div>
+						))}
+					</div>
+				</ModalScrollArea>
 
-				{/* Footer */}
-				<div className="px-8 py-4 bg-zinc-50 dark:bg-zinc-900/30 border-t border-zinc-100 dark:border-zinc-900/50 flex justify-center">
+				{/* Distinct Footer */}
+				<div className="pt-1 flex justify-center">
 					<p className="text-[9px] text-zinc-400 uppercase tracking-widest font-bold">
 						EXPense by GENLORD · Latest Version {UPDATES[0].version}
 					</p>

@@ -177,41 +177,96 @@ export function MoveFundsModal({
 		onOpenChange(false);
 	};
 
+	const POCKET_NAME_COLORS: Record<string, { dot: string; text: string; badge: string }> = {
+		emerald: {
+			dot: "bg-[#34D399]",
+			text: "text-emerald-600 dark:text-[#6EE7B7]",
+			badge: "bg-emerald-500/10 text-emerald-700 dark:text-[#6EE7B7]",
+		},
+		indigo: {
+			dot: "bg-[#818CF8]",
+			text: "text-indigo-600 dark:text-[#A5B4FC]",
+			badge: "bg-indigo-500/10 text-indigo-700 dark:text-[#A5B4FC]",
+		},
+		amber: {
+			dot: "bg-[#FBBF24]",
+			text: "text-amber-600 dark:text-[#FCD34D]",
+			badge: "bg-amber-500/10 text-amber-700 dark:text-[#FCD34D]",
+		},
+		rose: {
+			dot: "bg-[#FB7185]",
+			text: "text-rose-600 dark:text-[#FDA4AF]",
+			badge: "bg-rose-500/10 text-rose-700 dark:text-[#FDA4AF]",
+		},
+		cyan: {
+			dot: "bg-[#22D3EE]",
+			text: "text-cyan-600 dark:text-[#67E8F9]",
+			badge: "bg-cyan-500/10 text-cyan-700 dark:text-[#67E8F9]",
+		},
+		violet: {
+			dot: "bg-[#A78BFA]",
+			text: "text-violet-600 dark:text-[#C4B5FD]",
+			badge: "bg-violet-500/10 text-violet-700 dark:text-[#C4B5FD]",
+		},
+		orange: {
+			dot: "bg-[#FB923C]",
+			text: "text-orange-600 dark:text-[#FDBA74]",
+			badge: "bg-orange-500/10 text-orange-700 dark:text-[#FDBA74]",
+		},
+	};
+
+	const renderPocketOptionLabel = (pocketId: string, name: string, balance: number) => {
+		const found = pockets.find((pk) => pk.id === pocketId || pk.name === pocketId);
+		const colorKey = pocketId === "net_worth" ? "emerald" : (found?.color || "indigo");
+		const colorStyle = POCKET_NAME_COLORS[colorKey] || POCKET_NAME_COLORS.emerald;
+
+		return (
+			<span className="inline-flex items-center gap-2 min-w-0 truncate">
+				<span className={`w-2.5 h-2.5 rounded-full shrink-0 ${colorStyle.dot}`} />
+				<span className={`font-black truncate ${colorStyle.text}`}>{name}</span>
+				<span className="text-zinc-400 dark:text-zinc-500 font-semibold shrink-0">—</span>
+				<span className="font-bold text-zinc-700 dark:text-zinc-200 shrink-0">{formatCurrency(balance)}</span>
+			</span>
+		);
+	};
+
 	return (
 		<>
 			<Dialog open={isOpen} onOpenChange={handleOpenChange}>
 				<DialogContent className="sm:max-w-[420px] rounded-3xl p-6">
 					<DialogHeader>
 						<DialogTitle className="flex items-center gap-2">
-							<ArrowLeftRight className={themeColors.text} size={20} />
+							<ArrowLeftRight className="text-emerald-500" size={20} />
 							{language === "en" ? "Move Funds" : "Pindah Dana"}
 						</DialogTitle>
 					</DialogHeader>
 
-					<div className="space-y-5 pt-4">
+					<div className="space-y-4 pt-3">
 						{/* Source Pocket */}
-						<div className="space-y-2">
-							<Label className="text-xs text-zinc-500 font-bold">
+						<div className="space-y-1.5">
+							<Label className="text-xs text-zinc-500 dark:text-zinc-400 font-bold">
 								{language === "en" ? "From (Source)" : "Dari (Sumber)"}
 							</Label>
 							<Select value={sourcePocket} onValueChange={(val) => setSourcePocket(val || "net_worth")}>
-								<SelectTrigger className="w-full h-12 rounded-xl cursor-pointer text-sm">
+								<SelectTrigger className="w-full h-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] hover:bg-[#EAECEF] dark:hover:bg-[#32363C] cursor-pointer text-sm shadow-none">
 									<SelectValue>
 										{sourcePocket === "net_worth"
-											? `${mainPocketLabel} — ${formatCurrency(mainPocketBalance)}`
+											? renderPocketOptionLabel("net_worth", mainPocketLabel, mainPocketBalance)
 											: (() => {
 													const p = pockets.find(pk => pk.id === sourcePocket);
-													return p ? `${p.name} — ${formatCurrency(getCustomPocketBalance(p))}` : sourceName;
+													return p
+														? renderPocketOptionLabel(p.id, p.name, getCustomPocketBalance(p))
+														: sourceName;
 											  })()}
 									</SelectValue>
 								</SelectTrigger>
-								<SelectContent className="rounded-xl">
-									<SelectItem value="net_worth" className="cursor-pointer py-3 px-4">
-										{mainPocketLabel} — {formatCurrency(mainPocketBalance)}
+								<SelectContent className="rounded-2xl border-none shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
+									<SelectItem value="net_worth" className="cursor-pointer py-2.5 px-3 rounded-xl">
+										{renderPocketOptionLabel("net_worth", mainPocketLabel, mainPocketBalance)}
 									</SelectItem>
 									{pockets.map(p => (
-										<SelectItem key={p.id} value={p.id} className="cursor-pointer py-3 px-4">
-											{p.name} — {formatCurrency(getCustomPocketBalance(p))}
+										<SelectItem key={p.id} value={p.id} className="cursor-pointer py-2.5 px-3 rounded-xl">
+											{renderPocketOptionLabel(p.id, p.name, getCustomPocketBalance(p))}
 										</SelectItem>
 									))}
 								</SelectContent>
@@ -219,23 +274,25 @@ export function MoveFundsModal({
 						</div>
 
 						{/* Target Pocket */}
-						<div className="space-y-2">
-							<Label className="text-xs text-zinc-500 font-bold">
+						<div className="space-y-1.5">
+							<Label className="text-xs text-zinc-500 dark:text-zinc-400 font-bold">
 								{language === "en" ? "To (Destination)" : "Ke (Tujuan)"}
 							</Label>
 							<Select value={targetPocket} onValueChange={(val) => setTargetPocket(val || "")}>
-								<SelectTrigger className="w-full h-12 rounded-xl cursor-pointer text-sm">
+								<SelectTrigger className="w-full h-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] hover:bg-[#EAECEF] dark:hover:bg-[#32363C] cursor-pointer text-sm shadow-none">
 									<SelectValue placeholder={language === "en" ? "Select target pocket" : "Pilih kantong tujuan"}>
 										{(() => {
 											const tgt = availableTargets.find(t => t.id === targetPocket);
-											return tgt ? `${tgt.name} — ${formatCurrency(tgt.balance)}` : targetName;
+											return tgt
+												? renderPocketOptionLabel(tgt.id, tgt.name, tgt.balance)
+												: targetName;
 										})()}
 									</SelectValue>
 								</SelectTrigger>
-								<SelectContent className="rounded-xl">
+								<SelectContent className="rounded-2xl border-none shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
 									{availableTargets.map(p => (
-										<SelectItem key={p.id} value={p.id} className="cursor-pointer py-3 px-4">
-											{p.name} — {formatCurrency(p.balance)}
+										<SelectItem key={p.id} value={p.id} className="cursor-pointer py-2.5 px-3 rounded-xl">
+											{renderPocketOptionLabel(p.id, p.name, p.balance)}
 										</SelectItem>
 									))}
 								</SelectContent>
@@ -243,9 +300,9 @@ export function MoveFundsModal({
 						</div>
 
 						{/* Amount Input */}
-						<div className="space-y-2">
+						<div className="space-y-1.5">
 							<div className="flex items-center justify-between">
-								<Label className="text-xs text-zinc-500 font-bold">
+								<Label className="text-xs text-zinc-500 dark:text-zinc-400 font-bold">
 									{language === "en" ? "Amount to Move (Rp)" : "Jumlah Dana (Rp)"}
 								</Label>
 								<div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400">
@@ -259,7 +316,7 @@ export function MoveFundsModal({
 										<button
 											type="button"
 											onClick={() => setAmountStr(formatRupiah(Math.floor(sourceAvailableBalance).toString()))}
-											className={`px-1.5 py-0.5 rounded-md ${themeColors.text} bg-emerald-500/10 hover:bg-emerald-500/20 font-black uppercase text-[9px] cursor-pointer transition-colors`}
+											className="px-2 py-0.5 rounded-lg text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 font-black uppercase text-[9px] cursor-pointer transition-colors border-none"
 										>
 											{language === "en" ? "Max" : "Maks"}
 										</button>
@@ -267,7 +324,7 @@ export function MoveFundsModal({
 								</div>
 							</div>
 							<div className="relative flex items-center">
-								<span className="absolute left-3.5 text-xs font-black text-zinc-400 select-none">Rp</span>
+								<span className="absolute left-4 text-xs font-black text-zinc-400 select-none">Rp</span>
 								<Input
 									placeholder="e.g. 50.000"
 									value={amountStr}
@@ -276,8 +333,8 @@ export function MoveFundsModal({
 									readOnly={isMobile}
 									onFocus={() => isMobile && setMobileKbHeader("move_funds_amount")}
 									onClick={() => isMobile && setMobileKbHeader("move_funds_amount")}
-									className={`h-12 pl-9 rounded-xl w-full text-sm font-black focus-visible:ring-1 ${
-										isInsufficientBalance ? "border-red-500 focus-visible:ring-red-500" : ""
+									className={`h-12 pl-10 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] focus:bg-[#EAECEF] dark:focus:bg-[#32363C] w-full text-sm font-black shadow-none ${
+										isInsufficientBalance ? "ring-2 ring-red-500" : ""
 									}`}
 								/>
 							</div>
@@ -305,7 +362,7 @@ export function MoveFundsModal({
 						<Button
 							onClick={() => setIsConfirmOpen(true)}
 							disabled={!targetPocket || !amountStr || enteredAmount <= 0 || isInsufficientBalance}
-							className={`w-full h-12 bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 text-black font-black rounded-xl border-none shadow-lg cursor-pointer mt-2`}
+							className="w-full h-12 bg-gradient-to-r from-[#6EE7B7] to-[#34D399] hover:opacity-95 text-[#063626] font-black rounded-2xl border-none shadow-[0_4px_10px_rgba(0,0,0,0.10)] cursor-pointer mt-2"
 						>
 							{language === "en" ? "Move Funds" : "Pindah Dana"}
 						</Button>

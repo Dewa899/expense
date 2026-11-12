@@ -15,6 +15,7 @@ import {
 import { ChevronLeft, ChevronRight, ListTree, Trash2, Pencil, Wallet } from "lucide-react";
 import { CustomFieldDef, PocketDef } from "@/hooks/use-dashboard-logic";
 import { useLanguage } from "@/components/language-provider";
+import { ModalScrollArea } from "@/components/ui/modal-scroll-area";
 
 const POCKET_DOT_COLORS: Record<string, string> = {
 	emerald: "bg-emerald-500",
@@ -281,69 +282,71 @@ export function ManageFieldsModal({
 									</div>
 								</div>
 							</div>
-							<div className="space-y-2 mt-3 max-h-[220px] overflow-y-auto pr-1">
-								{pocketFieldsWithIdx.length === 0 ? (
-									<div className="py-5 text-center rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 text-zinc-400 text-xs font-semibold">
-										{language === "en"
-											? `No custom fields for ${activePocket.name}`
-											: `Belum ada field kustom di ${activePocket.name}`}
-									</div>
-								) : (
-									pocketFieldsWithIdx.map(({ field, originalIdx }) => (
-										<div key={originalIdx} className={`flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border ${themeColors.border}`}>
-											<div className="flex-1 min-w-0">
-												<div className="flex items-center gap-2">
-													<p className="text-sm font-bold truncate">{field.name}</p>
-													<span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase shrink-0 ${
-														field.required
-															? `${themeColors.bgLight} ${themeColors.textDark} border ${themeColors.border}`
-															: "bg-zinc-100 dark:bg-zinc-900 text-zinc-500"
-													}`}>
-														{field.required ? t("requiredLabel") : t("optionalLabel")}
-													</span>
+							<ModalScrollArea maxHeightClass="max-h-[210px]" className="mt-2">
+								<div className="space-y-2">
+									{pocketFieldsWithIdx.length === 0 ? (
+										<div className="py-5 text-center rounded-2xl border border-dashed border-zinc-300/70 dark:border-zinc-700/70 text-zinc-400 text-xs font-semibold">
+											{language === "en"
+												? `No custom fields for ${activePocket.name}`
+												: `Belum ada field kustom di ${activePocket.name}`}
+										</div>
+									) : (
+										pocketFieldsWithIdx.map(({ field, originalIdx }) => (
+											<div key={originalIdx} className={`flex items-center justify-between p-3 bg-white dark:bg-[#222428] rounded-xl border ${themeColors.border}`}>
+												<div className="flex-1 min-w-0">
+													<div className="flex items-center gap-2">
+														<p className="text-sm font-bold truncate">{field.name}</p>
+														<span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase shrink-0 ${
+															field.required
+																? `${themeColors.bgLight} ${themeColors.textDark} border ${themeColors.border}`
+																: "bg-zinc-100 dark:bg-[#2B2E33] text-zinc-500"
+														}`}>
+															{field.required ? t("requiredLabel") : t("optionalLabel")}
+														</span>
+													</div>
+													<p className="text-[10px] opacity-60 uppercase">{field.type}</p>
 												</div>
-												<p className="text-[10px] opacity-60 uppercase">{field.type}</p>
-											</div>
-											<div className="flex gap-1 shrink-0">
-												<Button 
-													variant="ghost" 
-													size="sm" 
-													className="cursor-pointer border-none bg-transparent" 
-													disabled={isInteractionDisabled} 
-													onClick={() => { 
-														setRenamingIdx(originalIdx); 
-														setRenamingInput(field.name); 
-														setRenamingType(field.type); 
-														setRenamingRequired(field.required); 
-													}}
-												>
-													<Pencil size={16} />
-												</Button>
-												{field.type === "dropdown" && (
+												<div className="flex gap-1 shrink-0">
+													<Button 
+														variant="ghost" 
+														size="sm" 
+														className="cursor-pointer border-none bg-transparent" 
+														disabled={isInteractionDisabled} 
+														onClick={() => { 
+															setRenamingIdx(originalIdx); 
+															setRenamingInput(field.name); 
+															setRenamingType(field.type); 
+															setRenamingRequired(field.required); 
+														}}
+													>
+														<Pencil size={16} />
+													</Button>
+													{field.type === "dropdown" && (
+														<Button 
+															variant="ghost" 
+															size="sm" 
+															disabled={isInteractionDisabled} 
+															onClick={() => setEditingOptionsIdx(originalIdx)} 
+															className={`${themeColors.textDark} ${themeColors.hoverBg} cursor-pointer border-none bg-transparent`}
+														>
+															<ListTree size={16} />
+														</Button>
+													)}
 													<Button 
 														variant="ghost" 
 														size="sm" 
 														disabled={isInteractionDisabled} 
-														onClick={() => setEditingOptionsIdx(originalIdx)} 
-														className={`${themeColors.textDark} ${themeColors.hoverBg} cursor-pointer border-none bg-transparent`}
+														onClick={() => onDeleteField(originalIdx, field.name)} 
+														className="text-destructive cursor-pointer border-none bg-transparent"
 													>
-														<ListTree size={16} />
+														<Trash2 size={16} />
 													</Button>
-												)}
-												<Button 
-													variant="ghost" 
-													size="sm" 
-													disabled={isInteractionDisabled} 
-													onClick={() => onDeleteField(originalIdx, field.name)} 
-													className="text-destructive cursor-pointer border-none bg-transparent"
-												>
-													<Trash2 size={16} />
-												</Button>
+												</div>
 											</div>
-										</div>
-									))
-								)}
-							</div>
+										))
+									)}
+								</div>
+							</ModalScrollArea>
 						</>
 					) : renamingIdx !== -1 ? (
 						<div className="space-y-4">
@@ -394,7 +397,7 @@ export function ManageFieldsModal({
 							</Button>
 						</div>
 					) : (
-						<div className="space-y-4">
+						<div className="space-y-3">
 							<div className="flex gap-2">
 								<Input 
 									placeholder={t("newOption")} 
@@ -411,22 +414,24 @@ export function ManageFieldsModal({
 									{t("add")}
 								</Button>
 							</div>
-							<div className="max-h-[200px] overflow-y-auto space-y-2 pr-1">
-								{(customFields[editingOptionsIdx]?.options || []).map((opt: string) => (
-									<div key={opt} className={`flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border ${themeColors.border}`}>
-										<span className="text-sm font-medium">{opt}</span>
-										<Button 
-											variant="ghost" 
-											size="sm" 
-											disabled={isInteractionDisabled} 
-											onClick={() => onDeleteOption(editingOptionsIdx, opt)} 
-											className="cursor-pointer border-none bg-transparent"
-										>
-											<Trash2 size={14} />
-										</Button>
-									</div>
-								))}
-							</div>
+							<ModalScrollArea maxHeightClass="max-h-[200px]">
+								<div className="space-y-2">
+									{(customFields[editingOptionsIdx]?.options || []).map((opt: string) => (
+										<div key={opt} className={`flex items-center justify-between p-3 bg-white dark:bg-[#222428] rounded-xl border ${themeColors.border}`}>
+											<span className="text-sm font-medium">{opt}</span>
+											<Button 
+												variant="ghost" 
+												size="sm" 
+												disabled={isInteractionDisabled} 
+												onClick={() => onDeleteOption(editingOptionsIdx, opt)} 
+												className="cursor-pointer border-none bg-transparent"
+											>
+												<Trash2 size={14} />
+											</Button>
+										</div>
+									))}
+								</div>
+							</ModalScrollArea>
 						</div>
 					)}
 				</div>

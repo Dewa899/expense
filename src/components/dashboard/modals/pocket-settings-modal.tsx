@@ -12,12 +12,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Settings, Plus, Trash2, ChevronUp, ChevronDown, AlertTriangle, Check } from "lucide-react";
+import { Settings, Plus, Trash2, ChevronUp, ChevronDown, Check, Wallet } from "lucide-react";
 import { PocketDef } from "@/hooks/use-dashboard-logic";
 import { useLanguage } from "@/components/language-provider";
 import { formatRupiah, stripRupiah, NumericKeyboard, evaluateExpression } from "@/components/dashboard/cards/numeric-keyboard";
 import { WarningConfirmModal } from "./warning-confirm-modal";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ModalScrollArea } from "@/components/ui/modal-scroll-area";
 
 const SELECTABLE_POCKET_COLORS: ("indigo" | "amber" | "rose" | "cyan" | "violet" | "orange")[] = [
 	"indigo",
@@ -25,8 +26,69 @@ const SELECTABLE_POCKET_COLORS: ("indigo" | "amber" | "rose" | "cyan" | "violet"
 	"rose",
 	"cyan",
 	"violet",
-	"orange"
+	"orange",
 ];
+
+const PASTEL_POCKET_THEMES: Record<
+	string,
+	{
+		swatchGradient: string;
+		cardGradient: string;
+		cardText: string;
+		badgeBg: string;
+		inputSurface: string;
+	}
+> = {
+	emerald: {
+		swatchGradient: "from-[#6EE7B7] to-[#34D399]",
+		cardGradient: "from-[#6EE7B7] to-[#34D399]",
+		cardText: "text-[#063626]",
+		badgeBg: "bg-[#063626]/12 text-[#063626]",
+		inputSurface: "bg-white/80 dark:bg-black/25 text-[#063626] dark:text-white placeholder:text-[#063626]/45 dark:placeholder:text-white/50",
+	},
+	indigo: {
+		swatchGradient: "from-[#A5B4FC] to-[#818CF8]",
+		cardGradient: "from-[#A5B4FC] to-[#818CF8]",
+		cardText: "text-[#1E1B4B]",
+		badgeBg: "bg-[#1E1B4B]/12 text-[#1E1B4B]",
+		inputSurface: "bg-white/80 dark:bg-black/25 text-[#1E1B4B] dark:text-white placeholder:text-[#1E1B4B]/45 dark:placeholder:text-white/50",
+	},
+	amber: {
+		swatchGradient: "from-[#FCD34D] to-[#FBBF24]",
+		cardGradient: "from-[#FCD34D] to-[#FBBF24]",
+		cardText: "text-[#451A03]",
+		badgeBg: "bg-[#451A03]/12 text-[#451A03]",
+		inputSurface: "bg-white/80 dark:bg-black/25 text-[#451A03] dark:text-white placeholder:text-[#451A03]/45 dark:placeholder:text-white/50",
+	},
+	rose: {
+		swatchGradient: "from-[#FDA4AF] to-[#FB7185]",
+		cardGradient: "from-[#FDA4AF] to-[#FB7185]",
+		cardText: "text-[#4C0519]",
+		badgeBg: "bg-[#4C0519]/12 text-[#4C0519]",
+		inputSurface: "bg-white/80 dark:bg-black/25 text-[#4C0519] dark:text-white placeholder:text-[#4C0519]/45 dark:placeholder:text-white/50",
+	},
+	cyan: {
+		swatchGradient: "from-[#67E8F9] to-[#22D3EE]",
+		cardGradient: "from-[#67E8F9] to-[#22D3EE]",
+		cardText: "text-[#083344]",
+		badgeBg: "bg-[#083344]/12 text-[#083344]",
+		inputSurface: "bg-white/80 dark:bg-black/25 text-[#083344] dark:text-white placeholder:text-[#083344]/45 dark:placeholder:text-white/50",
+	},
+	violet: {
+		swatchGradient: "from-[#C4B5FD] to-[#A78BFA]",
+		cardGradient: "from-[#C4B5FD] to-[#A78BFA]",
+		cardText: "text-[#2E1065]",
+		badgeBg: "bg-[#2E1065]/12 text-[#2E1065]",
+		inputSurface: "bg-white/80 dark:bg-black/25 text-[#2E1065] dark:text-white placeholder:text-[#2E1065]/45 dark:placeholder:text-white/50",
+	},
+	orange: {
+		swatchGradient: "from-[#FDBA74] to-[#FB923C]",
+		cardGradient: "from-[#FDBA74] to-[#FB923C]",
+		cardText: "text-[#431407]",
+		badgeBg: "bg-[#431407]/12 text-[#431407]",
+		inputSurface: "bg-white/80 dark:bg-black/25 text-[#431407] dark:text-white placeholder:text-[#431407]/45 dark:placeholder:text-white/50",
+	},
+};
 
 const getFirstUnusedColor = (currentPockets: PocketDef[]): "indigo" | "amber" | "rose" | "cyan" | "violet" | "orange" => {
 	const used = currentPockets.map(p => p.color);
@@ -96,7 +158,7 @@ export function PocketSettingsModal({
 		const nextList = [...localPockets];
 		nextList[idx] = {
 			...nextList[idx],
-			[field]: value
+			[field]: value,
 		};
 		setLocalPockets(nextList);
 	};
@@ -109,9 +171,10 @@ export function PocketSettingsModal({
 				isOpen: true,
 				type: "error",
 				title: language === "en" ? "Duplicate Pocket Names" : "Nama Kantong Duplikat",
-				description: language === "en" 
-					? "Each pocket must have a unique name. Please rename your pockets so they do not overlap."
-					: "Setiap kantong harus memiliki nama yang unik. Harap ubah nama kantong agar tidak sama."
+				description:
+					language === "en"
+						? "Each pocket must have a unique name. Please rename your pockets so they do not overlap."
+						: "Setiap kantong harus memiliki nama yang unik. Harap ubah nama kantong agar tidak sama.",
 			});
 			return;
 		}
@@ -124,17 +187,24 @@ export function PocketSettingsModal({
 		<>
 			{/* Pocket Settings Dialog */}
 			<Dialog open={isOpen} onOpenChange={handleOpenChange}>
-				<DialogContent className="sm:max-w-[420px] rounded-3xl overflow-hidden p-6">
-					<DialogHeader>
-						<DialogTitle className="flex items-center gap-2">
-							<Settings className="text-zinc-600 dark:text-zinc-300" size={20} />
+				<DialogContent className="sm:max-w-[440px] rounded-3xl overflow-hidden p-5 gap-3">
+					{/* Distinct Header */}
+					<DialogHeader className="pb-0.5">
+						<DialogTitle className="flex items-center gap-2 text-base font-black">
+							<Settings className="text-emerald-500" size={19} />
 							{language === "en" ? "Manage Pockets" : "Kelola Kantong"}
 						</DialogTitle>
 					</DialogHeader>
-					<div className="space-y-4 pt-2 max-h-[350px] overflow-y-auto pr-1">
+
+					{/* Recessed Shaded Scrollable Body with Circular Interactive Scrollbar */}
+					<ModalScrollArea maxHeightClass="max-h-[390px]">
 						{localPockets.length === 0 ? (
-							<div className="text-center py-6 text-zinc-500 text-xs font-semibold space-y-3">
-								<p>{language === "en" ? "You haven't added any custom pockets." : "Anda belum menambahkan kantong kustom."}</p>
+							<div className="text-center py-6 text-zinc-500 dark:text-zinc-400 text-xs font-semibold space-y-3">
+								<p>
+									{language === "en"
+										? "You haven't added any custom pockets."
+										: "Anda belum menambahkan kantong kustom."}
+								</p>
 								<Button
 									onClick={() => {
 										const newId = getNextUniquePocketId(localPockets);
@@ -143,191 +213,199 @@ export function PocketSettingsModal({
 											id: newId,
 											name: `Kantong ${localPockets.length + 1}`,
 											type: "default",
-											color: nextColor
+											color: nextColor,
 										};
 										setLocalPockets([...localPockets, newPocket]);
 									}}
-									className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black rounded-xl border-none cursor-pointer"
+									className="bg-gradient-to-r from-[#6EE7B7] to-[#34D399] hover:opacity-95 text-[#063626] font-black rounded-2xl border-none cursor-pointer shadow-sm"
 								>
 									{language === "en" ? "Add First Pocket" : "Tambah Kantong Pertama"}
 								</Button>
 							</div>
 						) : (
-							<div className="space-y-4">
+							<div className="space-y-3">
 								{localPockets.map((pocket, idx) => {
-									const badgeColorClass = {
-										emerald: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-										indigo: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
-										amber: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-										rose: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300",
-										cyan: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300",
-										violet: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
-										orange: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
-									}[pocket.color] || "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300";
+									const pTheme = PASTEL_POCKET_THEMES[pocket.color] || PASTEL_POCKET_THEMES.indigo;
 
 									return (
-										<div key={pocket.id} className="p-4 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800 space-y-3 relative">
-											<div className="flex items-center justify-between">
-												<span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${badgeColorClass}`}>
+										<div
+											key={pocket.id}
+											className={`p-3.5 rounded-2xl bg-gradient-to-br ${pTheme.cardGradient} ${pTheme.cardText} shadow-[0_4px_10px_rgba(0,0,0,0.08)] space-y-2.5 relative transition-all duration-300`}
+										>
+											{/* Top Row: Pocket Badge + Color Swatches + Reorder/Delete Actions */}
+											<div className="flex items-center justify-between gap-2">
+												<span className={`inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg ${pTheme.badgeBg}`}>
+													<Wallet size={10} />
 													{language === "en" ? `Pocket ${idx + 1}` : `Kantong ${idx + 1}`}
 												</span>
-											<div className="flex items-center gap-1">
-												{/* Up arrow */}
-												<Button
-													variant="ghost"
-													size="icon"
-													disabled={idx === 0}
-													onClick={() => {
-														if (idx === 0) return;
-														const nextList = [...localPockets];
-														const temp = nextList[idx];
-														nextList[idx] = nextList[idx - 1];
-														nextList[idx - 1] = temp;
-														setLocalPockets(nextList);
-													}}
-													className="h-7 w-7 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer rounded-full flex items-center justify-center transition-colors border-none bg-transparent"
-													aria-label="Move Up"
-												>
-													<ChevronUp size={14} />
-												</Button>
-												{/* Down arrow */}
-												<Button
-													variant="ghost"
-													size="icon"
-													disabled={idx === localPockets.length - 1}
-													onClick={() => {
-														if (idx === localPockets.length - 1) return;
-														const nextList = [...localPockets];
-														const temp = nextList[idx];
-														nextList[idx] = nextList[idx + 1];
-														nextList[idx + 1] = temp;
-														setLocalPockets(nextList);
-													}}
-													className="h-7 w-7 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer rounded-full flex items-center justify-center transition-colors border-none bg-transparent"
-													aria-label="Move Down"
-												>
-													<ChevronDown size={14} />
-												</Button>
-												
-												{/* Trash delete button */}
-												<Button
-													variant="ghost"
-													size="icon"
-													onClick={() => {
-														setPocketToDeleteIdx(idx);
-													}}
-													className="h-7 w-7 text-zinc-400 hover:text-red-500 hover:bg-red-500/10 cursor-pointer rounded-full flex items-center justify-center transition-colors border-none bg-transparent"
-													aria-label="Delete Pocket"
-												>
-													<Trash2 size={14} />
-												</Button>
-											</div>
-										</div>
-										
-										<div className="space-y-2">
-											<Label className="text-xs text-zinc-500 font-bold">{language === "en" ? "Pocket Name" : "Nama Kantong"}</Label>
-											<Input
-												value={pocket.name}
-												onChange={(e) => handleLocalPocketFieldChange(idx, "name", e.target.value)}
-												className={`h-10 rounded-xl focus:border-${pocket.color}-500 focus:ring-1 focus:ring-${pocket.color}-500`}
-												placeholder="e.g. Jajan / Tabungan"
-											/>
-										</div>
 
-										<div className="space-y-2">
-											<Label className="text-xs text-zinc-500 font-bold">{language === "en" ? "Pocket Color" : "Warna Kantong"}</Label>
-											<div className="flex gap-2 items-center">
-												{SELECTABLE_POCKET_COLORS.map((color) => {
-													const isSelected = pocket.color === color;
-													const isOccupied = localPockets.some(p => p.id !== pocket.id && p.color === color);
-													
-													const bgGradientClass = {
-														indigo: "from-indigo-500 to-purple-500",
-														amber: "from-amber-500 to-rose-500",
-														rose: "from-rose-500 to-pink-500",
-														cyan: "from-cyan-500 to-blue-500",
-														violet: "from-violet-500 to-fuchsia-500",
-														orange: "from-orange-500 to-yellow-500",
-													}[color];
+												{/* Compact Pastel Color Swatches right in the header row */}
+												<div className="flex items-center gap-1.5">
+													{SELECTABLE_POCKET_COLORS.map((color) => {
+														const isSelected = pocket.color === color;
+														const isOccupied = localPockets.some(
+															p => p.id !== pocket.id && p.color === color
+														);
+														const swatchTheme = PASTEL_POCKET_THEMES[color];
 
-													return (
-														<button
-															key={color}
-															type="button"
-															disabled={isOccupied}
-															onClick={() => handleLocalPocketFieldChange(idx, "color", color)}
-															className={`w-8 h-8 rounded-full bg-gradient-to-br ${bgGradientClass} flex items-center justify-center relative transition-all duration-200 ${
-																isOccupied 
-																	? "opacity-20 cursor-not-allowed scale-90" 
-																	: "hover:scale-105 active:scale-95 cursor-pointer"
-															} ${
-																isSelected 
-																	? "ring-2 ring-zinc-800 dark:ring-zinc-200 ring-offset-2 dark:ring-offset-black scale-105" 
-																	: "border border-black/5 dark:border-white/5"
-															}`}
-															title={isOccupied ? (language === "en" ? "Color used by another pocket" : "Warna sudah digunakan kantong lain") : color}
-														>
-															{isSelected && (
-																<Check className="text-black w-3.5 h-3.5 stroke-[3px]" />
-															)}
-														</button>
-													);
-												})}
-											</div>
-										</div>
+														return (
+															<button
+																key={color}
+																type="button"
+																disabled={isOccupied}
+																onClick={() => handleLocalPocketFieldChange(idx, "color", color)}
+																className={`w-5 h-5 rounded-full bg-gradient-to-br ${swatchTheme.swatchGradient} flex items-center justify-center relative transition-all duration-200 ${
+																	isOccupied
+																		? "opacity-25 cursor-not-allowed scale-90"
+																		: "hover:scale-110 active:scale-95 cursor-pointer"
+																} ${
+																	isSelected
+																		? "ring-2 ring-black/70 scale-110 shadow-xs"
+																		: "ring-1 ring-black/15"
+																}`}
+																title={
+																	isOccupied
+																		? (language === "en"
+																				? "Color used by another pocket"
+																				: "Warna sudah digunakan kantong lain")
+																		: color
+																}
+															>
+																{isSelected && (
+																	<Check className={`${swatchTheme.cardText} w-3 h-3 stroke-[3px]`} />
+																)}
+															</button>
+														);
+													})}
+												</div>
 
-										<div className="space-y-2">
-											<Label className="text-xs text-zinc-500 font-bold">{language === "en" ? "Pocket Type" : "Tipe Kantong"}</Label>
-											<Select
-												value={pocket.type}
-												onValueChange={(val: any) => handleLocalPocketFieldChange(idx, "type", val)}
-											>
-												<SelectTrigger className="h-10 rounded-xl cursor-pointer">
-													<SelectValue />
-												</SelectTrigger>
-												<SelectContent className="rounded-xl">
-													<SelectItem value="default" className="cursor-pointer">{language === "en" ? "Regular (No Target)" : "Biasa (Tanpa Target)"}</SelectItem>
-													<SelectItem value="budget" className="cursor-pointer">{language === "en" ? "Monthly Budget Limit" : "Limit Anggaran Bulanan"}</SelectItem>
-													<SelectItem value="saving" className="cursor-pointer">{language === "en" ? "Savings Goal" : "Target Tabungan"}</SelectItem>
-												</SelectContent>
-											</Select>
-										</div>
-
-										{pocket.type !== "default" && (
-											<div className="space-y-2">
-												<Label className="text-xs text-zinc-500 font-bold">
-													{pocket.type === "budget" 
-														? (language === "en" ? "Monthly Limit (Rp)" : "Batas Bulanan (Rp)")
-														: (language === "en" ? "Target Amount (Rp)" : "Target Saldo (Rp)")}
-												</Label>
-												<Input
-													type="text"
-													value={pocket.target ? formatRupiah(pocket.target.toString()) : ""}
-													onChange={(e) => {
-														const raw = stripRupiah(e.target.value);
-														handleLocalPocketFieldChange(idx, "target", raw ? parseInt(raw, 10) : 0);
-													}}
-													inputMode={isMobile ? "none" : "numeric"}
-													readOnly={isMobile}
-													onFocus={() => isMobile && setFocusedPocketTargetIdx(idx)}
-													onClick={() => isMobile && setFocusedPocketTargetIdx(idx)}
-													placeholder="e.g. 1.000.000"
-													className={`h-10 rounded-xl focus:border-${pocket.color}-500 focus:ring-1 focus:ring-${pocket.color}-500`}
-												/>
-												{isMobile && focusedPocketTargetIdx === idx && (
-													<NumericKeyboard
-														value={pocket.target ? formatRupiah(pocket.target.toString()) : ""}
-														onChange={(val) => {
-															const raw = stripRupiah(val);
-															handleLocalPocketFieldChange(idx, "target", raw ? parseInt(raw, 10) : 0);
+												<div className="flex items-center gap-0.5 shrink-0">
+													<Button
+														variant="ghost"
+														size="icon"
+														disabled={idx === 0}
+														onClick={() => {
+															if (idx === 0) return;
+															const nextList = [...localPockets];
+															const temp = nextList[idx];
+															nextList[idx] = nextList[idx - 1];
+															nextList[idx - 1] = temp;
+															setLocalPockets(nextList);
 														}}
-														onSubmit={() => setFocusedPocketTargetIdx(null)}
-													/>
-												)}
+														className={`h-6 w-6 ${pTheme.cardText} opacity-70 hover:opacity-100 hover:bg-black/10 disabled:opacity-25 cursor-pointer rounded-lg flex items-center justify-center transition-colors border-none bg-transparent`}
+														aria-label="Move Up"
+													>
+														<ChevronUp size={13} />
+													</Button>
+													<Button
+														variant="ghost"
+														size="icon"
+														disabled={idx === localPockets.length - 1}
+														onClick={() => {
+															if (idx === localPockets.length - 1) return;
+															const nextList = [...localPockets];
+															const temp = nextList[idx];
+															nextList[idx] = nextList[idx + 1];
+															nextList[idx + 1] = temp;
+															setLocalPockets(nextList);
+														}}
+														className={`h-6 w-6 ${pTheme.cardText} opacity-70 hover:opacity-100 hover:bg-black/10 disabled:opacity-25 cursor-pointer rounded-lg flex items-center justify-center transition-colors border-none bg-transparent`}
+														aria-label="Move Down"
+													>
+														<ChevronDown size={13} />
+													</Button>
+													<Button
+														variant="ghost"
+														size="icon"
+														onClick={() => setPocketToDeleteIdx(idx)}
+														className="h-6 w-6 text-red-900/80 hover:text-red-950 hover:bg-red-500/20 cursor-pointer rounded-lg flex items-center justify-center transition-colors border-none bg-transparent"
+														aria-label="Delete Pocket"
+													>
+														<Trash2 size={13} />
+													</Button>
+												</div>
 											</div>
-										)}
-									</div>
-								)})}
+
+											{/* Compact Side-by-Side Row: Pocket Name + Pocket Type */}
+											<div className="grid grid-cols-12 gap-2">
+												<div className="col-span-7 space-y-1">
+													<Label className={`text-[10px] font-extrabold uppercase tracking-wider opacity-75 ${pTheme.cardText}`}>
+														{language === "en" ? "Name" : "Nama"}
+													</Label>
+													<Input
+														value={pocket.name}
+														onChange={(e) => handleLocalPocketFieldChange(idx, "name", e.target.value)}
+														className="h-9 rounded-xl border-none bg-white/85 dark:bg-white/90 text-zinc-900 font-bold text-xs shadow-none focus-visible:ring-2 focus-visible:ring-black/20"
+														placeholder="e.g. Tabungan"
+													/>
+												</div>
+
+												<div className="col-span-5 space-y-1">
+													<Label className={`text-[10px] font-extrabold uppercase tracking-wider opacity-75 ${pTheme.cardText}`}>
+														{language === "en" ? "Type" : "Tipe"}
+													</Label>
+													<Select
+														value={pocket.type}
+														onValueChange={(val: any) => handleLocalPocketFieldChange(idx, "type", val)}
+													>
+														<SelectTrigger className="h-9 rounded-xl border-none bg-white/85 dark:bg-white/90 text-zinc-900 font-bold text-xs cursor-pointer shadow-none px-2.5">
+															<SelectValue />
+														</SelectTrigger>
+														<SelectContent className="rounded-2xl border-none shadow-lg">
+															<SelectItem value="default" className="cursor-pointer text-xs font-bold">
+																{language === "en" ? "Regular" : "Biasa"}
+															</SelectItem>
+															<SelectItem value="budget" className="cursor-pointer text-xs font-bold">
+																{language === "en" ? "Budget Limit" : "Limit Anggaran"}
+															</SelectItem>
+															<SelectItem value="saving" className="cursor-pointer text-xs font-bold">
+																{language === "en" ? "Savings Goal" : "Tabungan"}
+															</SelectItem>
+														</SelectContent>
+													</Select>
+												</div>
+											</div>
+
+											{/* Conditional Target Amount Row (Compact) */}
+											{pocket.type !== "default" && (
+												<div className="space-y-1 pt-0.5">
+													<Label className={`text-[10px] font-extrabold uppercase tracking-wider opacity-75 ${pTheme.cardText}`}>
+														{pocket.type === "budget"
+															? (language === "en" ? "Monthly Limit (Rp)" : "Batas Bulanan (Rp)")
+															: (language === "en" ? "Target Amount (Rp)" : "Target Saldo (Rp)")}
+													</Label>
+													<div className="relative flex items-center">
+														<span className="absolute left-3 text-[10px] font-black text-zinc-500 select-none">Rp</span>
+														<Input
+															type="text"
+															value={pocket.target ? formatRupiah(pocket.target.toString()) : ""}
+															onChange={(e) => {
+																const raw = stripRupiah(e.target.value);
+																handleLocalPocketFieldChange(idx, "target", raw ? parseInt(raw, 10) : 0);
+															}}
+															inputMode={isMobile ? "none" : "numeric"}
+															readOnly={isMobile}
+															onFocus={() => isMobile && setFocusedPocketTargetIdx(idx)}
+															onClick={() => isMobile && setFocusedPocketTargetIdx(idx)}
+															placeholder="1.000.000"
+															className="h-9 pl-8 rounded-xl border-none bg-white/85 dark:bg-white/90 text-zinc-900 font-bold text-xs shadow-none"
+														/>
+													</div>
+													{isMobile && focusedPocketTargetIdx === idx && (
+														<NumericKeyboard
+															value={pocket.target ? formatRupiah(pocket.target.toString()) : ""}
+															onChange={(val) => {
+																const raw = stripRupiah(val);
+																handleLocalPocketFieldChange(idx, "target", raw ? parseInt(raw, 10) : 0);
+															}}
+															onSubmit={() => setFocusedPocketTargetIdx(null)}
+														/>
+													)}
+												</div>
+											)}
+										</div>
+									);
+								})}
 
 								{localPockets.length < 3 && (
 									<Button
@@ -338,33 +416,33 @@ export function PocketSettingsModal({
 												id: newId,
 												name: `Kantong ${localPockets.length + 1}`,
 												type: "default",
-												color: nextColor
+												color: nextColor,
 											};
 											setLocalPockets([...localPockets, newPocket]);
 										}}
 										variant="outline"
-										className="w-full h-11 border-dashed rounded-xl font-bold flex items-center justify-center gap-1.5 cursor-pointer border-zinc-300 dark:border-zinc-800"
+										className="w-full h-10 border-dashed rounded-2xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer border-zinc-300 dark:border-zinc-700 bg-white/60 dark:bg-[#222428]/70 hover:bg-white dark:hover:bg-[#222428]"
 									>
-										<Plus size={16} />
-										{language === "en" ? "Add Pocket" : "Tambah Kantong"}
+										<Plus size={15} />
+										{language === "en" ? "Add Pocket" : "Tambah Kantong"} ({localPockets.length}/3)
 									</Button>
 								)}
 							</div>
 						)}
-					</div>
-					<div className="flex gap-2 mt-4">
+					</ModalScrollArea>
+
+					{/* Distinct Footer */}
+					<div className="flex gap-2 pt-1">
 						<Button
 							onClick={savePocketSettings}
-							className="flex-1 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black rounded-xl cursor-pointer border-none shadow-lg"
+							className="flex-1 h-11 bg-gradient-to-r from-[#6EE7B7] to-[#34D399] hover:opacity-95 text-[#063626] font-black rounded-2xl cursor-pointer border-none shadow-[0_4px_10px_rgba(0,0,0,0.10)]"
 						>
 							{language === "en" ? "Save Changes" : "Simpan Perubahan"}
 						</Button>
 						<Button
 							variant="outline"
-							onClick={() => {
-								handleOpenChange(false);
-							}}
-							className="h-12 px-5 rounded-xl font-bold cursor-pointer bg-transparent"
+							onClick={() => handleOpenChange(false)}
+							className="h-11 px-5 rounded-2xl font-bold cursor-pointer border-none bg-[#F1F3F5] dark:bg-[#2B2E33] hover:bg-[#EAECEF] dark:hover:bg-[#32363C]"
 						>
 							{language === "en" ? "Cancel" : "Batal"}
 						</Button>
@@ -377,7 +455,10 @@ export function PocketSettingsModal({
 								const idx = focusedPocketTargetIdx;
 								const p = localPockets[idx];
 								if (p) {
-									const cleaned = (p.target ? p.target.toString() : "").replace(/\./g, "").replace(/,/g, "").replace(/\s/g, "");
+									const cleaned = (p.target ? p.target.toString() : "")
+										.replace(/\./g, "")
+										.replace(/,/g, "")
+										.replace(/\s/g, "");
 									if (cleaned) {
 										const result = evaluateExpression(cleaned);
 										handleLocalPocketFieldChange(idx, "target", result);
@@ -393,7 +474,9 @@ export function PocketSettingsModal({
 			{/* Pocket Delete Confirmation Dialog */}
 			<WarningConfirmModal
 				isOpen={pocketToDeleteIdx !== null}
-				onOpenChange={(open) => { if (!open) setPocketToDeleteIdx(null); }}
+				onOpenChange={(open) => {
+					if (!open) setPocketToDeleteIdx(null);
+				}}
 				title={language === "en" ? "Delete Pocket" : "Hapus Kantong"}
 				description={
 					language === "en"

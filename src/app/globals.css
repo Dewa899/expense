@@ -87,34 +87,34 @@
 }
 
 .dark {
-  --background: #121212;
+  --background: #18191C;
   --foreground: oklch(0.985 0 0);
-  --card: #1E1E1E;
+  --card: #222428;
   --card-foreground: oklch(0.985 0 0);
-  --popover: #1E1E1E;
+  --popover: #222428;
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
-  --secondary: #252525;
+  --secondary: #2B2E33;
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: #252525;
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: #252525;
+  --muted: #2B2E33;
+  --muted-foreground: oklch(0.72 0 0);
+  --accent: #2B2E33;
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 6%);
-  --input: #252525;
+  --border: oklch(1 0 0 / 7%);
+  --input: #2B2E33;
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: #1E1E1E;
+  --sidebar: #222428;
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: #252525;
+  --sidebar-accent: #2B2E33;
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: transparent;
   --sidebar-ring: oklch(0.556 0 0);
@@ -146,7 +146,7 @@
   }
 }
 
-/* ─── Modern Solid Layered Surface Classes (Borderless, Subtle Downward Shadow) ─── */
+/* ─── Modern Solid Layered Surface Classes (Borderless, Softer Dark Slate) ─── */
 .glass-card {
   background-color: #FFFFFF;
   border: none;
@@ -154,9 +154,9 @@
 }
 
 .dark .glass-card {
-  background-color: #1E1E1E;
+  background-color: #222428;
   border: none;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.10);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
 }
 
 .glass-card-hover {
@@ -170,8 +170,8 @@
 }
 
 .dark .glass-card-hover:hover {
-  background-color: #242424;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
+  background-color: #282B30;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
 }
 
 .glass-header {
@@ -182,8 +182,17 @@
 }
 
 .dark .glass-header {
-  background-color: rgba(18, 18, 18, 0.88);
+  background-color: rgba(24, 25, 28, 0.88);
   border-bottom: none;
+}
+
+/* Hide native scrollbar when using custom ModalScrollArea */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Clean flat background without neon dot grid */

@@ -87,312 +87,379 @@ export function DetailedBalanceSummary({
 		setIsSetupBalanceOpen(open);
 	};
 
+	const renderSecondaryStatusCard = () => {
+		if (isNetWorth) {
+			return (
+				<div className="glass-card p-4 sm:p-5 rounded-3xl flex flex-col justify-between h-full">
+					<div>
+						<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 mb-0.5 truncate">
+							{t("startingBalance")}
+						</p>
+						<h4 className="text-sm sm:text-xl font-black text-zinc-900 dark:text-zinc-100 truncate">
+							{maskValue(formatCurrency(startingBalance))}
+						</h4>
+					</div>
+
+					{/* Smart Setup/Manage Button */}
+					<div className="flex flex-col gap-1.5 mt-2.5">
+						<Dialog open={isSetupBalanceOpen} onOpenChange={handleOpenManageBalance}>
+							<DialogTrigger
+								render={
+									<Button
+										variant="ghost"
+										className="h-auto p-0 flex items-center gap-1.5 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-transparent justify-start cursor-pointer group border-none bg-transparent"
+									>
+										<div className="w-6 h-6 rounded-lg bg-[#F1F3F5] dark:bg-[#2B2E33] flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+											<Settings size={12} />
+										</div>
+										<span className="text-[9px] sm:text-[10px] font-black uppercase tracking-tight truncate">
+											{isPastMonth
+												? (language === "en" ? "View Initial" : "Lihat Saldo Awal")
+												: (language === "en" ? "Manage Initial" : "Kelola Saldo Awal")}
+										</span>
+									</Button>
+								}
+							/>
+							<DialogContent className="sm:max-w-[420px] rounded-3xl max-h-[90vh] overflow-y-auto">
+								<DialogHeader>
+									<DialogTitle>{language === "en" ? "Manage Initial Balance" : "Kelola Saldo Awal"}</DialogTitle>
+									<DialogDescription>
+										{language === "en"
+											? `Determine how the starting balance for the month of ${selectedMonth} is calculated.`
+											: `Tentukan bagaimana saldo awal untuk bulan ${selectedMonth} dihitung.`}
+									</DialogDescription>
+								</DialogHeader>
+								<div className="py-4 space-y-4">
+									{isPastMonth && (
+										<div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 p-4 rounded-2xl text-xs font-medium space-y-1">
+											<p className="font-bold flex items-center gap-1.5">
+												{language === "en" ? "🔒 Locked Data (Previous Month)" : "🔒 Data Terkunci (Bulan Lalu)"}
+											</p>
+											<p>
+												{language === "en"
+													? "The starting balance for previous months cannot be modified to ensure the integrity of your financial data."
+													: "Saldo awal bulan sebelumnya tidak dapat diubah demi menjaga integritas data keuangan Anda."}
+											</p>
+										</div>
+									)}
+
+									<div className="bg-[#F1F3F5] dark:bg-[#2B2E33] p-4 rounded-2xl border-none">
+										<p className="text-[10px] uppercase font-bold text-zinc-400">
+											{language === "en" ? "Current Initial Balance" : "Saldo Awal Saat Ini"}
+										</p>
+										<p className="text-xl font-black mt-0.5 text-zinc-900 dark:text-zinc-100">{formatCurrency(startingBalance)}</p>
+										{initialBalanceEntry && (
+											<p className="text-[10px] text-zinc-500 mt-1 font-medium">
+												Status:{" "}
+												<span className="font-bold text-emerald-600 dark:text-emerald-400">
+													{language === "en"
+														? (isManualOverride ? "Custom (Manual Setup)" : "Automatic (Carry-Over)")
+														: balanceStatus}
+												</span>
+											</p>
+										)}
+									</div>
+
+									{!isPastMonth && (
+										<>
+											<div className="flex flex-col gap-2">
+												<p className="text-xs font-bold text-zinc-850 dark:text-zinc-250">
+													{language === "en" ? "Method 1: Previous Month's Balance" : "Metode 1: Saldo Bulan Sebelumnya"}
+												</p>
+												<Button
+													variant="outline"
+													onClick={() => {
+														onSyncPreviousBalance();
+														setIsSetupBalanceOpen(false);
+													}}
+													className="w-full justify-start text-left text-xs font-bold h-11 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] hover:bg-[#EAECEF] dark:hover:bg-[#32363C] cursor-pointer"
+												>
+													{language === "en" ? "Use Previous Month's Balance" : "Gunakan Saldo Bulan Sebelumnya"}
+												</Button>
+												<p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+													{!isManualOverride && initialBalanceEntry
+														? (language === "en" ? "Already using previous month balance (Default)" : "Sudah menggunakan saldo bulan sebelumnya (Default)")
+														: (language === "en" ? "Revert to automatic carry-over from last month" : "Kembalikan ke carry-over otomatis dari bulan lalu")}
+												</p>
+											</div>
+
+											<div className="flex flex-col gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-850/50">
+												<p className="text-xs font-bold text-zinc-850 dark:text-zinc-250">
+													{language === "en" ? "Method 2: Custom Starting Balance (Manual)" : "Metode 2: Saldo Awal Kustom (Manual)"}
+												</p>
+												<Input
+													placeholder={language === "en" ? "e.g. 5.000.000" : "misal 5.000.000"}
+													value={manualBalanceInput}
+													onChange={(e) => setManualBalanceInput(e.target.value)}
+													className="h-11 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] focus:bg-[#E9ECEF] dark:focus:bg-[#32363C]"
+												/>
+												<Button
+													onClick={() => setIsConfirmOpen(true)}
+													disabled={!manualBalanceInput}
+													className={`w-full bg-gradient-to-r ${themeColors.gradient} text-[#063626] font-black h-11 rounded-2xl cursor-pointer border-none shadow-[0_4px_10px_rgba(0,0,0,0.10)]`}
+												>
+													{language === "en" ? "Set Balance" : "Set Saldo"}
+												</Button>
+											</div>
+										</>
+									)}
+								</div>
+							</DialogContent>
+						</Dialog>
+
+						{/* Confirmation Dialog */}
+						<Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+							<DialogContent className="sm:max-w-[400px] rounded-3xl">
+								<DialogHeader>
+									<DialogTitle className="text-amber-500 flex items-center gap-2">
+										<AlertTriangle size={20} />
+										{language === "en" ? "Change Starting Balance" : "Ubah Saldo Awal"}
+									</DialogTitle>
+									<DialogDescription className="mt-2 text-zinc-650 dark:text-zinc-350 text-sm leading-relaxed text-left">
+										{language === "en"
+											? "Are you sure you want to change the starting balance? This will alter your total balance calculation for this month."
+											: "Apakah Anda yakin ingin mengubah saldo awal? Tindakan ini akan mengubah perhitungan total saldo Anda untuk bulan ini."}
+									</DialogDescription>
+								</DialogHeader>
+								<div className="flex gap-3 mt-4">
+									<Button
+										variant="outline"
+										onClick={() => setIsConfirmOpen(false)}
+										className="flex-1 h-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] font-bold cursor-pointer"
+									>
+										{language === "en" ? "Cancel" : "Batal"}
+									</Button>
+									<Button
+										onClick={() => {
+											onUpdateInitialBalance();
+											setIsConfirmOpen(false);
+											setIsSetupBalanceOpen(false);
+											setManualBalanceInput("");
+										}}
+										className="flex-1 h-12 rounded-2xl bg-amber-400 hover:bg-amber-500 text-[#451A03] font-black cursor-pointer border-none shadow-[0_4px_10px_rgba(0,0,0,0.10)]"
+									>
+										{language === "en" ? "Yes, Change Balance" : "Ya, Ubah Saldo"}
+									</Button>
+								</div>
+							</DialogContent>
+						</Dialog>
+					</div>
+				</div>
+			);
+		}
+
+		if (activePocket.type !== "default" && activePocket.target) {
+			return (
+				<div className="glass-card p-4 sm:p-5 rounded-3xl flex flex-col justify-between h-full">
+					<div className="flex items-center justify-between gap-2">
+						<div className="min-w-0">
+							<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 truncate">
+								{activePocket.type === "budget"
+									? (language === "en" ? "Monthly Limit" : "Batas Bulanan")
+									: (language === "en" ? "Saving Progress" : "Progres Tabungan")}
+							</p>
+							<p className="text-xs sm:text-sm font-black text-zinc-900 dark:text-zinc-100 mt-0.5 truncate">
+								{maskValue(formatCurrency(currentProgress))}
+							</p>
+							<p className="text-[9px] font-semibold text-zinc-400 truncate">
+								/ {maskValue(formatCurrency(activePocket.target))}
+							</p>
+						</div>
+
+						{/* Compact Circular Progress SVG */}
+						<div className="relative w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center shrink-0">
+							<svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+								<circle
+									cx="50"
+									cy="50"
+									r="40"
+									stroke="currentColor"
+									strokeWidth="10"
+									fill="transparent"
+									className="text-zinc-100 dark:text-zinc-800"
+								/>
+								<circle
+									cx="50"
+									cy="50"
+									r="40"
+									stroke="currentColor"
+									strokeWidth="10"
+									fill="transparent"
+									strokeDasharray={2 * Math.PI * 40}
+									strokeDashoffset={
+										2 * Math.PI * 40 - (Math.min(100, Math.max(0, percentage)) / 100) * (2 * Math.PI * 40)
+									}
+									strokeLinecap="round"
+									className={`${
+										percentage > 100
+											? "text-red-500"
+											: activePocket.type === "budget"
+												? "text-emerald-500 dark:text-emerald-400"
+												: "text-indigo-500 dark:text-indigo-400"
+									} transition-all duration-500`}
+								/>
+							</svg>
+							<div className="absolute inset-0 flex items-center justify-center">
+								<span className="text-[10px] sm:text-xs font-black text-zinc-950 dark:text-zinc-50">
+									{percentage}%
+								</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			);
+		}
+
+		return (
+			<div className="glass-card p-4 sm:p-5 rounded-3xl flex flex-col justify-between h-full">
+				<div>
+					<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 mb-0.5 truncate">
+						{language === "en" ? "Pocket Type" : "Tipe Kantong"}
+					</p>
+					<h4 className="text-xs sm:text-sm font-black text-zinc-800 dark:text-zinc-200 truncate">
+						{language === "en" ? "Regular Pocket" : "Kantong Biasa"}
+					</h4>
+				</div>
+				<div className="mt-2.5">
+					<Button
+						size="sm"
+						onClick={onManagePockets}
+						className={`h-7 px-2.5 text-[9px] font-black uppercase rounded-xl bg-gradient-to-r ${themeColors.gradient} text-[#063626] border-none shadow-xs cursor-pointer hover:opacity-95`}
+					>
+						{language === "en" ? "+ Set Target" : "+ Set Target"}
+					</Button>
+				</div>
+			</div>
+		);
+	};
+
 	return (
-		<div className="space-y-4 w-full">
-			{/* Top grid (Desktop: side-by-side, Mobile: stacked) */}
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch w-full">
+		<div className="space-y-2.5 sm:space-y-4 w-full">
+			{/* Top Section: Main Carousel Card (Desktop: 2/3 width + status card on right; Mobile: Carousel on top) */}
+			<div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5 sm:gap-4 items-stretch w-full">
 				<div className="lg:col-span-2 flex flex-col justify-between">
 					{carouselCard}
 				</div>
-				
-				<div className="lg:col-span-1 flex flex-col h-full">
-					{isNetWorth ? (
-						<div className="glass-card p-6 rounded-3xl flex flex-col justify-between h-full min-h-[140px]">
-							<div>
-								<p className="text-[10px] uppercase font-bold text-zinc-400 mb-1">{t("startingBalance")}</p>
-								<h4 className="text-xl font-black text-zinc-900 dark:text-zinc-100">{formatCurrency(startingBalance)}</h4>
-							</div>
-							
-							{/* Smart Setup/Manage Button */}
-							<div className="flex flex-col gap-2 mt-4">
-								<Dialog open={isSetupBalanceOpen} onOpenChange={handleOpenManageBalance}>
-									<DialogTrigger render={
-										<Button 
-											variant="ghost" 
-											className="h-auto p-0 flex items-center gap-2 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-transparent justify-start cursor-pointer group border-none bg-transparent"
-										>
-											<div className="w-7 h-7 rounded-xl bg-[#F1F3F5] dark:bg-[#252525] flex items-center justify-center group-hover:scale-110 transition-transform">
-												<Settings size={14} />
-											</div>
-											<span className="text-[10px] font-black uppercase tracking-tight">
-												{isPastMonth 
-													? (language === "en" ? "View Initial Balance" : "Lihat Saldo Awal") 
-													: (language === "en" ? "Manage Initial Balance" : "Kelola Saldo Awal")}
-											</span>
-										</Button>
-									} />
-									<DialogContent className="sm:max-w-[420px] rounded-3xl max-h-[90vh] overflow-y-auto">
-										<DialogHeader>
-											<DialogTitle>{language === "en" ? "Manage Initial Balance" : "Kelola Saldo Awal"}</DialogTitle>
-											<DialogDescription>
-												{language === "en" 
-													? `Determine how the starting balance for the month of ${selectedMonth} is calculated.`
-													: `Tentukan bagaimana saldo awal untuk bulan ${selectedMonth} dihitung.`}
-											</DialogDescription>
-										</DialogHeader>
-										<div className="py-4 space-y-4">
-											{isPastMonth && (
-												<div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 p-4 rounded-2xl text-xs font-medium space-y-1">
-													<p className="font-bold flex items-center gap-1.5">
-														{language === "en" ? "🔒 Locked Data (Previous Month)" : "🔒 Data Terkunci (Bulan Lalu)"}
-													</p>
-													<p>
-														{language === "en" 
-															? "The starting balance for previous months cannot be modified to ensure the integrity of your financial data."
-															: "Saldo awal bulan sebelumnya tidak dapat diubah demi menjaga integritas data keuangan Anda."}
-													</p>
-												</div>
-											)}
 
-											<div className="bg-[#F1F3F5] dark:bg-[#252525] p-4 rounded-2xl border-none">
-												<p className="text-[10px] uppercase font-bold text-zinc-400">
-													{language === "en" ? "Current Initial Balance" : "Saldo Awal Saat Ini"}
-												</p>
-												<p className="text-xl font-black mt-0.5 text-zinc-900 dark:text-zinc-100">{formatCurrency(startingBalance)}</p>
-												{initialBalanceEntry && (
-													<p className="text-[10px] text-zinc-500 mt-1 font-medium">
-														Status: <span className="font-bold text-emerald-600 dark:text-emerald-400">
-															{language === "en" 
-																? (isManualOverride ? "Custom (Manual Setup)" : "Automatic (Carry-Over)")
-																: balanceStatus}
-														</span>
-													</p>
-												)}
-											</div>
-
-											{!isPastMonth && (
-												<>
-													<div className="flex flex-col gap-2">
-														<p className="text-xs font-bold text-zinc-850 dark:text-zinc-250">
-															{language === "en" ? "Method 1: Previous Month's Balance" : "Metode 1: Saldo Bulan Sebelumnya"}
-														</p>
-														<Button
-															variant="outline"
-															onClick={() => {
-																onSyncPreviousBalance();
-																setIsSetupBalanceOpen(false);
-															}}
-															className="w-full justify-start text-left text-xs font-bold h-11 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] hover:bg-[#EAECEF] dark:hover:bg-[#2E2E2E] cursor-pointer"
-														>
-															{language === "en" ? "Use Previous Month's Balance" : "Gunakan Saldo Bulan Sebelumnya"}
-														</Button>
-														<p className="text-[10px] text-zinc-400 dark:text-zinc-500">
-															{!isManualOverride && initialBalanceEntry 
-																? (language === "en" ? "Already using previous month balance (Default)" : "Sudah menggunakan saldo bulan sebelumnya (Default)")
-																: (language === "en" ? "Revert to automatic carry-over from last month" : "Kembalikan ke carry-over otomatis dari bulan lalu")}
-														</p>
-													</div>
-
-													<div className="flex flex-col gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-850/50">
-														<p className="text-xs font-bold text-zinc-850 dark:text-zinc-250">
-															{language === "en" ? "Method 2: Custom Starting Balance (Manual)" : "Metode 2: Saldo Awal Kustom (Manual)"}
-														</p>
-														<Input
-															placeholder={language === "en" ? "e.g. 5.000.000" : "misal 5.000.000"}
-															value={manualBalanceInput} 
-															onChange={(e) => setManualBalanceInput(e.target.value)}
-															className="h-11 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] focus:bg-[#E9ECEF] dark:focus:bg-[#2E2E2E]"
-														/>
-														<Button 
-															onClick={() => setIsConfirmOpen(true)}
-															disabled={!manualBalanceInput}
-															className={`w-full bg-gradient-to-r ${themeColors.gradient} text-[#063626] font-black h-11 rounded-2xl cursor-pointer border-none shadow-[0_4px_10px_rgba(0,0,0,0.10)]`}
-														>
-															{language === "en" ? "Set Balance" : "Set Saldo"}
-														</Button>
-													</div>
-												</>
-											)}
-										</div>
-									</DialogContent>
-								</Dialog>
-
-								{/* Confirmation Dialog */}
-								<Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-									<DialogContent className="sm:max-w-[400px] rounded-3xl">
-										<DialogHeader>
-											<DialogTitle className="text-amber-500 flex items-center gap-2">
-												<AlertTriangle size={20} />
-												{language === "en" ? "Change Starting Balance" : "Ubah Saldo Awal"}
-											</DialogTitle>
-											<DialogDescription className="mt-2 text-zinc-650 dark:text-zinc-350 text-sm leading-relaxed text-left">
-												{language === "en" 
-													? "Are you sure you want to change the starting balance? This will alter your total balance calculation for this month."
-													: "Apakah Anda yakin ingin mengubah saldo awal? Tindakan ini akan mengubah perhitungan total saldo Anda untuk bulan ini."}
-											</DialogDescription>
-										</DialogHeader>
-										<div className="flex gap-3 mt-4">
-											<Button
-												variant="outline"
-												onClick={() => setIsConfirmOpen(false)}
-												className="flex-1 h-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#252525] font-bold cursor-pointer"
-											>
-												{language === "en" ? "Cancel" : "Batal"}
-											</Button>
-											<Button
-												onClick={() => {
-													onUpdateInitialBalance();
-													setIsConfirmOpen(false);
-													setIsSetupBalanceOpen(false);
-													setManualBalanceInput("");
-												}}
-												className="flex-1 h-12 rounded-2xl bg-amber-400 hover:bg-amber-500 text-[#451A03] font-black cursor-pointer border-none shadow-[0_4px_10px_rgba(0,0,0,0.10)]"
-											>
-												{language === "en" ? "Yes, Change Balance" : "Ya, Ubah Saldo"}
-											</Button>
-										</div>
-									</DialogContent>
-								</Dialog>
-							</div>
-						</div>
-					) : activePocket.type !== "default" && activePocket.target ? (
-						<div className="glass-card p-6 rounded-3xl flex flex-col justify-between items-center text-center h-full min-h-[140px]">
-							<div className="w-full flex flex-col items-center justify-center flex-1">
-								<p className="text-[10px] uppercase font-bold text-zinc-400 mb-2">
-									{activePocket.type === "budget" 
-										? (language === "en" ? "Monthly Limit" : "Batas Bulanan")
-										: (language === "en" ? "Saving Progress" : "Progres Tabungan")}
-								</p>
-								
-								{/* Circular Progress SVG */}
-								<div className="relative w-20 h-20 flex items-center justify-center">
-									<svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-										<circle
-											cx="50"
-											cy="50"
-											r="40"
-											stroke="currentColor"
-											strokeWidth="8"
-											fill="transparent"
-											className="text-zinc-100 dark:text-zinc-800"
-										/>
-										<circle
-											cx="50"
-											cy="50"
-											r="40"
-											stroke="currentColor"
-											strokeWidth="8"
-											fill="transparent"
-											strokeDasharray={2 * Math.PI * 40}
-											strokeDashoffset={2 * Math.PI * 40 - (Math.min(100, Math.max(0, percentage)) / 100) * (2 * Math.PI * 40)}
-											strokeLinecap="round"
-											className={`${
-												percentage > 100 
-													? "text-red-500" 
-													: activePocket.type === "budget"
-														? "text-emerald-500 dark:text-emerald-400"
-														: "text-indigo-500 dark:text-indigo-400"
-											} transition-all duration-500`}
-										/>
-									</svg>
-									<div className="absolute inset-0 flex items-center justify-center">
-										<span className="text-sm font-black text-zinc-950 dark:text-zinc-50">{percentage}%</span>
-									</div>
-								</div>
-
-								<p className="text-xs font-bold text-zinc-700 dark:text-zinc-300 mt-3">
-									{formatCurrency(currentProgress)} <span className="text-zinc-400 dark:text-zinc-650">/</span> {formatCurrency(activePocket.target)}
-								</p>
-							</div>
-						</div>
-					) : (
-						<div className="glass-card p-6 rounded-3xl flex flex-col justify-between items-center text-center h-full min-h-[140px]">
-							<div className="w-full flex flex-col items-center justify-center flex-1">
-								<p className="text-[10px] uppercase font-bold text-zinc-400 mb-1">
-									{language === "en" ? "Pocket Type" : "Tipe Kantong"}
-								</p>
-								<h4 className="text-sm font-black text-zinc-700 dark:text-zinc-300 mb-2">
-									{language === "en" ? "Default Pocket" : "Kantong Biasa"}
-								</h4>
-								<p className="text-[10px] text-zinc-550 dark:text-zinc-450 max-w-[200px] leading-relaxed mb-3 font-semibold">
-									{language === "en" 
-										? "This pocket doesn't have a limit or saving goal progression." 
-										: "Kantong ini tidak memiliki batas anggaran atau target tabungan."}
-								</p>
-								<Button 
-									size="sm"
-									onClick={onManagePockets}
-									className={`h-8 text-[10px] font-black uppercase rounded-2xl bg-gradient-to-r ${themeColors.gradient} text-[#063626] border-none shadow-[0_4px_10px_rgba(0,0,0,0.10)] cursor-pointer hover:opacity-95`}
-								>
-									{language === "en" ? "Add Progression" : "Tambah Target"}
-								</Button>
-							</div>
-						</div>
-					)}
+				{/* Desktop-only Secondary Status Card (On mobile, paired side-by-side below for compactness) */}
+				<div className="hidden lg:flex lg:col-span-1 flex-col h-full">
+					{renderSecondaryStatusCard()}
 				</div>
 			</div>
 
-			{/* Persistent 3-Level Balance Hierarchy Cards (Always visible when Pockets are active, even when switching pockets) */}
-			{pocketsCount > 0 && (
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-					<div className="glass-card p-5 rounded-3xl flex flex-col justify-between">
-						<div>
-							<p className="text-[10px] uppercase font-bold text-zinc-400 mb-1">
-								{language === "en" ? "Total Balance (All Funds)" : "Total Saldo Keseluruhan"}
-							</p>
-							<h4 className="text-lg font-black text-zinc-900 dark:text-zinc-100">
-								{maskValue(formatCurrency(overallTotalBalance))}
-							</h4>
+			{/* Compact Side-by-Side Summary Grid (Always 2 columns on mobile so no card takes a full row alone) */}
+			{pocketsCount > 0 ? (
+				<>
+					{/* Mobile Row: Secondary Status Card (Starting Balance / Progress) + Total Balance (All Funds) */}
+					<div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4 w-full">
+						<div className="lg:hidden h-full">
+							{renderSecondaryStatusCard()}
 						</div>
-						<p className="text-[10px] font-semibold text-zinc-400 mt-1.5">
-							{language === "en" ? "Main Pocket + All Pockets" : "Dompet Utama + Semua Kantong"}
-						</p>
+
+						<div className="glass-card p-4 sm:p-5 rounded-3xl flex flex-col justify-between">
+							<div>
+								<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 mb-0.5 truncate">
+									{language === "en" ? "Total Balance" : "Total Keseluruhan"}
+								</p>
+								<h4 className="text-sm sm:text-lg font-black text-zinc-900 dark:text-zinc-100 truncate">
+									{maskValue(formatCurrency(overallTotalBalance))}
+								</h4>
+							</div>
+							<p className="text-[9px] sm:text-[10px] font-semibold text-zinc-400 mt-1.5 truncate">
+								{language === "en" ? "Main + All Pockets" : "Utama + Semua Kantong"}
+							</p>
+						</div>
+
+						<div className="glass-card p-4 sm:p-5 rounded-3xl flex flex-col justify-between">
+							<div>
+								<p className="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 mb-0.5 truncate">
+									{language === "en" ? "Main (Unallocated)" : "Saldo Utama"}
+								</p>
+								<h4 className="text-sm sm:text-lg font-black text-emerald-600 dark:text-emerald-400 truncate">
+									{maskValue(formatCurrency(unallocatedBalance))}
+								</h4>
+							</div>
+							<p className="text-[9px] sm:text-[10px] font-semibold text-zinc-400 mt-1.5 truncate">
+								{language === "en" ? "Available for daily use" : "Dana bebas belum dialokasi"}
+							</p>
+						</div>
+
+						<div className="glass-card p-4 sm:p-5 rounded-3xl flex flex-col justify-between">
+							<div>
+								<p className="text-[9px] sm:text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 mb-0.5 truncate">
+									{language === "en" ? "Pockets Allocation" : "Alokasi Kantong"}
+								</p>
+								<h4 className="text-sm sm:text-lg font-black text-indigo-600 dark:text-indigo-400 truncate">
+									{maskValue(formatCurrency(allocatedPocketsBalance))}
+								</h4>
+							</div>
+							<p className="text-[9px] sm:text-[10px] font-semibold text-zinc-400 mt-1.5 truncate">
+								{language === "en"
+									? `In ${pocketsCount} active pocket(s)`
+									: `Di ${pocketsCount} kantong aktif`}
+							</p>
+						</div>
 					</div>
 
-					<div className="glass-card p-5 rounded-3xl flex flex-col justify-between">
-						<div>
-							<p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 mb-1">
-								{language === "en" ? "Main Pocket (Unallocated)" : "Saldo Utama (Unallocated)"}
-							</p>
-							<h4 className="text-lg font-black text-emerald-600 dark:text-emerald-400">
-								{maskValue(formatCurrency(unallocatedBalance))}
-							</h4>
+					{/* Side-by-Side Income & Expense Row (2 columns on both mobile and desktop) */}
+					<div className="grid grid-cols-2 gap-2.5 sm:gap-4 w-full">
+						<div className="glass-card p-4 sm:p-5 rounded-3xl flex items-center gap-3">
+							<div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl ${themeColors.bgLight} ${themeColors.text} flex items-center justify-center shrink-0`}>
+								<TrendingUp size={15} />
+							</div>
+							<div className="min-w-0">
+								<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 truncate">{t("incomeTotal")}</p>
+								<h4 className={`text-sm sm:text-lg font-black ${themeColors.text} truncate`}>
+									{maskValue(formatCurrency(incomeTotal))}
+								</h4>
+							</div>
 						</div>
-						<p className="text-[10px] font-semibold text-zinc-400 mt-1.5">
-							{language === "en" ? "Available for daily use / transfer" : "Dana bebas belum dialokasikan"}
-						</p>
+
+						<div className="glass-card p-4 sm:p-5 rounded-3xl flex items-center gap-3">
+							<div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
+								<TrendingDown size={15} />
+							</div>
+							<div className="min-w-0">
+								<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 truncate">{t("expenseTotal")}</p>
+								<h4 className="text-sm sm:text-lg font-black text-red-500 truncate">
+									{maskValue(formatCurrency(expenseTotal))}
+								</h4>
+							</div>
+						</div>
+					</div>
+				</>
+			) : (
+				/* When no custom pockets exist: pair Starting Balance + Income/Expense compactly */
+				<div className="grid grid-cols-2 gap-2.5 sm:gap-4 w-full">
+					<div className="col-span-2 lg:hidden">
+						{renderSecondaryStatusCard()}
 					</div>
 
-					<div className="glass-card p-5 rounded-3xl flex flex-col justify-between">
-						<div>
-							<p className="text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 mb-1">
-								{language === "en" ? "Pockets Allocation" : "Alokasi Kantong"}
-							</p>
-							<h4 className="text-lg font-black text-indigo-600 dark:text-indigo-400">
-								{maskValue(formatCurrency(allocatedPocketsBalance))}
+					<div className="glass-card p-4 sm:p-5 rounded-3xl flex items-center gap-3">
+						<div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl ${themeColors.bgLight} ${themeColors.text} flex items-center justify-center shrink-0`}>
+							<TrendingUp size={15} />
+						</div>
+						<div className="min-w-0">
+							<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 truncate">{t("incomeTotal")}</p>
+							<h4 className={`text-sm sm:text-lg font-black ${themeColors.text} truncate`}>
+								{maskValue(formatCurrency(incomeTotal))}
 							</h4>
 						</div>
-						<p className="text-[10px] font-semibold text-zinc-400 mt-1.5">
-							{language === "en"
-								? `Allocated across ${pocketsCount} pocket(s)`
-								: `Tersimpan di ${pocketsCount} kantong aktif`}
-						</p>
+					</div>
+
+					<div className="glass-card p-4 sm:p-5 rounded-3xl flex items-center gap-3">
+						<div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
+							<TrendingDown size={15} />
+						</div>
+						<div className="min-w-0">
+							<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 truncate">{t("expenseTotal")}</p>
+							<h4 className="text-sm sm:text-lg font-black text-red-500 truncate">
+								{maskValue(formatCurrency(expenseTotal))}
+							</h4>
+						</div>
 					</div>
 				</div>
 			)}
-
-			{/* Second grid: Income & Expense (Desktop: side-by-side, Mobile: stacked) */}
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-				<div className="glass-card p-6 rounded-3xl flex flex-col justify-between min-h-[120px]">
-					<div className="flex flex-col">
-						<div className={`w-8 h-8 rounded-xl ${themeColors.bgLight} ${themeColors.text} flex items-center justify-center mb-4`}>
-							<TrendingUp size={16} />
-						</div>
-						<p className="text-[10px] uppercase font-bold text-zinc-400 mb-1">{t("incomeTotal")}</p>
-						<h4 className={`text-xl font-black ${themeColors.text}`}>{formatCurrency(incomeTotal)}</h4>
-					</div>
-				</div>
-
-				<div className="glass-card p-6 rounded-3xl flex flex-col justify-between min-h-[120px]">
-					<div className="flex flex-col">
-						<div className="w-8 h-8 rounded-xl bg-red-100 dark:bg-red-500/10 text-red-600 flex items-center justify-center mb-4">
-							<TrendingDown size={16} />
-						</div>
-						<p className="text-[10px] uppercase font-bold text-zinc-400 mb-1">{t("expenseTotal")}</p>
-						<h4 className="text-xl font-black text-red-650 dark:text-red-500">{formatCurrency(expenseTotal)}</h4>
-					</div>
-				</div>
-			</div>
 		</div>
 	);
 }
