@@ -74,6 +74,7 @@ export function PocketCarouselCard({
 
 	const dragX = useMotionValue(0);
 	const dragY = useMotionValue(0);
+	const lockedDirectionRef = React.useRef<"x" | "y" | null>(null);
 
 	// Spring-smoothed motion values so the stacked cards glide smoothly without discrete touch jumps
 	const smoothX = useSpring(dragX, { stiffness: 460, damping: 34, mass: 0.45 });
