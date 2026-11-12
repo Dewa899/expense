@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { motion, useMotionValue, useTransform, AnimatePresence, animate } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform, AnimatePresence, animate } from "framer-motion";
 import { Wallet, Settings, ChevronLeft, ChevronRight, Eye, EyeOff, ArrowLeftRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PocketDef, isInternalTransfer } from "@/hooks/use-dashboard-logic";
@@ -75,117 +75,139 @@ export function PocketCarouselCard({
 	const dragX = useMotionValue(0);
 	const dragY = useMotionValue(0);
 
+	// Spring-smoothed motion values so the stacked cards glide smoothly without discrete touch jumps
+	const smoothX = useSpring(dragX, { stiffness: 460, damping: 34, mass: 0.45 });
+	const smoothY = useSpring(dragY, { stiffness: 460, damping: 34, mass: 0.45 });
+
 	// Active foreground card subtle 3D response during drag
-	const activeRotateZ = useTransform(dragX, [-140, 0, 140], [-2.2, 0, 2.2]);
-	const activeScale = useTransform([dragX, dragY], ([x, y]) => {
+	const activeRotateZ = useTransform(smoothX, [-120, 0, 120], [-1.8, 0, 1.8]);
+	const activeScale = useTransform([smoothX, smoothY], ([x, y]) => {
 		const dist = Math.hypot(Number(x) || 0, Number(y) || 0);
-		return Math.max(0.975, 1 - dist / 4500);
+		return Math.max(0.98, 1 - dist / 5000);
 	});
 
 	// ─── 1. IDLE + SWIPE-DOWN SYMMETRICAL DECK STACK ("All Pockets") ───────────
-	// Strict downward pull limit (~48px) so the card never gets dragged far down.
-	// When pulling down (dragY > 2), the background deck rises prominently (-28px and -44px)
-	// and reveals "All Pockets" / "Semua Kantong" at the top of the stack.
-	const deck1Y = useTransform([dragX, dragY], ([x, y]) => {
+	// Compact vertical travel:
+	// - Phase 1 (y: 0 -> 8px): Deck smoothly pops its top rim above the active card (+6px -> -3px)
+	// - Phase 2 (y: 8 -> 24px): Deck follows the downward pull together with the active card (-3px -> +2.5px)
+	// This keeps the "All Pockets" badge clearly visible while never overlapping elements above or below.
+	const deck1Y = useTransform([smoothX, smoothY], ([x, y]) => {
 		const numX = Number(x) || 0;
-		const numY = Number(y) || 0;
-		if (numY > 2) {
-			const progress = Math.min(numY / 42, 1);
-			return 8 - progress * 36; // +8px (idle bottom peek) -> -28px (prominent top reveal on swipe down)
+		const numY = Math.max(0, Number(y) || 0);
+		if (numY > 0.5) {
+			if (numY <= 8) {
+				const t = numY / 8;
+				const smooth = t * t * (3 - 2 * t);
+				return 6 - 9 * smooth; // +6px (idle bottom peek) -> -3px (initial top reveal)
+			}
+			const extraY = Math.min(numY - 8, 18);
+			return -3 + extraY * 0.32; // Moves DOWN together with the dragged card (-3px -> +2.7px)
 		}
-		const horizProgress = Math.min(Math.abs(numX) / 45, 1);
-		return 8 * (1 - horizProgress);
+		const horizProgress = Math.min(Math.abs(numX) / 40, 1);
+		return 6 * (1 - horizProgress);
 	});
 
-	const deck1Scale = useTransform([dragX, dragY], ([x, y]) => {
+	const deck1Scale = useTransform([smoothX, smoothY], ([x, y]) => {
 		const numX = Number(x) || 0;
-		const numY = Number(y) || 0;
-		if (numY > 2) {
-			const progress = Math.min(numY / 42, 1);
-			return 0.955 + progress * 0.025; // 0.955 -> 0.98
+		const numY = Math.max(0, Number(y) || 0);
+		if (numY > 0.5) {
+			const progress = Math.min(numY / 22, 1);
+			return 0.96 + progress * 0.015; // 0.96 -> 0.975
 		}
-		const horizProgress = Math.min(Math.abs(numX) / 55, 1);
-		return 0.955 - horizProgress * 0.02;
+		const horizProgress = Math.min(Math.abs(numX) / 50, 1);
+		return 0.96 - horizProgress * 0.02;
 	});
 
-	const deck1Opacity = useTransform([dragX, dragY], ([x, y]) => {
+	const deck1Opacity = useTransform([smoothX, smoothY], ([x, y]) => {
 		const numX = Number(x) || 0;
-		const numY = Number(y) || 0;
-		if (numY > 2) {
-			return Math.min(0.9 + (numY / 42) * 0.1, 1);
+		const numY = Math.max(0, Number(y) || 0);
+		if (numY > 0.5) {
+			return Math.min(0.88 + (numY / 22) * 0.12, 1);
 		}
-		const horizProgress = Math.min(Math.abs(numX) / 35, 1);
+		const horizProgress = Math.min(Math.abs(numX) / 30, 1);
 		return 0.85 * (1 - horizProgress);
 	});
 
-	const deck2Y = useTransform([dragX, dragY], ([x, y]) => {
+	const deck2Y = useTransform([smoothX, smoothY], ([x, y]) => {
 		const numX = Number(x) || 0;
-		const numY = Number(y) || 0;
-		if (numY > 2) {
-			const progress = Math.min(numY / 42, 1);
-			return 15 - progress * 59; // +15px (idle bottom peek) -> -44px (prominent second stack rise)
+		const numY = Math.max(0, Number(y) || 0);
+		if (numY > 0.5) {
+			if (numY <= 8) {
+				const t = numY / 8;
+				const smooth = t * t * (3 - 2 * t);
+				return 11 - 17.5 * smooth; // +11px (idle bottom peek) -> -6.5px (subtle second rim)
+			}
+			const extraY = Math.min(numY - 8, 18);
+			return -6.5 + extraY * 0.28; // Moves DOWN together with deck1 and active card (-6.5px -> -1.5px)
 		}
-		const horizProgress = Math.min(Math.abs(numX) / 45, 1);
-		return 15 * (1 - horizProgress);
+		const horizProgress = Math.min(Math.abs(numX) / 40, 1);
+		return 11 * (1 - horizProgress);
 	});
 
-	const deck2Scale = useTransform([dragX, dragY], ([x, y]) => {
+	const deck2Scale = useTransform([smoothX, smoothY], ([x, y]) => {
 		const numX = Number(x) || 0;
-		const numY = Number(y) || 0;
-		if (numY > 2) {
-			const progress = Math.min(numY / 42, 1);
-			return 0.91 + progress * 0.035; // 0.91 -> 0.945
+		const numY = Math.max(0, Number(y) || 0);
+		if (numY > 0.5) {
+			const progress = Math.min(numY / 22, 1);
+			return 0.92 + progress * 0.025; // 0.92 -> 0.945
 		}
-		const horizProgress = Math.min(Math.abs(numX) / 55, 1);
-		return 0.91 - horizProgress * 0.02;
+		const horizProgress = Math.min(Math.abs(numX) / 50, 1);
+		return 0.92 - horizProgress * 0.02;
 	});
 
-	const deck2Opacity = useTransform([dragX, dragY], ([x, y]) => {
+	const deck2Opacity = useTransform([smoothX, smoothY], ([x, y]) => {
 		const numX = Number(x) || 0;
-		const numY = Number(y) || 0;
-		if (numY > 2) {
-			return Math.min(0.65 + (numY / 42) * 0.3, 0.95);
+		const numY = Math.max(0, Number(y) || 0);
+		if (numY > 0.5) {
+			return Math.min(0.65 + (numY / 22) * 0.3, 0.95);
 		}
-		const horizProgress = Math.min(Math.abs(numX) / 35, 1);
+		const horizProgress = Math.min(Math.abs(numX) / 30, 1);
 		return 0.55 * (1 - horizProgress);
 	});
 
-	// ─── 2. MIRROR-SYMMETRICAL HORIZONTAL SWIPE CARDS (LEFT / RIGHT) ──────────
-	// Swiping Right (dragX > 0) reveals Previous Pocket peeking from the left with vertical label
-	const prevCardX = useTransform(dragX, (x) => {
-		if (x <= 0) return -18;
-		const progress = Math.min(x / 90, 1);
-		return -26 + progress * 10; // Peeks out on the left edge so vertical pocket name is clearly readable
-	});
-	const prevCardScale = useTransform(dragX, (x) => {
-		if (x <= 0) return 0.95;
-		const progress = Math.min(x / 90, 1);
-		return 0.95 + progress * 0.04;
-	});
-	const prevCardOpacity = useTransform([dragX, dragY], ([x, y]) => {
-		const numX = Number(x) || 0;
-		const numY = Number(y) || 0;
-		if (numX <= 2 || numY > 20) return 0;
-		return Math.min(0.4 + numX / 30, 1);
-	});
+	const allPocketsBadgeOpacity = useTransform(smoothY, [2, 11], [0, 1]);
+	const allPocketsBadgeScale = useTransform(smoothY, [2, 22], [0.92, 1]);
 
-	// Swiping Left (dragX < 0) reveals Next Pocket peeking from the right with vertical label
-	const nextCardX = useTransform(dragX, (x) => {
-		if (x >= 0) return 18;
-		const progress = Math.min(Math.abs(x) / 90, 1);
-		return 26 - progress * 10; // Peeks out on the right edge so vertical pocket name is clearly readable
+	// ─── 2. MIRROR-SYMMETRICAL HORIZONTAL SWIPE CARDS (LEFT / RIGHT) ──────────
+	// Swiping Right (dragX > 0) reveals Previous Pocket peeking from the left with scaling vertical title
+	const prevCardX = useTransform(smoothX, (x) => {
+		if (x <= 0) return -12;
+		const progress = Math.min(x / 80, 1);
+		return -18 + progress * 6;
 	});
-	const nextCardScale = useTransform(dragX, (x) => {
-		if (x >= 0) return 0.95;
-		const progress = Math.min(Math.abs(x) / 90, 1);
-		return 0.95 + progress * 0.04;
+	const prevCardScale = useTransform(smoothX, (x) => {
+		if (x <= 0) return 0.95;
+		const progress = Math.min(x / 80, 1);
+		return 0.95 + progress * 0.03;
 	});
-	const nextCardOpacity = useTransform([dragX, dragY], ([x, y]) => {
+	const prevCardOpacity = useTransform([smoothX, smoothY], ([x, y]) => {
 		const numX = Number(x) || 0;
 		const numY = Number(y) || 0;
-		if (numX >= -2 || numY > 20) return 0;
-		return Math.min(0.4 + Math.abs(numX) / 30, 1);
+		if (numX <= 1.5 || numY > 14) return 0;
+		return Math.min(0.35 + numX / 28, 1);
 	});
+	// Scales the vertical pocket name smoothly with right-swipe progress without exceeding card bounds
+	const prevLabelScale = useTransform(smoothX, [0, 15, 80], [0.76, 0.86, 1.08]);
+
+	// Swiping Left (dragX < 0) reveals Next Pocket peeking from the right with scaling vertical title
+	const nextCardX = useTransform(smoothX, (x) => {
+		if (x >= 0) return 12;
+		const progress = Math.min(Math.abs(x) / 80, 1);
+		return 18 - progress * 6;
+	});
+	const nextCardScale = useTransform(smoothX, (x) => {
+		if (x >= 0) return 0.95;
+		const progress = Math.min(Math.abs(x) / 80, 1);
+		return 0.95 + progress * 0.03;
+	});
+	const nextCardOpacity = useTransform([smoothX, smoothY], ([x, y]) => {
+		const numX = Number(x) || 0;
+		const numY = Number(y) || 0;
+		if (numX >= -1.5 || numY > 14) return 0;
+		return Math.min(0.35 + Math.abs(numX) / 28, 1);
+	});
+	// Scales the vertical pocket name smoothly with left-swipe progress without exceeding card bounds
+	const nextLabelScale = useTransform(smoothX, [0, -15, -80], [0.76, 0.86, 1.08]);
 
 	const carouselPockets = React.useMemo<PocketDef[]>(() => [
 		{ id: "net_worth", name: language === "en" ? "Total Balance" : "Total Saldo", type: "default" as const, color: "emerald", target: undefined },
@@ -218,23 +240,6 @@ export function PocketCarouselCard({
 			.reduce((sum, t) => sum + t.amount, 0);
 	}, [transactions, pockets]);
 
-	const getPocketPreviewBalance = React.useCallback(
-		(pocket: PocketDef) => {
-			if (pocket.id === "net_worth") {
-				return pockets.length > 0 ? mainPocketBalance : totalAmount;
-			}
-			return transactions
-				.filter(
-					(t) =>
-						t.pocket === pocket.name ||
-						t.pocket === pocket.id ||
-						(t as any).pocket_id === pocket.id
-				)
-				.reduce((sum, t) => sum + t.amount, 0);
-		},
-		[pockets, mainPocketBalance, totalAmount, transactions]
-	);
-
 	const getPocketDisplayTitle = React.useCallback(
 		(pocket: PocketDef) => {
 			if (pocket.id === "net_worth" && pockets.length > 0) {
@@ -266,58 +271,51 @@ export function PocketCarouselCard({
 
 	// Content for the Swipe-Down Deck ("All Pockets" / "Semua Kantong")
 	const renderAllPocketsDeckContent = (textClass: string) => (
-		<div className={`w-full h-full flex flex-col justify-start items-center pt-2.5 px-6 ${textClass} select-none pointer-events-none`}>
-			<div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/8 dark:bg-black/15">
-				<Wallet size={12} className="opacity-85 shrink-0" />
-				<span className="text-[10px] font-black uppercase tracking-widest leading-none">
+		<motion.div
+			style={{ opacity: allPocketsBadgeOpacity, scale: allPocketsBadgeScale }}
+			className={`w-full flex justify-center items-center pt-[3px] px-4 ${textClass} select-none pointer-events-none`}
+		>
+			<div className="inline-flex items-center gap-1.5 px-2.5 py-[2px] rounded-full bg-black/8 dark:bg-black/15">
+				<Wallet size={10} className="opacity-85 shrink-0" />
+				<span className="text-[9px] font-black uppercase tracking-widest leading-none">
 					{language === "en" ? "All Pockets" : "Semua Kantong"}
 				</span>
-				<span className="text-[9px] font-extrabold opacity-65">
+				<span className="text-[8.5px] font-extrabold opacity-65 leading-none">
 					({carouselPockets.length})
 				</span>
 			</div>
-		</div>
+		</motion.div>
 	);
 
-	// Content for Horizontal Swipe Peek Card (Vertical rotated pocket icon + name along exposed side edge)
+	// Content for Horizontal Swipe Peek Card (Only the vertical rotated pocket icon + name that scales with swipe progress)
 	const renderHorizontalPeekContent = (pocket: PocketDef, textClass: string, side: "left" | "right") => (
-		<div className={`w-full h-full relative flex items-center ${textClass} select-none pointer-events-none`}>
-			{/* Vertical rotated pocket badge on the exposed edge */}
+		<div className={`w-full h-full relative flex items-center ${textClass} select-none pointer-events-none overflow-hidden`}>
 			<div
-				className={`absolute top-0 bottom-0 ${
+				className={`absolute top-3 bottom-3 ${
 					side === "right" ? "right-0 w-12" : "left-0 w-12"
-				} flex items-center justify-center`}
+				} flex items-center justify-center overflow-hidden`}
 			>
-				<div
-					className={`flex items-center gap-1.5 whitespace-nowrap ${
+				<motion.div
+					style={{ scale: side === "right" ? nextLabelScale : prevLabelScale }}
+					className={`flex items-center justify-center gap-1.5 whitespace-nowrap max-w-[94px] sm:max-w-[106px] px-2.5 py-1 rounded-full bg-black/8 dark:bg-black/15 ${
 						side === "right" ? "rotate-90" : "-rotate-90"
 					}`}
 				>
-					<Wallet size={13} className="opacity-85 shrink-0" />
-					<span className="text-[11px] font-black uppercase tracking-wider">
+					<Wallet size={11} className="opacity-85 shrink-0" />
+					<span className="text-[10px] font-black uppercase tracking-wider truncate">
 						{getPocketDisplayTitle(pocket)}
 					</span>
-				</div>
-			</div>
-
-			{/* Inner balance preview when dragged further */}
-			<div className={`flex flex-col justify-center ${side === "right" ? "pl-6 pr-14" : "pl-14 pr-6"} opacity-75`}>
-				<span className="text-[9px] font-extrabold uppercase tracking-wider opacity-65">
-					{getPocketDisplayTitle(pocket)}
-				</span>
-				<p className="text-lg font-black tracking-tight leading-tight mt-0.5">
-					{maskValue(formatCurrency(getPocketPreviewBalance(pocket)))}
-				</p>
+				</motion.div>
 			</div>
 		</div>
 	);
 
 	return (
-		<section className={`relative z-0 isolate mt-2 ${pockets.length > 0 ? "mb-3.5" : ""}`}>
+		<section className={`relative z-20 isolate mt-2.5 ${pockets.length > 0 ? "mb-5" : "mb-2"}`}>
 			{/* 1. Symmetrical Deck Stack (Idle Bottom Stack + Swipe-Down "All Pockets" Top Reveal) */}
 			{pockets.length > 0 && (
 				<>
-					{/* Deck Layer 2 (Further behind, rises higher on swipe down) */}
+					{/* Deck Layer 2 (Further behind, moves up slightly then follows downward pull) */}
 					{carouselPockets.length > 2 && (
 						<motion.div
 							style={{
@@ -350,7 +348,7 @@ export function PocketCarouselCard({
 				</>
 			)}
 
-			{/* 2. Mirror-Symmetrical Horizontal Peek Cards (Swipe Left / Swipe Right with Vertical Pocket Name) */}
+			{/* 2. Mirror-Symmetrical Horizontal Peek Cards (Swipe Left / Swipe Right with Scaling Vertical Pocket Name) */}
 			{pockets.length > 0 && (
 				<>
 					{/* Previous Pocket Card (Appears from left when swiping right, vertical label on left edge) */}
@@ -382,13 +380,13 @@ export function PocketCarouselCard({
 			<motion.div 
 				style={{ x: dragX, y: dragY, rotateZ: activeRotateZ, scale: activeScale }}
 				drag={pockets.length > 0 ? true : false}
-				dragConstraints={{ left: -95, right: 95, top: 0, bottom: 46 }}
-				dragElastic={{ top: 0, bottom: 0.05, left: 0.14, right: 0.14 }}
+				dragConstraints={{ left: -80, right: 80, top: 0, bottom: 22 }}
+				dragElastic={{ top: 0, bottom: 0.02, left: 0.1, right: 0.1 }}
 				dragDirectionLock={true}
 				onDragEnd={(e, info) => {
 					if (pockets.length === 0) return;
-					const vertThreshold = 30;
-					const horizThreshold = 45;
+					const vertThreshold = 15;
+					const horizThreshold = 42;
 					if (info.offset.y > vertThreshold) {
 						onPocketSelectClick();
 					} else if (info.offset.x < -horizThreshold) {
@@ -396,9 +394,9 @@ export function PocketCarouselCard({
 					} else if (info.offset.x > horizThreshold) {
 						setActivePocketIdx((activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
 					}
-					// Snaps back to exactly 0,0 with smooth spring simulation
-					animate(dragX, 0, { type: "spring", stiffness: 380, damping: 28 });
-					animate(dragY, 0, { type: "spring", stiffness: 380, damping: 28 });
+					// Snaps back to 0,0 with smooth critically-damped spring simulation
+					animate(dragX, 0, { type: "spring", stiffness: 420, damping: 32 });
+					animate(dragY, 0, { type: "spring", stiffness: 420, damping: 32 });
 				}}
 				className="w-full cursor-grab active:cursor-grabbing select-none relative z-10"
 			>
