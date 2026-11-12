@@ -348,7 +348,7 @@ export function PocketSettingsModal({
 														value={pocket.type}
 														onValueChange={(val: any) => handleLocalPocketFieldChange(idx, "type", val)}
 													>
-														<SelectTrigger className="h-9 rounded-xl border-none bg-white/85 dark:bg-white/90 text-zinc-900 font-bold text-xs cursor-pointer shadow-none px-2.5">
+														<SelectTrigger className="w-full h-9 rounded-xl border-none bg-white/85 dark:bg-white/90 text-zinc-900 font-bold text-xs cursor-pointer shadow-none px-3.5">
 															<SelectValue />
 														</SelectTrigger>
 														<SelectContent className="rounded-2xl border-none shadow-lg">

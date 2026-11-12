@@ -33,6 +33,66 @@ interface UpdateItem {
 
 const UPDATES: UpdateItem[] = [
 	{
+		version: "v3.1.0",
+		type: "minor",
+		date: { en: "Wed, Nov 11, 2026", id: "Rabu, 11 November 2026" },
+		time: "17:35",
+		title: {
+			en: "Modern Pastel Surface UI, Sticky Action Dock, Interactive Stacked Card Swipe & Compact Mobile Layout",
+			id: "Modernisasi UI Pastel & Filled Surface, Sticky Action Dock, Animasi Stacked Card & Layout Mobile Compact"
+		},
+		description: {
+			en: "A comprehensive UI/UX overhaul featuring soft pastel pocket cards, borderless filled surfaces, a symmetrical bottom Sticky Action Dock, spring-driven stacked card swipe previews, a 2-column compact mobile analytics layout, unified Dashboard Controls, and custom circular-thumb modal scrollbars.",
+			id: "Pembaruan menyeluruh antarmuka dan pengalaman pengguna dengan kartu kantong pastel lembut, desain filled surface tanpa garis tepi kaku, Sticky Action Dock di bawah layar, animasi tumpukan kartu interaktif saat swipe, tata letak analitik 2 kolom yang ringkas di HP, penyatuan menu Dashboard Controls, serta scrollbar modal estetis."
+		},
+		details: [
+			{
+				type: "feature",
+				title: {
+					en: "Interactive Stacked Card Deck & Side-Label Swipe Previews",
+					id: "Tumpukan Kartu Interaktif & Preview Label Samping Saat Swipe"
+				},
+				desc: {
+					en: "Swiping left or right reveals the target pocket card with a vertically oriented pocket label that scales smoothly with swipe progress, while pulling down reveals the 'All Pockets' deck header and moves the background stack in unison without overlapping surrounding UI.",
+					id: "Swipe kiri atau kanan menampilkan kartu kantong tujuan dengan label nama kantong vertikal yang membesar secara proporsional sesuai progress tarikan, sementara tarik ke bawah menampilkan badge 'Semua Kantong' dengan pergerakan tumpukan kartu yang halus dan simetris."
+				}
+			},
+			{
+				type: "feature",
+				title: {
+					en: "Symmetrical Sticky Bottom Action Dock & Streamlined Quick Add Form",
+					id: "Sticky Action Dock Simetris & Form Pencatatan Ringkas"
+				},
+				desc: {
+					en: "Added a fixed bottom navigation bar housing the 3-line Tools Menu (Manage Pockets, Recurring Transactions, and pocket-aware Manage Fields), a pill-shaped Quick Add button, and Receipt OCR Scan, paired with a compact borderless form and expandable '+ Note' toggle.",
+					id: "Menghadirkan bar navigasi bawah tetap (sticky) berisi Menu 3-garis (Kelola Kantong, Transaksi Berulang, dan Kelola Opsi yang terintegrasi dengan switcher kantong), tombol Tambah Cepat, dan Scan Struk, dipadukan dengan form ringkas serta tombol '+ Catatan'."
+				}
+			},
+			{
+				type: "improvement",
+				title: {
+					en: "Unified Dashboard Controls & Submenu Back-Navigation",
+					id: "Penyatuan Dashboard Controls & Navigasi Kembali Submenu"
+				},
+				desc: {
+					en: "Moved Dashboard Controls to the top navbar across all pages with an expandable Profile & Sync status card, animated Dark/Light and ID/EN switches, Tutorial, Patch Notes, Contact Support, and CSV Export, plus intuitive back-to-settings behavior when closing sub-modals.",
+					id: "Memindahkan tombol Dashboard Controls ke navbar atas di seluruh halaman lengkap dengan kartu Profil & Status Sinkronisasi satu baris, animasi toggle Mode Gelap/Terang & Bahasa, Tutorial, Catatan Pembaruan, Hubungi Dukungan, dan Ekspor CSV, serta perilaku kembali ke pengaturan utama saat menutup submenu."
+				}
+			},
+			{
+				type: "improvement",
+				title: {
+					en: "Compact 2-Column Mobile Analytics, Pastel Modals & Custom Scrollbars",
+					id: "Analitik Mobile 2 Kolom Ringkas, Modal Pastel Interaktif & Scrollbar Estetis"
+				},
+				desc: {
+					en: "Paired summary and category donut charts side-by-side on mobile to minimize scrolling, softened dark mode surfaces (#18191C / #222428), added interactive pastel pocket cards and a Move Funds shortcut in Select Pocket, refined dropdown padding, and introduced shaded modal scroll areas with an expanding circular thumb.",
+					id: "Menyandingkan kartu ringkasan dan grafik kategori secara kiri-kanan di HP agar hemat scroll, melembutkan palet dark mode, menambahkan kartu pastel interaktif serta pintasan Pindah Dana di modal Pilih Kantong, merapikan padding semua dropdown, dan menghadirkan area scroll ber-shading dengan indikator lingkaran interaktif."
+				}
+			}
+		]
+	},
+	{
 		version: "v3.0.3",
 		type: "bugfix",
 		date: { en: "Thu, Nov 5, 2026", id: "Kamis, 5 November 2026" },
