@@ -415,6 +415,17 @@ export function PocketCarouselCard({
 						dragY.set(0);
 					} else if (lockedDirectionRef.current === "y") {
 						dragX.set(0);
+						// When swiping UP on the card (finger moves up, offset.y < 0), allow scrolling down the page
+						if (info.offset.y <= 0) {
+							dragY.set(0);
+							if (
+								info.delta.y < 0 &&
+								typeof window !== "undefined" &&
+								(typeof CSS === "undefined" || typeof CSS.supports !== "function" || !CSS.supports("touch-action", "pan-down"))
+							) {
+								window.scrollBy(0, -info.delta.y);
+							}
+						}
 					}
 				}}
 				onDragEnd={(_e, info) => {
@@ -444,7 +455,9 @@ export function PocketCarouselCard({
 					animate(dragX, 0, { type: "spring", stiffness: 360, damping: 30 });
 					animate(dragY, 0, { type: "spring", stiffness: 340, damping: 28 });
 				}}
-				className="w-full cursor-grab active:cursor-grabbing select-none relative z-10"
+				className={`w-full cursor-grab active:cursor-grabbing select-none relative z-10 ${
+					pockets.length > 0 ? "[touch-action:pan-down_!important]" : ""
+				}`}
 			>
 				<div 
 					onClick={(e) => {

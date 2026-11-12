@@ -33,6 +33,66 @@ interface UpdateItem {
 
 const UPDATES: UpdateItem[] = [
 	{
+		version: "v3.1.1",
+		type: "minor",
+		date: { en: "Thu, Nov 12, 2026", id: "Kamis, 12 November 2026" },
+		time: "11:30",
+		title: {
+			en: "Overall vs Pocket Analytics Scope, Synchronized Swipe Physics, Sticky Navbar & Mobile Back Keyboard Handling",
+			id: "Mode Analitik Keseluruhan vs Kantong, Animasi Swipe Sinkron, Sticky Navbar & Tombol Back Keyboard"
+		},
+		description: {
+			en: "Enhanced Detailed Dashboard with an All Pockets vs Per-Pocket scope switcher and adaptive non-truncated currency typography, synchronized downward card pull physics with native swipe-up page scrolling, a truly sticky top navbar with a flush Demo Mode banner, Light Mode default, and mobile hardware Back button support for the numeric keyboard.",
+			id: "Menyempurnakan Dasbor Detail dengan toggle cakupan Semua Kantong vs Per-Kantong serta ukuran font nominal adaptif tanpa terpotong (...), animasi tarik kartu ke bawah yang sinkron dengan kartu di bawahnya sekaligus mendukung swipe ke atas untuk scroll layar, navbar atas sticky yang menyatu rapi dengan banner Demo, tema standar Mode Terang, serta dukungan tombol Back HP untuk menutup keyboard angka."
+		},
+		details: [
+			{
+				type: "feature",
+				title: {
+					en: "All Pockets vs Active Pocket Analytics Scope & Adaptive Nominal Sizing",
+					id: "Toggle Analitik Semua Kantong vs Kantong Aktif & Font Nominal Adaptif"
+				},
+				desc: {
+					en: "Added a segmented scope toggle in Detailed Dashboard to switch Transaction Trend, Category Donut Charts, Custom Charts, and Transaction History between All Pockets (Emerald theme) and the Active Pocket (Pocket color theme). Total Income & Expense cards now always show overall totals at the top with the active pocket's breakdown underneath, and all currency values scale font size dynamically instead of truncating with '...'.",
+					id: "Menambahkan toggle cakupan di Dasbor Detail untuk beralih tampilan Tren Transaksi, Grafik Kategori, Grafik Kustom, dan Riwayat Transaksi antara Semua Kantong (berwarna Hijau Emerald) dan Kantong Aktif (mengikuti warna kartu). Kartu Total Pemasukan & Pengeluaran kini menampilkan total keseluruhan secara tetap di bagian utama dengan rincian kantong aktif di bawahnya, serta ukuran huruf nominal yang otomatis menyesuaikan tanpa terpotong titik-titik (...)."
+				}
+			},
+			{
+				type: "improvement",
+				title: {
+					en: "Synchronized Swipe-Down Push, Horizontal Axis Lock & Swipe-Up Page Scroll",
+					id: "Animasi Swipe Bawah Sinkron, Kunci Sumbu Horizontal & Swipe Atas untuk Scroll Layar"
+				},
+				desc: {
+					en: "Extended the swipe-down gesture range with smoother spring physics that smoothly pushes sibling cards downward in sync so they never collide. Locked horizontal swipes so downward thumb arcs only switch pockets, and enabled swipe-up gestures on the card to naturally scroll down the page.",
+					id: "Memperpanjang jarak tarik kartu ke bawah dengan animasi pegas yang lebih halus dan mendorong kartu di bawahnya secara sinkron agar tidak bertabrakan. Mengunci sumbu swipe kiri/kanan agar lengkungan jari ke bawah tetap hanya menggeser kantong, serta mengizinkan gerakan swipe ke atas pada kartu untuk langsung men-scroll layar ke bawah."
+				}
+			},
+			{
+				type: "improvement",
+				title: {
+					en: "Sticky Top Navbar, Flush Demo Banner, Light Mode Default & Form Refinements",
+					id: "Sticky Navbar Atas, Perbaikan Banner Demo, Default Light Mode & Penyempurnaan Form"
+				},
+				desc: {
+					en: "Fixed sticky top navbar behavior across all pages and unified the Demo Mode banner flush beneath the navbar without gaps. Removed empty bottom scroll space on the main dashboard, set Light Mode as the default theme, widened the Category selector with a side Gear button, and centered the '+ Note' button.",
+					id: "Memperbaiki navbar atas agar selalu sticky saat di-scroll ke bawah dan menyatukan banner Mode Demo tepat di bawah navbar tanpa celah putih. Menghilangkan ruang kosong berlebih di bawah dashboard utama, mengatur Mode Terang sebagai tema bawaan, memperlebar dropdown Kategori dengan tombol ikon Gear di sampingnya, serta meratakan tombol '+ Catatan' ke tengah."
+				}
+			},
+			{
+				type: "bugfix",
+				title: {
+					en: "Mobile Hardware Back Button Closes Custom Numeric Keyboard",
+					id: "Tombol Back HP Menutup Custom Numeric Keyboard"
+				},
+				desc: {
+					en: "Pressing the phone's hardware/system Back button while the custom numeric keyboard is open now dismisses the keyboard instead of navigating away to the previous page.",
+					id: "Menekan tombol Kembali (Back) pada HP saat keyboard angka kustom sedang terbuka kini langsung menutup keyboard tanpa melempar pengguna ke halaman sebelumnya."
+				}
+			}
+		]
+	},
+	{
 		version: "v3.1.0",
 		type: "minor",
 		date: { en: "Wed, Nov 11, 2026", id: "Rabu, 11 November 2026" },
