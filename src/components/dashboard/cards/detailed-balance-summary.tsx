@@ -453,25 +453,25 @@ export function DetailedBalanceSummary({
 							</div>
 						</div>
 
-						{/* Side-by-Side Income & Expense Row (Headline = Constant Overall Total across all pockets; Sub-row = Active Pocket) */}
+						{/* Side-by-Side Income & Expense Row (Headline = Constant Overall Total across all pockets in Emerald/Red; Sub-row = Active Pocket in Pocket Color) */}
 						<div className="grid grid-cols-2 gap-2.5 sm:gap-4 w-full">
 							<div className="glass-card p-3.5 sm:p-5 rounded-3xl flex flex-col justify-between gap-2">
 								<div className="flex items-start gap-2.5">
-									<div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-xl ${themeColors.bgLight} ${themeColors.text} flex items-center justify-center shrink-0 mt-0.5`}>
+									<div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0 mt-0.5">
 										<TrendingUp size={14} />
 									</div>
 									<div className="min-w-0 flex-1">
 										<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 truncate">
 											{language === "en" ? "Total Income (All)" : "Total Pemasukan"}
 										</p>
-										<h4 className={`${getAdaptiveNominalSize(overallIncStr, "lg")} font-black ${themeColors.text} leading-tight tracking-tight break-words mt-0.5`}>
+										<h4 className={`${getAdaptiveNominalSize(overallIncStr, "lg")} font-black text-emerald-600 dark:text-emerald-400 leading-tight tracking-tight break-words mt-0.5`}>
 											{overallIncStr}
 										</h4>
 									</div>
 								</div>
 								<div className="pt-1.5 border-t border-zinc-200/60 dark:border-white/5 flex items-center justify-between gap-1 text-[9px] sm:text-[10px]">
-									<span className="font-bold text-zinc-400 truncate max-w-[48%]">{activePocketLabel}:</span>
-									<span className={`${getAdaptiveNominalSize(pocketIncStr, "sm")} font-extrabold text-zinc-700 dark:text-zinc-200 leading-none shrink-0`}>
+									<span className={`font-bold ${themeColors.text} truncate max-w-[48%]`}>{activePocketLabel}:</span>
+									<span className={`${getAdaptiveNominalSize(pocketIncStr, "sm")} font-extrabold ${themeColors.text} leading-none shrink-0`}>
 										{pocketIncStr}
 									</span>
 								</div>
@@ -492,7 +492,7 @@ export function DetailedBalanceSummary({
 									</div>
 								</div>
 								<div className="pt-1.5 border-t border-zinc-200/60 dark:border-white/5 flex items-center justify-between gap-1 text-[9px] sm:text-[10px]">
-									<span className="font-bold text-zinc-400 truncate max-w-[48%]">{activePocketLabel}:</span>
+									<span className={`font-bold ${themeColors.text} truncate max-w-[48%]`}>{activePocketLabel}:</span>
 									<span className={`${getAdaptiveNominalSize(pocketExpStr, "sm")} font-extrabold text-zinc-700 dark:text-zinc-200 leading-none shrink-0`}>
 										{pocketExpStr}
 									</span>

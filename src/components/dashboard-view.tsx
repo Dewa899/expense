@@ -105,30 +105,6 @@ export function DashboardView({
 
 	return (
 		<div className="flex flex-col px-4 pt-2 pb-[76px] gap-2.5 w-full flex-1 relative mx-auto transition-all duration-300 bg-transparent">
-			{/* Demo Mode Banner */}
-			<AnimatePresence>
-				{isDemoMode && (
-					<motion.div
-						initial={{ opacity: 0, y: -40 }}
-						animate={{ opacity: 1, y: 0 }}
-						exit={{ opacity: 0, y: -40 }}
-						className="sticky top-[60px] z-40 -mx-4 -mt-2 px-4 py-2 bg-amber-400 dark:bg-amber-500 text-black flex items-center justify-between gap-3 shadow-md"
-					>
-						<div className="flex items-center gap-2 text-xs font-bold">
-							<FlaskConical size={14} />
-							<span>{t("demoModeBanner")}</span>
-						</div>
-						<button
-							onClick={exitDemo}
-							className="text-[10px] font-black uppercase tracking-wider bg-black/15 hover:bg-black/25 px-3 py-1 rounded-full flex items-center gap-1 transition-colors cursor-pointer"
-						>
-							<X size={10} />
-							{t("exitDemo")}
-						</button>
-					</motion.div>
-				)}
-			</AnimatePresence>
-
 			<AnimatePresence>
 				{logic.isIntegrating && (
 					<IntegrationLoading 

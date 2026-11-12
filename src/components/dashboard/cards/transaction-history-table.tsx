@@ -18,6 +18,18 @@ interface TransactionHistoryTableProps {
 	};
 }
 
+const POCKET_BADGE_STYLES: Record<string, string> = {
+	emerald: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold",
+	blue: "bg-blue-500/10 text-blue-700 dark:text-blue-400 font-bold",
+	purple: "bg-purple-500/10 text-purple-700 dark:text-purple-400 font-bold",
+	amber: "bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold",
+	rose: "bg-rose-500/10 text-rose-700 dark:text-rose-400 font-bold",
+	cyan: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 font-bold",
+	indigo: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 font-bold",
+	pink: "bg-pink-500/10 text-pink-700 dark:text-pink-400 font-bold",
+	orange: "bg-orange-500/10 text-orange-700 dark:text-orange-400 font-bold",
+};
+
 export function TransactionHistoryTable({
 	monthlyTransactions,
 	pockets,
@@ -29,6 +41,12 @@ export function TransactionHistoryTable({
 	themeColors,
 }: TransactionHistoryTableProps) {
 	const { t, language } = useLanguage();
+
+	const getPocketBadgeClass = (pocketNameOrId?: string) => {
+		if (!pocketNameOrId) return POCKET_BADGE_STYLES.emerald;
+		const matched = pockets.find(p => p.name === pocketNameOrId || p.id === pocketNameOrId);
+		return POCKET_BADGE_STYLES[matched?.color || "emerald"] || POCKET_BADGE_STYLES.emerald;
+	};
 
 	return (
 		<section className="glass-card rounded-3xl p-6 space-y-4">
@@ -92,15 +110,9 @@ export function TransactionHistoryTable({
 								</td>
 								{pockets && pockets.length > 0 && (
 									<td className="py-3 px-2">
-										{t.pocket ? (
-											<span className="bg-zinc-100 dark:bg-zinc-800 text-[10px] px-2 py-1 rounded-md font-medium text-zinc-600 dark:text-zinc-300">
-												{t.pocket}
-											</span>
-										) : (
-											<span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] px-2 py-1 rounded-md font-bold">
-												{language === "en" ? "Main Pocket" : "Dompet Utama"}
-											</span>
-										)}
+										<span className={`${getPocketBadgeClass(t.pocket)} text-[10px] px-2 py-1 rounded-md`}>
+											{t.pocket || (language === "en" ? "Main Pocket" : "Dompet Utama")}
+										</span>
 									</td>
 								)}
 								<td className={`py-3 px-2 text-right font-bold ${

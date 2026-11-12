@@ -385,6 +385,24 @@ export function AnalyticsView({
 	const scopedNonTransferTransactions = isAllScope ? allNonTransferTransactions : nonTransferTransactions;
 	const scopedMonthlyTransactions = isAllScope ? allMonthlyTransactions : monthlyTransactions;
 
+	// Use Emerald Green for "All Pockets (Overall)" scope so it's never ambiguous with the active card's color;
+	// only use the active pocket card's themeColors when specifically viewing that pocket's data.
+	const allScopeThemeColors = {
+		gradient: "from-[#6EE7B7] to-[#34D399]",
+		cardText: "text-[#063626]",
+		shadow: "shadow-[0_4px_10px_rgba(0,0,0,0.10)]",
+		text: "text-emerald-500",
+		textDark: "text-emerald-600 dark:text-emerald-400",
+		bgLight: "bg-emerald-500/10 dark:bg-emerald-500/15",
+		border: "border-emerald-500/20 dark:border-emerald-500/20",
+		accentText: "text-emerald-700 dark:text-emerald-300",
+		accentBg: "bg-emerald-500/10 dark:bg-emerald-500/20",
+		accentHex: "#10b981",
+		chartPalette: ["#10b981", "#059669", "#047857", "#065f46", "#064e3b", "#022c22"],
+		navText: "text-[#063626]/65 hover:text-[#063626]",
+	};
+	const scopedThemeColors = isAllScope ? allScopeThemeColors : themeColors;
+
 	const activePocketDisplayName = isNetWorth
 		? (pockets.length > 0 ? (language === "en" ? "Main Pocket" : "Saldo Utama") : (language === "en" ? "Total Balance" : "Total Saldo"))
 		: activePocket.name;
@@ -522,21 +540,21 @@ export function AnalyticsView({
 				</div>
 			) : transactions.length > 0 ? (
 				<motion.div style={{ y: cardPullDownY }} className="space-y-4 sm:space-y-6">
-					{/* Compact Segmented Scope Toggle: All Pockets (Keseluruhan) vs Active Pocket (Per Kantong) */}
+					{/* Compact Segmented Scope Toggle: All Pockets (Keseluruhan = Emerald) vs Active Pocket (Per Kantong = Pocket Color) */}
 					{pockets.length > 0 && (
 						<div className="glass-card p-1.5 rounded-2xl flex items-center relative select-none">
 							<motion.div
 								initial={false}
 								animate={{ x: analyticsScope === "pocket" ? "100%" : "0%" }}
 								transition={{ type: "spring", stiffness: 420, damping: 32 }}
-								className={`absolute top-1.5 bottom-1.5 left-1.5 w-[calc(50%-6px)] rounded-xl bg-gradient-to-r ${themeColors.gradient} shadow-[0_2px_8px_rgba(0,0,0,0.08)]`}
+								className={`absolute top-1.5 bottom-1.5 left-1.5 w-[calc(50%-6px)] rounded-xl bg-gradient-to-r ${scopedThemeColors.gradient} shadow-[0_2px_8px_rgba(0,0,0,0.08)]`}
 							/>
 							<button
 								type="button"
 								onClick={() => setAnalyticsScope("all")}
 								className={`relative z-10 flex-1 py-2 px-3 rounded-xl text-[11px] sm:text-xs font-black transition-colors cursor-pointer bg-transparent border-none flex items-center justify-center gap-1.5 ${
 									analyticsScope === "all"
-										? (themeColors.cardText || "text-[#063626]")
+										? "text-[#063626]"
 										: "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
 								}`}
 							>
@@ -551,9 +569,10 @@ export function AnalyticsView({
 								className={`relative z-10 flex-1 py-2 px-3 rounded-xl text-[11px] sm:text-xs font-black transition-colors cursor-pointer bg-transparent border-none flex items-center justify-center gap-1.5 ${
 									analyticsScope === "pocket"
 										? (themeColors.cardText || "text-[#063626]")
-										: "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+										: `text-zinc-500 dark:text-zinc-400 hover:${themeColors.text}`
 								}`}
 							>
+								<span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: themeColors.accentHex }} />
 								<span className="truncate">
 									{language === "en" ? `Pocket: ${activePocketDisplayName}` : `Kantong: ${activePocketDisplayName}`}
 								</span>
@@ -565,7 +584,7 @@ export function AnalyticsView({
 						loading={loading}
 						transactions={transactions}
 						getDailyData={getDailyData}
-						themeColors={themeColors}
+						themeColors={scopedThemeColors}
 						formatCurrency={formatCurrency}
 						getGroupedCategoryData={getGroupedCategoryData}
 						customChartConfigs={customChartConfigs}
@@ -588,7 +607,7 @@ export function AnalyticsView({
 						exportToGoogleSheets={exportToGoogleSheets}
 						supabaseUser={supabaseUser}
 						loading={loading}
-						themeColors={themeColors}
+						themeColors={scopedThemeColors}
 					/>
 				</motion.div>
 			) : (

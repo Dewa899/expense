@@ -14,6 +14,7 @@ import {
 	ArrowLeft,
 	ChevronRight,
 	Download,
+	FlaskConical,
 	HelpCircle,
 	Info,
 	Languages,
@@ -23,6 +24,7 @@ import {
 	Settings,
 	Sun,
 	User,
+	X,
 } from "lucide-react";
 import { Logo } from "@/app/page";
 import { SupportModal } from "@/components/dashboard/modals/bug-report-modal";
@@ -279,8 +281,8 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();
 	const router = useRouter();
 	const logic = useDashboard();
-	const { isDemoMode, demoTransactions } = useDemo();
-	const { language } = useLanguage();
+	const { isDemoMode, demoTransactions, exitDemo } = useDemo();
+	const { language, t } = useLanguage();
 	const [mounted, setMounted] = React.useState(false);
 	
 	const [isDashboardSettingsOpen, setIsDashboardSettingsOpen] = React.useState(false);
@@ -348,38 +350,57 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
 
 	return (
 		<AppLayoutContext.Provider value={contextValue}>
-			<div className="flex flex-col min-h-screen bg-[#F4F5F7] dark:bg-[#18191C] text-zinc-900 dark:text-zinc-50 transition-colors duration-300 relative overflow-x-hidden">
-				<header className="px-4 py-3 flex items-center justify-between sticky top-0 z-50 glass-header">
-					<Logo onClick={() => router.push("/dashboard")} />
-					
-					<div className="flex items-center gap-1.5">
-						{pathname === "/dashboard" && (
-							<Button variant="ghost" size="sm" onClick={() => router.push("/")} className="mr-1 text-xs font-bold text-emerald-500 cursor-pointer rounded-2xl">
-								<ArrowLeft size={14} className="mr-1" />
-								App
-							</Button>
-						)}
-						{pathname === "/login" && (
-							<Button variant="ghost" size="sm" onClick={() => router.push("/")} className="mr-1 text-xs font-bold text-emerald-500 cursor-pointer rounded-2xl">
-								<ArrowLeft size={14} className="mr-1" />
-								{language === "en" ? "Back" : "Kembali"}
-							</Button>
-						)}
+			<div className="flex flex-col min-h-screen bg-[#F4F5F7] dark:bg-[#18191C] text-zinc-900 dark:text-zinc-50 transition-colors duration-300 relative overflow-x-clip">
+				<div className="sticky top-0 z-50 w-full">
+					<header className="px-4 py-3 flex items-center justify-between glass-header">
+						<Logo onClick={() => router.push("/dashboard")} />
+						
+						<div className="flex items-center gap-1.5">
+							{pathname === "/dashboard" && (
+								<Button variant="ghost" size="sm" onClick={() => router.push("/")} className="mr-1 text-xs font-bold text-emerald-500 cursor-pointer rounded-2xl">
+									<ArrowLeft size={14} className="mr-1" />
+									App
+								</Button>
+							)}
+							{pathname === "/login" && (
+								<Button variant="ghost" size="sm" onClick={() => router.push("/")} className="mr-1 text-xs font-bold text-emerald-500 cursor-pointer rounded-2xl">
+									<ArrowLeft size={14} className="mr-1" />
+									{language === "en" ? "Back" : "Kembali"}
+								</Button>
+							)}
 
-						<Button
-							variant="ghost"
-							size="icon"
-							onClick={() => setIsDashboardSettingsOpen(true)}
-							className="rounded-2xl h-9 w-9 bg-[#EAECEF] dark:bg-[#222428] text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-zinc-200/80 dark:hover:bg-[#2B2E33] border-none cursor-pointer transition-colors"
-							aria-label="Pengaturan Dasbor"
-							title={language === "en" ? "Dashboard Controls & Settings" : "Kontrol Dasbor & Pengaturan"}
-						>
-							<Settings size={18} />
-						</Button>
-					</div>
-				</header>
+							<Button
+								variant="ghost"
+								size="icon"
+								onClick={() => setIsDashboardSettingsOpen(true)}
+								className="rounded-2xl h-9 w-9 bg-[#EAECEF] dark:bg-[#222428] text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-zinc-200/80 dark:hover:bg-[#2B2E33] border-none cursor-pointer transition-colors"
+								aria-label="Pengaturan Dasbor"
+								title={language === "en" ? "Dashboard Controls & Settings" : "Kontrol Dasbor & Pengaturan"}
+							>
+								<Settings size={18} />
+							</Button>
+						</div>
+					</header>
 
-				<main className="flex-grow flex flex-col relative overflow-hidden">
+					{isDemoMode && (pathname === "/" || pathname === "/detail") && (
+						<div className="px-4 py-2 bg-amber-400 dark:bg-amber-500 text-black flex items-center justify-between gap-3 shadow-sm">
+							<div className="flex items-center gap-2 text-xs font-bold min-w-0">
+								<FlaskConical size={14} className="shrink-0" />
+								<span className="leading-tight">{t("demoModeBanner")}</span>
+							</div>
+							<button
+								type="button"
+								onClick={exitDemo}
+								className="text-[10px] font-black uppercase tracking-wider bg-black/15 hover:bg-black/25 px-3 py-1 rounded-full flex items-center gap-1 transition-colors cursor-pointer shrink-0 border-none"
+							>
+								<X size={10} />
+								{t("exitDemo")}
+							</button>
+						</div>
+					)}
+				</div>
+
+				<main className="flex-grow flex flex-col relative overflow-x-clip">
 					{children}
 				</main>
 
