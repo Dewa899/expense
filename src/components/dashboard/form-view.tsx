@@ -398,6 +398,8 @@ export function FormView(props: FormViewProps) {
 	}, [activePocket, props.transactions, props.getPocketBalance]);
 
 
+	const cardPullDownY = useMotionValue(0);
+
 	return (
 		<motion.div 
 			initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
@@ -424,6 +426,7 @@ export function FormView(props: FormViewProps) {
 				onPocketSelectClick={() => setIsPocketSelectOpen(true)}
 				onCardClick={() => props.onViewDetail()}
 				onMoveFundsClick={() => setIsMoveFundsOpen(true)}
+				pullDownOffset={cardPullDownY}
 			/>
 
 			{/* Direct Pocket Selector Dialog */}
@@ -448,38 +451,40 @@ export function FormView(props: FormViewProps) {
 				}}
 			/>
 
-			{/* Separated Progress Bar Card */}
-			<SeparatedProgressBarCard
-				activePocket={activePocket}
-				progressBarPercent={progressBarPercent}
-				formatCurrency={props.formatCurrency}
-				language={language}
-				themeColors={themeColors}
-			/>
+			<motion.div style={{ y: cardPullDownY }} className="space-y-3">
+				{/* Separated Progress Bar Card */}
+				<SeparatedProgressBarCard
+					activePocket={activePocket}
+					progressBarPercent={progressBarPercent}
+					formatCurrency={props.formatCurrency}
+					language={language}
+					themeColors={themeColors}
+				/>
 
-			{/* Bottom Action Shortcut Buttons (Visible only under Worth overview & if Clean Display is off) */}
-			{props.activePocketIdx === 0 && !isCleanDisplay && (
-				<div className="grid grid-cols-2 gap-3 mt-4">
-					<Button
-						variant="outline"
-						onClick={() => setIsRecurringModalOpen(true)}
-						disabled={isSyncing}
-						className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border-none bg-white dark:bg-[#222428] hover:bg-zinc-100 dark:hover:bg-[#2B2E33] cursor-pointer text-zinc-800 dark:text-zinc-200 text-xs shadow-[0_4px_10px_rgba(0,0,0,0.08)] transition-all"
-					>
-						<CalendarDays size={16} className={themeColors.text} />
-						<span>{language === "en" ? "Auto Transactions" : "Transaksi Otomatis"}</span>
-					</Button>
-					<Button
-						variant="outline"
-						onClick={() => setIsPocketSettingsOpen(true)}
-						disabled={isSyncing}
-						className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border-none bg-white dark:bg-[#222428] hover:bg-zinc-100 dark:hover:bg-[#2B2E33] cursor-pointer text-zinc-800 dark:text-zinc-200 text-xs shadow-[0_4px_10px_rgba(0,0,0,0.08)] transition-all"
-					>
-						<Plus size={16} className={themeColors.text} />
-						<span>{language === "en" ? "Manage Pockets" : "Kelola Kantong"}</span>
-					</Button>
-				</div>
-			)}
+				{/* Bottom Action Shortcut Buttons (Visible only under Worth overview & if Clean Display is off) */}
+				{props.activePocketIdx === 0 && !isCleanDisplay && (
+					<div className="grid grid-cols-2 gap-3 mt-4">
+						<Button
+							variant="outline"
+							onClick={() => setIsRecurringModalOpen(true)}
+							disabled={isSyncing}
+							className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border-none bg-white dark:bg-[#222428] hover:bg-zinc-100 dark:hover:bg-[#2B2E33] cursor-pointer text-zinc-800 dark:text-zinc-200 text-xs shadow-[0_4px_10px_rgba(0,0,0,0.08)] transition-all"
+						>
+							<CalendarDays size={16} className={themeColors.text} />
+							<span>{language === "en" ? "Auto Transactions" : "Transaksi Otomatis"}</span>
+						</Button>
+						<Button
+							variant="outline"
+							onClick={() => setIsPocketSettingsOpen(true)}
+							disabled={isSyncing}
+							className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border-none bg-white dark:bg-[#222428] hover:bg-zinc-100 dark:hover:bg-[#2B2E33] cursor-pointer text-zinc-800 dark:text-zinc-200 text-xs shadow-[0_4px_10px_rgba(0,0,0,0.08)] transition-all"
+						>
+							<Plus size={16} className={themeColors.text} />
+							<span>{language === "en" ? "Manage Pockets" : "Kelola Kantong"}</span>
+						</Button>
+					</div>
+				)}
+			</motion.div>
 
 			{/* PWA Downloader modal */}
 			<PwaDownloaderModal
@@ -520,7 +525,7 @@ export function FormView(props: FormViewProps) {
 				themeColors={themeColors}
 			/>
 
-			<section className="rounded-3xl p-4 sm:p-5 glass-card">
+			<motion.section style={{ y: cardPullDownY }} className="rounded-3xl p-4 sm:p-5 glass-card">
 				<div className="flex items-center justify-between gap-2 mb-3.5">
 					<div className="flex items-center gap-1.5 min-w-0 flex-1">
 						<h3 className="text-xs font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 shrink-0">
@@ -593,17 +598,17 @@ export function FormView(props: FormViewProps) {
 							const customField = customFieldIdx !== -1 ? props.customFields[customFieldIdx] : null;
 							const isNote = hL.includes("catatan") || hL.includes("note");
 
-							// Collapsible optional Note field behind "+ Note" button (Filled surface, no outline, rounded-2xl)
+							// Collapsible optional Note field behind "+ Note" button (Centered, filled surface, no outline, rounded-2xl)
 							if (isNote) {
 								const showNoteInput = isNoteExpanded || Boolean(localFormData[header]);
 								if (!showNoteInput) {
 									return (
-										<div key={header} className="pt-0.5">
+										<div key={header} className="pt-0.5 flex justify-center">
 											<button
 												type="button"
 												disabled={isInteractionDisabled}
 												onClick={() => setIsNoteExpanded(true)}
-												className={`inline-flex items-center gap-1 text-xs font-bold ${themeColors.textDark} bg-[#F1F3F5] dark:bg-[#2B2E33] hover:bg-[#EAECEF] dark:hover:bg-[#32363C] border-none px-3.5 py-2 rounded-2xl transition-all cursor-pointer disabled:opacity-50`}
+												className={`inline-flex items-center justify-center gap-1 text-xs font-bold ${themeColors.textDark} bg-[#F1F3F5] dark:bg-[#2B2E33] hover:bg-[#EAECEF] dark:hover:bg-[#32363C] border-none px-4 py-2 rounded-2xl transition-all cursor-pointer disabled:opacity-50`}
 											>
 												<Plus size={13} />
 												<span>{props.translateHeader(header)}</span>
@@ -636,8 +641,8 @@ export function FormView(props: FormViewProps) {
 								);
 							}
 
-							// Only render compact label header row for Category, Dropdowns, or custom fields (Name, Amount, Type labels omitted for compactness)
-							const showFieldHeader = isCoreCat || Boolean(customField) || (!isName && !isAmount && !isType);
+							// Omit label header for Name, Amount, Type, and core Category (Category title is removed; gear icon sits beside the full-width dropdown)
+							const showFieldHeader = !isCoreCat && (Boolean(customField) || (!isName && !isAmount && !isType));
 
 							return (
 								<div key={header} ref={isAmount ? amountFieldRef : undefined} className="space-y-1.5">
@@ -647,28 +652,76 @@ export function FormView(props: FormViewProps) {
 												{props.translateHeader(header)}
 												{customField?.required && <span className="text-red-500 ml-1">*</span>}
 											</Label>
-											{(isCoreCat || customField?.type === "dropdown") && (
-												<Dialog>
-													<DialogTrigger render={<Button variant="ghost" size="sm" disabled={isInteractionDisabled} className={`h-5 text-[10px] font-bold ${themeColors.textDark} ${themeColors.hoverBg} px-1.5 rounded-lg cursor-pointer bg-transparent`} />}>
-														{t("manageOptions")}
-													</DialogTrigger>
-													<DialogContent className="sm:max-w-[400px] rounded-3xl">
-														<DialogHeader><DialogTitle>{isCoreCat ? t("manageCategories") : `${t("manageOptions")}: ${header}`}</DialogTitle></DialogHeader>
-														<div className="space-y-4 py-4">
-															<div className="flex gap-2"><Input placeholder={isCoreCat ? t("newCategory") : t("newOption")} value={isCoreCat ? props.newCategoryInput : props.newOptionInput} onChange={(e) => isCoreCat ? props.setNewCategoryInput(e.target.value) : props.setNewOptionInput(e.target.value)} disabled={isInteractionDisabled} className="rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33]" /><Button onClick={() => isCoreCat ? props.onAddCategory() : props.onAddOption(customFieldIdx, props.newOptionInput)} disabled={isInteractionDisabled} className={`bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 ${themeColors.cardText} font-bold rounded-2xl cursor-pointer border-none shadow-[0_4px_10px_rgba(0,0,0,0.10)]`}>{t("add")}</Button></div>
-															<div className="max-h-[200px] overflow-y-auto space-y-2">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<div key={opt} className="flex items-center justify-between p-3 bg-[#F1F3F5] dark:bg-[#2B2E33] rounded-2xl border-none">
-																<span className="text-sm font-medium">{opt}</span><Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => isCoreCat ? props.onDeleteCategory(opt) : props.onDeleteOption(customFieldIdx, opt)} className="cursor-pointer"><Trash2 size={14} /></Button></div>))}</div>
-														</div>
-													</DialogContent>
-												</Dialog>
-											)}
 										</div>
 									)}
 									{(isCoreCat || (customField?.type === "dropdown")) ? (
-										<Select value={localFormData[header] || ""} disabled={isInteractionDisabled} onValueChange={(val) => handleLocalInputChange(header, val || "")}>
-											<SelectTrigger className={`h-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] hover:bg-[#EAECEF] dark:hover:bg-[#32363C] focus:bg-[#EAECEF] dark:focus:bg-[#32363C] shadow-none cursor-pointer transition-colors text-sm ${themeColors.focusRingInput}`}><SelectValue placeholder={t("selectCategory")} /></SelectTrigger>
-											<SelectContent className="rounded-2xl w-auto min-w-[240px] border-none shadow-[0_8px_24px_rgba(0,0,0,0.18)]">{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (<SelectItem key={opt} value={opt} className="cursor-pointer rounded-xl">{opt}</SelectItem>))}</SelectContent>
-										</Select>
+										<div className="flex items-center gap-2 w-full">
+											<div className="flex-1 min-w-0">
+												<Select value={localFormData[header] || ""} disabled={isInteractionDisabled} onValueChange={(val) => handleLocalInputChange(header, val || "")}>
+													<SelectTrigger className={`w-full h-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] hover:bg-[#EAECEF] dark:hover:bg-[#32363C] focus:bg-[#EAECEF] dark:focus:bg-[#32363C] shadow-none cursor-pointer transition-colors text-sm ${themeColors.focusRingInput}`}>
+														<SelectValue placeholder={isCoreCat ? t("selectCategory") : `${props.translateHeader(header)}...`} />
+													</SelectTrigger>
+													<SelectContent className="rounded-2xl w-auto min-w-[240px] border-none shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
+														{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (
+															<SelectItem key={opt} value={opt} className="cursor-pointer rounded-xl">
+																{opt}
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
+											</div>
+
+											<Dialog>
+												<DialogTrigger
+													render={
+														<Button
+															type="button"
+															variant="ghost"
+															size="icon"
+															disabled={isInteractionDisabled}
+															aria-label={isCoreCat ? t("manageCategories") : `${t("manageOptions")}: ${header}`}
+															title={isCoreCat ? t("manageCategories") : `${t("manageOptions")}: ${header}`}
+															className={`h-12 w-12 rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33] hover:bg-[#EAECEF] dark:hover:bg-[#32363C] ${themeColors.textDark} flex items-center justify-center cursor-pointer transition-colors shrink-0 shadow-none`}
+														/>
+													}
+												>
+													<Settings size={18} />
+												</DialogTrigger>
+												<DialogContent className="sm:max-w-[400px] rounded-3xl">
+													<DialogHeader>
+														<DialogTitle>{isCoreCat ? t("manageCategories") : `${t("manageOptions")}: ${header}`}</DialogTitle>
+													</DialogHeader>
+													<div className="space-y-4 py-4">
+														<div className="flex gap-2">
+															<Input
+																placeholder={isCoreCat ? t("newCategory") : t("newOption")}
+																value={isCoreCat ? props.newCategoryInput : props.newOptionInput}
+																onChange={(e) => isCoreCat ? props.setNewCategoryInput(e.target.value) : props.setNewOptionInput(e.target.value)}
+																disabled={isInteractionDisabled}
+																className="rounded-2xl border-none bg-[#F1F3F5] dark:bg-[#2B2E33]"
+															/>
+															<Button
+																onClick={() => isCoreCat ? props.onAddCategory() : props.onAddOption(customFieldIdx, props.newOptionInput)}
+																disabled={isInteractionDisabled}
+																className={`bg-gradient-to-r ${themeColors.gradient} hover:opacity-95 ${themeColors.cardText} font-bold rounded-2xl cursor-pointer border-none shadow-[0_4px_10px_rgba(0,0,0,0.10)]`}
+															>
+																{t("add")}
+															</Button>
+														</div>
+														<div className="max-h-[200px] overflow-y-auto space-y-2">
+															{(isCoreCat ? props.categories : customField?.options || []).map((opt: string) => (
+																<div key={opt} className="flex items-center justify-between p-3 bg-[#F1F3F5] dark:bg-[#2B2E33] rounded-2xl border-none">
+																	<span className="text-sm font-medium">{opt}</span>
+																	<Button variant="ghost" size="sm" disabled={isInteractionDisabled} onClick={() => isCoreCat ? props.onDeleteCategory(opt) : props.onDeleteOption(customFieldIdx, opt)} className="cursor-pointer">
+																		<Trash2 size={14} />
+																	</Button>
+																</div>
+															))}
+														</div>
+													</div>
+												</DialogContent>
+											</Dialog>
+										</div>
 									) : isType ? (
 										<div className="flex bg-[#F1F3F5] dark:bg-[#2B2E33] p-1 rounded-2xl gap-1 border-none">
 											<button
@@ -746,7 +799,7 @@ export function FormView(props: FormViewProps) {
 						</div>
 					)}
 				</div>
-			</section>
+			</motion.section>
 
 			{/* Backdrop for Quick Hamburger Menu */}
 			<AnimatePresence>

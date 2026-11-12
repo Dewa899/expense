@@ -589,19 +589,21 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
 					}}
 				/>
 
-				<footer className="p-8 text-center mt-auto border-t border-zinc-200 dark:border-zinc-800/50 flex flex-col items-center gap-2">
-					<p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-650">
-						EXPENSE BY GENLORD
-					</p>
-					<div className="flex gap-4">
-						<a href="/privacy" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-4">
-							Privacy Policy
-						</a>
-						<a href="/terms" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-4">
-							Terms of Service
-						</a>
-					</div>
-				</footer>
+				{pathname !== "/" && (
+					<footer className="p-8 text-center mt-auto border-t border-zinc-200 dark:border-zinc-800/50 flex flex-col items-center gap-2">
+						<p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-650">
+							EXPENSE BY GENLORD
+						</p>
+						<div className="flex gap-4">
+							<a href="/privacy" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-4">
+								Privacy Policy
+							</a>
+							<a href="/terms" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-emerald-500 transition-colors underline underline-offset-4">
+								Terms of Service
+							</a>
+						</div>
+					</footer>
+				)}
 			</div>
 		</AppLayoutContext.Provider>
 	);

@@ -104,7 +104,7 @@ export function DashboardView({
 	};
 
 	return (
-		<div className="flex flex-col px-4 pt-3 pb-24 gap-3 w-full min-h-screen relative mx-auto transition-all duration-300 bg-transparent">
+		<div className="flex flex-col px-4 pt-2 pb-[76px] gap-2.5 w-full flex-1 relative mx-auto transition-all duration-300 bg-transparent">
 			{/* Demo Mode Banner */}
 			<AnimatePresence>
 				{isDemoMode && (
@@ -112,7 +112,7 @@ export function DashboardView({
 						initial={{ opacity: 0, y: -40 }}
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: -40 }}
-						className="sticky top-0 z-40 -mx-4 -mt-3 px-4 py-2 bg-amber-400 dark:bg-amber-500 text-black flex items-center justify-between gap-3 shadow-md"
+						className="sticky top-[60px] z-40 -mx-4 -mt-2 px-4 py-2 bg-amber-400 dark:bg-amber-500 text-black flex items-center justify-between gap-3 shadow-md"
 					>
 						<div className="flex items-center gap-2 text-xs font-bold">
 							<FlaskConical size={14} />

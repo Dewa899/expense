@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { motion, useMotionValue, useSpring, useTransform, AnimatePresence, animate } from "framer-motion";
+import { motion, useMotionValue, useMotionValueEvent, useSpring, useTransform, AnimatePresence, animate, MotionValue } from "framer-motion";
 import { Wallet, Settings, ChevronLeft, ChevronRight, Eye, EyeOff, ArrowLeftRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PocketDef, isInternalTransfer } from "@/hooks/use-dashboard-logic";
@@ -30,6 +30,7 @@ interface PocketCarouselCardProps {
 	onPocketSelectClick: () => void;
 	onCardClick?: () => void;
 	onMoveFundsClick?: () => void;
+	pullDownOffset?: MotionValue<number>;
 }
 
 const SOFT_POCKET_GRADIENTS: Record<string, string> = {
@@ -69,15 +70,24 @@ export function PocketCarouselCard({
 	onPocketSelectClick,
 	onCardClick,
 	onMoveFundsClick,
+	pullDownOffset,
 }: PocketCarouselCardProps) {
 	const { language } = useLanguage();
 
 	const dragX = useMotionValue(0);
 	const dragY = useMotionValue(0);
+	const lockedDirectionRef = React.useRef<"x" | "y" | null>(null);
 
-	// Spring-smoothed motion values so the stacked cards glide smoothly without discrete touch jumps
-	const smoothX = useSpring(dragX, { stiffness: 460, damping: 34, mass: 0.45 });
-	const smoothY = useSpring(dragY, { stiffness: 460, damping: 34, mass: 0.45 });
+	// Silky spring-smoothed motion values for fluid 60/120fps stack & sibling push animation
+	const smoothX = useSpring(dragX, { stiffness: 360, damping: 32, mass: 0.45 });
+	const smoothY = useSpring(dragY, { stiffness: 340, damping: 30, mass: 0.5 });
+
+	// Push the sibling card(s) below downward in real-time as the user pulls down
+	useMotionValueEvent(smoothY, "change", (latestY) => {
+		if (pullDownOffset) {
+			pullDownOffset.set(Math.max(0, latestY));
+		}
+	});
 
 	// Active foreground card subtle 3D response during drag
 	const activeRotateZ = useTransform(smoothX, [-120, 0, 120], [-1.8, 0, 1.8]);
@@ -87,21 +97,21 @@ export function PocketCarouselCard({
 	});
 
 	// ─── 1. IDLE + SWIPE-DOWN SYMMETRICAL DECK STACK ("All Pockets") ───────────
-	// Compact vertical travel:
-	// - Phase 1 (y: 0 -> 8px): Deck smoothly pops its top rim above the active card (+6px -> -3px)
-	// - Phase 2 (y: 8 -> 24px): Deck follows the downward pull together with the active card (-3px -> +2.5px)
-	// This keeps the "All Pockets" badge clearly visible while never overlapping elements above or below.
+	// Generous, smooth downward travel (up to ~56px) while pushing the card below downward:
+	// - Phase 1 (y: 0 -> 14px): Deck smoothly pops its top rim above the active card (+6px -> -3px)
+	// - Phase 2 (y: 14 -> 56px): Both deck1 and deck2 glide downward together with the active card
+	//   (-3px -> +22px and -7px -> +11px), opening a spacious 34px reveal for "All Pockets".
 	const deck1Y = useTransform([smoothX, smoothY], ([x, y]) => {
 		const numX = Number(x) || 0;
 		const numY = Math.max(0, Number(y) || 0);
 		if (numY > 0.5) {
-			if (numY <= 8) {
-				const t = numY / 8;
+			if (numY <= 14) {
+				const t = numY / 14;
 				const smooth = t * t * (3 - 2 * t);
 				return 6 - 9 * smooth; // +6px (idle bottom peek) -> -3px (initial top reveal)
 			}
-			const extraY = Math.min(numY - 8, 18);
-			return -3 + extraY * 0.32; // Moves DOWN together with the dragged card (-3px -> +2.7px)
+			const extraY = Math.min(numY - 14, 48);
+			return -3 + extraY * 0.6; // Glides DOWN together with the dragged card (-3px -> +25.8px)
 		}
 		const horizProgress = Math.min(Math.abs(numX) / 40, 1);
 		return 6 * (1 - horizProgress);
@@ -111,8 +121,8 @@ export function PocketCarouselCard({
 		const numX = Number(x) || 0;
 		const numY = Math.max(0, Number(y) || 0);
 		if (numY > 0.5) {
-			const progress = Math.min(numY / 22, 1);
-			return 0.96 + progress * 0.015; // 0.96 -> 0.975
+			const progress = Math.min(numY / 50, 1);
+			return 0.96 + progress * 0.02; // 0.96 -> 0.98
 		}
 		const horizProgress = Math.min(Math.abs(numX) / 50, 1);
 		return 0.96 - horizProgress * 0.02;
@@ -122,7 +132,7 @@ export function PocketCarouselCard({
 		const numX = Number(x) || 0;
 		const numY = Math.max(0, Number(y) || 0);
 		if (numY > 0.5) {
-			return Math.min(0.88 + (numY / 22) * 0.12, 1);
+			return Math.min(0.88 + (numY / 35) * 0.12, 1);
 		}
 		const horizProgress = Math.min(Math.abs(numX) / 30, 1);
 		return 0.85 * (1 - horizProgress);
@@ -132,13 +142,13 @@ export function PocketCarouselCard({
 		const numX = Number(x) || 0;
 		const numY = Math.max(0, Number(y) || 0);
 		if (numY > 0.5) {
-			if (numY <= 8) {
-				const t = numY / 8;
+			if (numY <= 14) {
+				const t = numY / 14;
 				const smooth = t * t * (3 - 2 * t);
-				return 11 - 17.5 * smooth; // +11px (idle bottom peek) -> -6.5px (subtle second rim)
+				return 11 - 18 * smooth; // +11px (idle bottom peek) -> -7px (second card rim)
 			}
-			const extraY = Math.min(numY - 8, 18);
-			return -6.5 + extraY * 0.28; // Moves DOWN together with deck1 and active card (-6.5px -> -1.5px)
+			const extraY = Math.min(numY - 14, 48);
+			return -7 + extraY * 0.42; // Glides DOWN together with deck1 and active card (-7px -> +13.1px)
 		}
 		const horizProgress = Math.min(Math.abs(numX) / 40, 1);
 		return 11 * (1 - horizProgress);
@@ -148,8 +158,8 @@ export function PocketCarouselCard({
 		const numX = Number(x) || 0;
 		const numY = Math.max(0, Number(y) || 0);
 		if (numY > 0.5) {
-			const progress = Math.min(numY / 22, 1);
-			return 0.92 + progress * 0.025; // 0.92 -> 0.945
+			const progress = Math.min(numY / 50, 1);
+			return 0.92 + progress * 0.03; // 0.92 -> 0.95
 		}
 		const horizProgress = Math.min(Math.abs(numX) / 50, 1);
 		return 0.92 - horizProgress * 0.02;
@@ -159,14 +169,15 @@ export function PocketCarouselCard({
 		const numX = Number(x) || 0;
 		const numY = Math.max(0, Number(y) || 0);
 		if (numY > 0.5) {
-			return Math.min(0.65 + (numY / 22) * 0.3, 0.95);
+			return Math.min(0.65 + (numY / 40) * 0.3, 0.95);
 		}
 		const horizProgress = Math.min(Math.abs(numX) / 30, 1);
 		return 0.55 * (1 - horizProgress);
 	});
 
-	const allPocketsBadgeOpacity = useTransform(smoothY, [2, 11], [0, 1]);
-	const allPocketsBadgeScale = useTransform(smoothY, [2, 22], [0.92, 1]);
+	const allPocketsBadgeOpacity = useTransform(smoothY, [4, 20], [0, 1]);
+	const allPocketsBadgeScale = useTransform(smoothY, [4, 45], [0.9, 1.02]);
+	const allPocketsBadgeY = useTransform(smoothY, [4, 45], [0, 4]);
 
 	// ─── 2. MIRROR-SYMMETRICAL HORIZONTAL SWIPE CARDS (LEFT / RIGHT) ──────────
 	// Swiping Right (dragX > 0) reveals Previous Pocket peeking from the left with scaling vertical title
@@ -272,15 +283,15 @@ export function PocketCarouselCard({
 	// Content for the Swipe-Down Deck ("All Pockets" / "Semua Kantong")
 	const renderAllPocketsDeckContent = (textClass: string) => (
 		<motion.div
-			style={{ opacity: allPocketsBadgeOpacity, scale: allPocketsBadgeScale }}
-			className={`w-full flex justify-center items-center pt-[3px] px-4 ${textClass} select-none pointer-events-none`}
+			style={{ opacity: allPocketsBadgeOpacity, scale: allPocketsBadgeScale, y: allPocketsBadgeY }}
+			className={`w-full flex justify-center items-center pt-1.5 px-4 ${textClass} select-none pointer-events-none`}
 		>
-			<div className="inline-flex items-center gap-1.5 px-2.5 py-[2px] rounded-full bg-black/8 dark:bg-black/15">
-				<Wallet size={10} className="opacity-85 shrink-0" />
-				<span className="text-[9px] font-black uppercase tracking-widest leading-none">
+			<div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/8 dark:bg-black/15">
+				<Wallet size={11} className="opacity-85 shrink-0" />
+				<span className="text-[9.5px] font-black uppercase tracking-widest leading-none">
 					{language === "en" ? "All Pockets" : "Semua Kantong"}
 				</span>
-				<span className="text-[8.5px] font-extrabold opacity-65 leading-none">
+				<span className="text-[9px] font-extrabold opacity-65 leading-none">
 					({carouselPockets.length})
 				</span>
 			</div>
@@ -311,7 +322,7 @@ export function PocketCarouselCard({
 	);
 
 	return (
-		<section className={`relative z-20 isolate mt-2.5 ${pockets.length > 0 ? "mb-5" : "mb-2"}`}>
+		<section className={`relative z-20 isolate mt-1.5 ${pockets.length > 0 ? "mb-3.5" : "mb-1.5"}`}>
 			{/* 1. Symmetrical Deck Stack (Idle Bottom Stack + Swipe-Down "All Pockets" Top Reveal) */}
 			{pockets.length > 0 && (
 				<>
@@ -380,8 +391,8 @@ export function PocketCarouselCard({
 			<motion.div 
 				style={{ x: dragX, y: dragY, rotateZ: activeRotateZ, scale: activeScale }}
 				drag={pockets.length > 0 ? true : false}
-				dragConstraints={{ left: -80, right: 80, top: 0, bottom: 22 }}
-				dragElastic={{ top: 0, bottom: 0.02, left: 0.1, right: 0.1 }}
+				dragConstraints={{ left: -85, right: 85, top: 0, bottom: 56 }}
+				dragElastic={{ top: 0, bottom: 0.08, left: 0.12, right: 0.12 }}
 				dragDirectionLock={true}
 				onDirectionLock={(axis) => {
 					lockedDirectionRef.current = axis;
@@ -411,7 +422,7 @@ export function PocketCarouselCard({
 					lockedDirectionRef.current = null;
 					if (pockets.length === 0) return;
 
-					const vertThreshold = 15;
+					const vertThreshold = 26;
 					const horizThreshold = 38;
 					const absX = Math.abs(info.offset.x);
 					const absY = Math.abs(info.offset.y);
@@ -430,8 +441,8 @@ export function PocketCarouselCard({
 					}
 
 					// Snaps back to 0,0 with smooth critically-damped spring simulation
-					animate(dragX, 0, { type: "spring", stiffness: 420, damping: 32 });
-					animate(dragY, 0, { type: "spring", stiffness: 420, damping: 32 });
+					animate(dragX, 0, { type: "spring", stiffness: 360, damping: 30 });
+					animate(dragY, 0, { type: "spring", stiffness: 340, damping: 28 });
 				}}
 				className="w-full cursor-grab active:cursor-grabbing select-none relative z-10"
 			>

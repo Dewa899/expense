@@ -354,6 +354,26 @@ export function AnalyticsView({
 	
 
 
+	const [analyticsScope, setAnalyticsScope] = React.useState<"all" | "pocket">("all");
+	const cardPullDownY = useMotionValue(0);
+
+	const allMonthlyTransactions = React.useMemo(
+		() => transactions.filter(t => t.category !== "Initial Balance"),
+		[transactions]
+	);
+	const allNonTransferTransactions = React.useMemo(
+		() => allMonthlyTransactions.filter(t => !isInternalTransfer(t)),
+		[allMonthlyTransactions]
+	);
+	const overallIncomeTotal = React.useMemo(
+		() => allNonTransferTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0),
+		[allNonTransferTransactions]
+	);
+	const overallExpenseTotal = React.useMemo(
+		() => Math.abs(allNonTransferTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0)),
+		[allNonTransferTransactions]
+	);
+
 	const monthlyTransactions = pocketTransactions.filter(t => t.category !== "Initial Balance");
 	const nonTransferTransactions = monthlyTransactions.filter(t => !isInternalTransfer(t));
 	const incomeTotal = nonTransferTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
@@ -361,9 +381,17 @@ export function AnalyticsView({
 	
 	const netBalance = pocketTransactions.reduce((sum, t) => sum + t.amount, 0);
 
+	const isAllScope = pockets.length === 0 || analyticsScope === "all";
+	const scopedNonTransferTransactions = isAllScope ? allNonTransferTransactions : nonTransferTransactions;
+	const scopedMonthlyTransactions = isAllScope ? allMonthlyTransactions : monthlyTransactions;
+
+	const activePocketDisplayName = isNetWorth
+		? (pockets.length > 0 ? (language === "en" ? "Main Pocket" : "Saldo Utama") : (language === "en" ? "Total Balance" : "Total Saldo"))
+		: activePocket.name;
+
 	const getDailyData = () => {
 		const dailyMap: Record<string, { income: number, expense: number }> = {};
-		nonTransferTransactions.forEach(t => {
+		scopedNonTransferTransactions.forEach(t => {
 			const day = t.date.split(',')[0];
 			if (!dailyMap[day]) dailyMap[day] = { income: 0, expense: 0 };
 			if (t.amount > 0) {
@@ -377,7 +405,7 @@ export function AnalyticsView({
 
 	const getGroupedCategoryData = (isExpense: boolean) => {
 		const catMap: Record<string, number> = {};
-		nonTransferTransactions.filter(t => isExpense ? t.amount < 0 : t.amount > 0).forEach(t => {
+		scopedNonTransferTransactions.filter(t => isExpense ? t.amount < 0 : t.amount > 0).forEach(t => {
 			const cat = t.category || "Uncategorized";
 			catMap[cat] = (catMap[cat] || 0) + Math.abs(t.amount);
 		});
@@ -390,7 +418,7 @@ export function AnalyticsView({
 		const fieldIdx = headers.findIndex(h => h.toLowerCase() === fieldNameLower);
 		if (fieldIdx === -1) return [];
 
-		nonTransferTransactions.filter(t => type === "expense" ? t.amount < 0 : t.amount > 0).forEach(t => {
+		scopedNonTransferTransactions.filter(t => type === "expense" ? t.amount < 0 : t.amount > 0).forEach(t => {
 			let val = "N/A";
 			if (t.raw) {
 				if (Array.isArray(t.raw)) {
@@ -411,9 +439,9 @@ export function AnalyticsView({
 	return (
 		<motion.div 
 			initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-			className="space-y-6 pb-20"
+			className="space-y-4 sm:space-y-6 pb-20"
 		>
-			<header className="flex flex-col gap-4">
+			<header className="flex flex-col gap-3">
 				<div className="flex items-center justify-between gap-4">
 					<Button variant="ghost" size="sm" onClick={onBack} className="rounded-full h-10 w-10 p-0 cursor-pointer">
 						<ArrowLeft size={20} />
@@ -424,10 +452,10 @@ export function AnalyticsView({
 				<div className="flex items-center gap-2 glass-card p-2 rounded-2xl">
 					<CalendarDays className="text-emerald-500 ml-2" size={18} />
 					<Select value={selectedMonth} onValueChange={onMonthChange} disabled={loading}>
-						<SelectTrigger className="border-none bg-transparent shadow-none focus:ring-0 font-bold text-sm h-10 cursor-pointer">
+						<SelectTrigger className="w-full border-none bg-transparent shadow-none focus:ring-0 font-bold text-sm h-10 cursor-pointer">
 							<SelectValue placeholder={t("selectMonth")} />
 						</SelectTrigger>
-						<SelectContent className="rounded-xl">
+						<SelectContent className="rounded-2xl">
 							{availableMonths.map(m => (
 								<SelectItem key={m} value={m} className="cursor-pointer">{m}</SelectItem>
 							))}
@@ -453,6 +481,7 @@ export function AnalyticsView({
 						variant="analytics"
 						onPocketSelectClick={() => setIsPocketSelectOpen(true)}
 						onMoveFundsClick={() => setIsMoveFundsOpen(true)}
+						pullDownOffset={cardPullDownY}
 					/>
 				}
 				isNetWorth={isNetWorth}
@@ -460,6 +489,8 @@ export function AnalyticsView({
 				startingBalance={startingBalance}
 				incomeTotal={incomeTotal}
 				expenseTotal={expenseTotal}
+				overallIncomeTotal={overallIncomeTotal}
+				overallExpenseTotal={overallExpenseTotal}
 				formatCurrency={formatCurrency}
 				selectedMonth={selectedMonth}
 				isPastMonth={isPastMonth}
@@ -481,6 +512,7 @@ export function AnalyticsView({
 				unallocatedBalance={unallocatedBalance}
 				allocatedPocketsBalance={allocatedPocketsBalance}
 				isPrivate={isPrivate}
+				pullDownOffset={cardPullDownY}
 			/>
 
 			{loading ? (
@@ -489,7 +521,46 @@ export function AnalyticsView({
 					<p className="font-bold uppercase tracking-widest text-[10px]">Processing Data...</p>
 				</div>
 			) : transactions.length > 0 ? (
-				<div className="space-y-6">
+				<motion.div style={{ y: cardPullDownY }} className="space-y-4 sm:space-y-6">
+					{/* Compact Segmented Scope Toggle: All Pockets (Keseluruhan) vs Active Pocket (Per Kantong) */}
+					{pockets.length > 0 && (
+						<div className="glass-card p-1.5 rounded-2xl flex items-center relative select-none">
+							<motion.div
+								initial={false}
+								animate={{ x: analyticsScope === "pocket" ? "100%" : "0%" }}
+								transition={{ type: "spring", stiffness: 420, damping: 32 }}
+								className={`absolute top-1.5 bottom-1.5 left-1.5 w-[calc(50%-6px)] rounded-xl bg-gradient-to-r ${themeColors.gradient} shadow-[0_2px_8px_rgba(0,0,0,0.08)]`}
+							/>
+							<button
+								type="button"
+								onClick={() => setAnalyticsScope("all")}
+								className={`relative z-10 flex-1 py-2 px-3 rounded-xl text-[11px] sm:text-xs font-black transition-colors cursor-pointer bg-transparent border-none flex items-center justify-center gap-1.5 ${
+									analyticsScope === "all"
+										? (themeColors.cardText || "text-[#063626]")
+										: "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+								}`}
+							>
+								<Wallet size={13} className="shrink-0" />
+								<span className="truncate">
+									{language === "en" ? "All Pockets (Overall)" : "Semua Kantong (Total)"}
+								</span>
+							</button>
+							<button
+								type="button"
+								onClick={() => setAnalyticsScope("pocket")}
+								className={`relative z-10 flex-1 py-2 px-3 rounded-xl text-[11px] sm:text-xs font-black transition-colors cursor-pointer bg-transparent border-none flex items-center justify-center gap-1.5 ${
+									analyticsScope === "pocket"
+										? (themeColors.cardText || "text-[#063626]")
+										: "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+								}`}
+							>
+								<span className="truncate">
+									{language === "en" ? `Pocket: ${activePocketDisplayName}` : `Kantong: ${activePocketDisplayName}`}
+								</span>
+							</button>
+						</div>
+					)}
+
 					<AnalyticsCharts
 						loading={loading}
 						transactions={transactions}
@@ -510,7 +581,7 @@ export function AnalyticsView({
 
 					{/* Custom Compact Table for Current Month Transactions */}
 					<TransactionHistoryTable
-						monthlyTransactions={monthlyTransactions}
+						monthlyTransactions={scopedMonthlyTransactions}
 						pockets={pockets}
 						formatCurrency={formatCurrency}
 						exportToCSV={exportToCSV}
@@ -519,7 +590,7 @@ export function AnalyticsView({
 						loading={loading}
 						themeColors={themeColors}
 					/>
-				</div>
+				</motion.div>
 			) : (
 				<div className="h-[400px] flex flex-col items-center justify-center text-zinc-400 gap-4">
 					<Image 

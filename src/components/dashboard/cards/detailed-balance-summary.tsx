@@ -2,12 +2,40 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { motion, MotionValue } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Settings, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { useLanguage } from "@/components/language-provider";
 import { PocketDef } from "@/hooks/use-dashboard-logic";
+
+/**
+ * Returns adaptive Tailwind font size classes based on nominal string length
+ * so currency values never truncate with '...' on mobile or desktop.
+ */
+function getAdaptiveNominalSize(
+	text: string,
+	variant: "lg" | "md" | "sm" | "primary" | "secondary" | "compact" = "lg"
+): string {
+	const len = text.length;
+	if (variant === "sm" || variant === "compact") {
+		if (len > 18) return "text-[9px] sm:text-xs";
+		if (len > 14) return "text-[10px] sm:text-xs";
+		return "text-xs sm:text-sm";
+	}
+	if (variant === "md" || variant === "secondary") {
+		if (len > 18) return "text-[10px] sm:text-sm";
+		if (len > 15) return "text-[11px] sm:text-base";
+		if (len > 12) return "text-xs sm:text-lg";
+		return "text-sm sm:text-lg";
+	}
+	// lg / primary
+	if (len > 19) return "text-[10px] sm:text-sm";
+	if (len > 16) return "text-[11px] sm:text-base";
+	if (len > 13) return "text-xs sm:text-lg";
+	return "text-sm sm:text-xl";
+}
 
 interface DetailedBalanceSummaryProps {
 	carouselCard: React.ReactNode;
@@ -16,6 +44,8 @@ interface DetailedBalanceSummaryProps {
 	startingBalance: number;
 	incomeTotal: number;
 	expenseTotal: number;
+	overallIncomeTotal?: number;
+	overallExpenseTotal?: number;
 	formatCurrency: (val: number) => string;
 	selectedMonth: string;
 	isPastMonth: boolean;
@@ -42,6 +72,7 @@ interface DetailedBalanceSummaryProps {
 	unallocatedBalance?: number;
 	allocatedPocketsBalance?: number;
 	isPrivate?: boolean;
+	pullDownOffset?: MotionValue<number>;
 }
 
 export function DetailedBalanceSummary({
@@ -51,6 +82,8 @@ export function DetailedBalanceSummary({
 	startingBalance,
 	incomeTotal,
 	expenseTotal,
+	overallIncomeTotal,
+	overallExpenseTotal,
 	formatCurrency,
 	selectedMonth,
 	isPastMonth,
@@ -72,12 +105,19 @@ export function DetailedBalanceSummary({
 	unallocatedBalance = 0,
 	allocatedPocketsBalance = 0,
 	isPrivate = false,
+	pullDownOffset,
 }: DetailedBalanceSummaryProps) {
 	const { t, language } = useLanguage();
 	const router = useRouter();
 	const [isSetupBalanceOpen, setIsSetupBalanceOpen] = React.useState(false);
 	const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
 	const maskValue = (val: string) => isPrivate ? "******" : val;
+
+	const displayedOverallIncome = overallIncomeTotal ?? incomeTotal;
+	const displayedOverallExpense = overallExpenseTotal ?? expenseTotal;
+	const activePocketLabel = activePocket.id === "main"
+		? (language === "en" ? "Main Pocket" : "Kantong Utama")
+		: activePocket.name;
 
 	const handleOpenManageBalance = (open: boolean) => {
 		if (open && !user && !supabaseUser) {
@@ -89,14 +129,15 @@ export function DetailedBalanceSummary({
 
 	const renderSecondaryStatusCard = () => {
 		if (isNetWorth) {
+			const startBalStr = maskValue(formatCurrency(startingBalance));
 			return (
-				<div className="glass-card p-4 sm:p-5 rounded-3xl flex flex-col justify-between h-full">
+				<div className="glass-card p-3.5 sm:p-5 rounded-3xl flex flex-col justify-between h-full">
 					<div>
 						<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 mb-0.5 truncate">
 							{t("startingBalance")}
 						</p>
-						<h4 className="text-sm sm:text-xl font-black text-zinc-900 dark:text-zinc-100 truncate">
-							{maskValue(formatCurrency(startingBalance))}
+						<h4 className={`${getAdaptiveNominalSize(startBalStr, "primary")} font-black text-zinc-900 dark:text-zinc-100 break-words leading-tight`}>
+							{startBalStr}
 						</h4>
 					</div>
 
@@ -249,25 +290,27 @@ export function DetailedBalanceSummary({
 		}
 
 		if (activePocket.type !== "default" && activePocket.target) {
+			const progressStr = maskValue(formatCurrency(currentProgress));
+			const targetStr = `/ ${maskValue(formatCurrency(activePocket.target))}`;
 			return (
-				<div className="glass-card p-4 sm:p-5 rounded-3xl flex flex-col justify-between h-full">
-					<div className="flex items-center justify-between gap-2">
-						<div className="min-w-0">
+				<div className="glass-card p-3.5 sm:p-5 rounded-3xl flex flex-col justify-between h-full">
+					<div className="flex items-center justify-between gap-1.5">
+						<div className="min-w-0 flex-1">
 							<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 truncate">
 								{activePocket.type === "budget"
 									? (language === "en" ? "Monthly Limit" : "Batas Bulanan")
 									: (language === "en" ? "Saving Progress" : "Progres Tabungan")}
 							</p>
-							<p className="text-xs sm:text-sm font-black text-zinc-900 dark:text-zinc-100 mt-0.5 truncate">
-								{maskValue(formatCurrency(currentProgress))}
+							<p className={`${getAdaptiveNominalSize(progressStr, "md")} font-black text-zinc-900 dark:text-zinc-100 mt-0.5 leading-tight tracking-tight break-words`}>
+								{progressStr}
 							</p>
-							<p className="text-[9px] font-semibold text-zinc-400 truncate">
-								/ {maskValue(formatCurrency(activePocket.target))}
+							<p className={`${getAdaptiveNominalSize(targetStr, "sm")} font-semibold text-zinc-400 leading-tight break-words mt-0.5`}>
+								{targetStr}
 							</p>
 						</div>
 
 						{/* Compact Circular Progress SVG */}
-						<div className="relative w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center shrink-0">
+						<div className="relative w-11 h-11 sm:w-14 sm:h-14 flex items-center justify-center shrink-0">
 							<svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
 								<circle
 									cx="50"
@@ -300,7 +343,7 @@ export function DetailedBalanceSummary({
 								/>
 							</svg>
 							<div className="absolute inset-0 flex items-center justify-center">
-								<span className="text-[10px] sm:text-xs font-black text-zinc-950 dark:text-zinc-50">
+								<span className="text-[9.5px] sm:text-xs font-black text-zinc-950 dark:text-zinc-50">
 									{percentage}%
 								</span>
 							</div>
@@ -311,7 +354,7 @@ export function DetailedBalanceSummary({
 		}
 
 		return (
-			<div className="glass-card p-4 sm:p-5 rounded-3xl flex flex-col justify-between h-full">
+			<div className="glass-card p-3.5 sm:p-5 rounded-3xl flex flex-col justify-between h-full">
 				<div>
 					<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 mb-0.5 truncate">
 						{language === "en" ? "Pocket Type" : "Tipe Kantong"}
@@ -333,6 +376,14 @@ export function DetailedBalanceSummary({
 		);
 	};
 
+	const overallBalStr = maskValue(formatCurrency(overallTotalBalance));
+	const unallocBalStr = maskValue(formatCurrency(unallocatedBalance));
+	const allocBalStr = maskValue(formatCurrency(allocatedPocketsBalance));
+	const overallIncStr = maskValue(formatCurrency(displayedOverallIncome));
+	const overallExpStr = maskValue(formatCurrency(displayedOverallExpense));
+	const pocketIncStr = maskValue(formatCurrency(incomeTotal));
+	const pocketExpStr = maskValue(formatCurrency(expenseTotal));
+
 	return (
 		<div className="space-y-2.5 sm:space-y-4 w-full">
 			{/* Top Section: Main Carousel Card (Desktop: 2/3 width + status card on right; Mobile: Carousel on top) */}
@@ -347,119 +398,141 @@ export function DetailedBalanceSummary({
 				</div>
 			</div>
 
-			{/* Compact Side-by-Side Summary Grid (Always 2 columns on mobile so no card takes a full row alone) */}
-			{pocketsCount > 0 ? (
-				<>
-					{/* Mobile Row: Secondary Status Card (Starting Balance / Progress) + Total Balance (All Funds) */}
-					<div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4 w-full">
-						<div className="lg:hidden h-full">
+			{/* Animated Wrapper that glides downward when the PocketCarouselCard is pulled down */}
+			<motion.div style={{ y: pullDownOffset }} className="space-y-2.5 sm:space-y-4 w-full">
+				{pocketsCount > 0 ? (
+					<>
+						{/* Mobile Row: Secondary Status Card (Starting Balance / Progress) + Total Balance (All Funds) */}
+						<div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4 w-full">
+							<div className="lg:hidden h-full">
+								{renderSecondaryStatusCard()}
+							</div>
+
+							<div className="glass-card p-3.5 sm:p-5 rounded-3xl flex flex-col justify-between">
+								<div>
+									<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 mb-0.5 truncate">
+										{language === "en" ? "Total Balance" : "Total Keseluruhan"}
+									</p>
+									<h4 className={`${getAdaptiveNominalSize(overallBalStr, "lg")} font-black text-zinc-900 dark:text-zinc-100 leading-tight tracking-tight break-words`}>
+										{overallBalStr}
+									</h4>
+								</div>
+								<p className="text-[9px] sm:text-[10px] font-semibold text-zinc-400 mt-1.5 truncate">
+									{language === "en" ? "Main + All Pockets" : "Utama + Semua Kantong"}
+								</p>
+							</div>
+
+							<div className="glass-card p-3.5 sm:p-5 rounded-3xl flex flex-col justify-between">
+								<div>
+									<p className="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 mb-0.5 truncate">
+										{language === "en" ? "Main (Unallocated)" : "Saldo Utama"}
+									</p>
+									<h4 className={`${getAdaptiveNominalSize(unallocBalStr, "lg")} font-black text-emerald-600 dark:text-emerald-400 leading-tight tracking-tight break-words`}>
+										{unallocBalStr}
+									</h4>
+								</div>
+								<p className="text-[9px] sm:text-[10px] font-semibold text-zinc-400 mt-1.5 truncate">
+									{language === "en" ? "Available for daily use" : "Dana bebas belum dialokasi"}
+								</p>
+							</div>
+
+							<div className="glass-card p-3.5 sm:p-5 rounded-3xl flex flex-col justify-between">
+								<div>
+									<p className="text-[9px] sm:text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 mb-0.5 truncate">
+										{language === "en" ? "Pockets Allocation" : "Alokasi Kantong"}
+									</p>
+									<h4 className={`${getAdaptiveNominalSize(allocBalStr, "lg")} font-black text-indigo-600 dark:text-indigo-400 leading-tight tracking-tight break-words`}>
+										{allocBalStr}
+									</h4>
+								</div>
+								<p className="text-[9px] sm:text-[10px] font-semibold text-zinc-400 mt-1.5 truncate">
+									{language === "en"
+										? `In ${pocketsCount} active pocket(s)`
+										: `Di ${pocketsCount} kantong aktif`}
+								</p>
+							</div>
+						</div>
+
+						{/* Side-by-Side Income & Expense Row (Headline = Constant Overall Total across all pockets; Sub-row = Active Pocket) */}
+						<div className="grid grid-cols-2 gap-2.5 sm:gap-4 w-full">
+							<div className="glass-card p-3.5 sm:p-5 rounded-3xl flex flex-col justify-between gap-2">
+								<div className="flex items-start gap-2.5">
+									<div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-xl ${themeColors.bgLight} ${themeColors.text} flex items-center justify-center shrink-0 mt-0.5`}>
+										<TrendingUp size={14} />
+									</div>
+									<div className="min-w-0 flex-1">
+										<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 truncate">
+											{language === "en" ? "Total Income (All)" : "Total Pemasukan"}
+										</p>
+										<h4 className={`${getAdaptiveNominalSize(overallIncStr, "lg")} font-black ${themeColors.text} leading-tight tracking-tight break-words mt-0.5`}>
+											{overallIncStr}
+										</h4>
+									</div>
+								</div>
+								<div className="pt-1.5 border-t border-zinc-200/60 dark:border-white/5 flex items-center justify-between gap-1 text-[9px] sm:text-[10px]">
+									<span className="font-bold text-zinc-400 truncate max-w-[48%]">{activePocketLabel}:</span>
+									<span className={`${getAdaptiveNominalSize(pocketIncStr, "sm")} font-extrabold text-zinc-700 dark:text-zinc-200 leading-none shrink-0`}>
+										{pocketIncStr}
+									</span>
+								</div>
+							</div>
+
+							<div className="glass-card p-3.5 sm:p-5 rounded-3xl flex flex-col justify-between gap-2">
+								<div className="flex items-start gap-2.5">
+									<div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center shrink-0 mt-0.5">
+										<TrendingDown size={14} />
+									</div>
+									<div className="min-w-0 flex-1">
+										<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 truncate">
+											{language === "en" ? "Total Expense (All)" : "Total Pengeluaran"}
+										</p>
+										<h4 className={`${getAdaptiveNominalSize(overallExpStr, "lg")} font-black text-red-500 leading-tight tracking-tight break-words mt-0.5`}>
+											{overallExpStr}
+										</h4>
+									</div>
+								</div>
+								<div className="pt-1.5 border-t border-zinc-200/60 dark:border-white/5 flex items-center justify-between gap-1 text-[9px] sm:text-[10px]">
+									<span className="font-bold text-zinc-400 truncate max-w-[48%]">{activePocketLabel}:</span>
+									<span className={`${getAdaptiveNominalSize(pocketExpStr, "sm")} font-extrabold text-zinc-700 dark:text-zinc-200 leading-none shrink-0`}>
+										{pocketExpStr}
+									</span>
+								</div>
+							</div>
+						</div>
+					</>
+				) : (
+					/* When no custom pockets exist: pair Starting Balance + Income/Expense compactly */
+					<div className="grid grid-cols-2 gap-2.5 sm:gap-4 w-full">
+						<div className="col-span-2 lg:hidden">
 							{renderSecondaryStatusCard()}
 						</div>
 
-						<div className="glass-card p-4 sm:p-5 rounded-3xl flex flex-col justify-between">
-							<div>
-								<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 mb-0.5 truncate">
-									{language === "en" ? "Total Balance" : "Total Keseluruhan"}
-								</p>
-								<h4 className="text-sm sm:text-lg font-black text-zinc-900 dark:text-zinc-100 truncate">
-									{maskValue(formatCurrency(overallTotalBalance))}
-								</h4>
-							</div>
-							<p className="text-[9px] sm:text-[10px] font-semibold text-zinc-400 mt-1.5 truncate">
-								{language === "en" ? "Main + All Pockets" : "Utama + Semua Kantong"}
-							</p>
-						</div>
-
-						<div className="glass-card p-4 sm:p-5 rounded-3xl flex flex-col justify-between">
-							<div>
-								<p className="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 mb-0.5 truncate">
-									{language === "en" ? "Main (Unallocated)" : "Saldo Utama"}
-								</p>
-								<h4 className="text-sm sm:text-lg font-black text-emerald-600 dark:text-emerald-400 truncate">
-									{maskValue(formatCurrency(unallocatedBalance))}
-								</h4>
-							</div>
-							<p className="text-[9px] sm:text-[10px] font-semibold text-zinc-400 mt-1.5 truncate">
-								{language === "en" ? "Available for daily use" : "Dana bebas belum dialokasi"}
-							</p>
-						</div>
-
-						<div className="glass-card p-4 sm:p-5 rounded-3xl flex flex-col justify-between">
-							<div>
-								<p className="text-[9px] sm:text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 mb-0.5 truncate">
-									{language === "en" ? "Pockets Allocation" : "Alokasi Kantong"}
-								</p>
-								<h4 className="text-sm sm:text-lg font-black text-indigo-600 dark:text-indigo-400 truncate">
-									{maskValue(formatCurrency(allocatedPocketsBalance))}
-								</h4>
-							</div>
-							<p className="text-[9px] sm:text-[10px] font-semibold text-zinc-400 mt-1.5 truncate">
-								{language === "en"
-									? `In ${pocketsCount} active pocket(s)`
-									: `Di ${pocketsCount} kantong aktif`}
-							</p>
-						</div>
-					</div>
-
-					{/* Side-by-Side Income & Expense Row (2 columns on both mobile and desktop) */}
-					<div className="grid grid-cols-2 gap-2.5 sm:gap-4 w-full">
-						<div className="glass-card p-4 sm:p-5 rounded-3xl flex items-center gap-3">
+						<div className="glass-card p-3.5 sm:p-5 rounded-3xl flex items-center gap-2.5">
 							<div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl ${themeColors.bgLight} ${themeColors.text} flex items-center justify-center shrink-0`}>
 								<TrendingUp size={15} />
 							</div>
-							<div className="min-w-0">
+							<div className="min-w-0 flex-1">
 								<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 truncate">{t("incomeTotal")}</p>
-								<h4 className={`text-sm sm:text-lg font-black ${themeColors.text} truncate`}>
-									{maskValue(formatCurrency(incomeTotal))}
+								<h4 className={`${getAdaptiveNominalSize(pocketIncStr, "lg")} font-black ${themeColors.text} leading-tight tracking-tight break-words mt-0.5`}>
+									{pocketIncStr}
 								</h4>
 							</div>
 						</div>
 
-						<div className="glass-card p-4 sm:p-5 rounded-3xl flex items-center gap-3">
+						<div className="glass-card p-3.5 sm:p-5 rounded-3xl flex items-center gap-2.5">
 							<div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
 								<TrendingDown size={15} />
 							</div>
-							<div className="min-w-0">
+							<div className="min-w-0 flex-1">
 								<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 truncate">{t("expenseTotal")}</p>
-								<h4 className="text-sm sm:text-lg font-black text-red-500 truncate">
-									{maskValue(formatCurrency(expenseTotal))}
+								<h4 className={`${getAdaptiveNominalSize(pocketExpStr, "lg")} font-black text-red-500 leading-tight tracking-tight break-words mt-0.5`}>
+									{pocketExpStr}
 								</h4>
 							</div>
 						</div>
 					</div>
-				</>
-			) : (
-				/* When no custom pockets exist: pair Starting Balance + Income/Expense compactly */
-				<div className="grid grid-cols-2 gap-2.5 sm:gap-4 w-full">
-					<div className="col-span-2 lg:hidden">
-						{renderSecondaryStatusCard()}
-					</div>
-
-					<div className="glass-card p-4 sm:p-5 rounded-3xl flex items-center gap-3">
-						<div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl ${themeColors.bgLight} ${themeColors.text} flex items-center justify-center shrink-0`}>
-							<TrendingUp size={15} />
-						</div>
-						<div className="min-w-0">
-							<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 truncate">{t("incomeTotal")}</p>
-							<h4 className={`text-sm sm:text-lg font-black ${themeColors.text} truncate`}>
-								{maskValue(formatCurrency(incomeTotal))}
-							</h4>
-						</div>
-					</div>
-
-					<div className="glass-card p-4 sm:p-5 rounded-3xl flex items-center gap-3">
-						<div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
-							<TrendingDown size={15} />
-						</div>
-						<div className="min-w-0">
-							<p className="text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400 truncate">{t("expenseTotal")}</p>
-							<h4 className="text-sm sm:text-lg font-black text-red-500 truncate">
-								{maskValue(formatCurrency(expenseTotal))}
-							</h4>
-						</div>
-					</div>
-				</div>
-			)}
+				)}
+			</motion.div>
 		</div>
 	);
 }

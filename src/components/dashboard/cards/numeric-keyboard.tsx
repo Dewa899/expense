@@ -152,6 +152,33 @@ export function NumericKeyboard({
 		onSubmit();
 	};
 
+	const handleDoneRef = React.useRef(handleDone);
+	React.useEffect(() => {
+		handleDoneRef.current = handleDone;
+	});
+
+	// Intercept mobile hardware/gesture Back button to close NumericKeyboard instead of navigating back
+	React.useEffect(() => {
+		if (typeof window === "undefined") return;
+		let closedByBackButton = false;
+
+		window.history.pushState({ __numericKeyboardOpen: true }, "", window.location.href);
+
+		const handlePopState = () => {
+			closedByBackButton = true;
+			handleDoneRef.current();
+		};
+
+		window.addEventListener("popstate", handlePopState);
+
+		return () => {
+			window.removeEventListener("popstate", handlePopState);
+			if (!closedByBackButton && window.history.state?.__numericKeyboardOpen) {
+				window.history.back();
+			}
+		};
+	}, []);
+
 	// Ref to track the latest value prop for the continuous delete timer
 	const valueRef = React.useRef(value);
 	React.useEffect(() => {
