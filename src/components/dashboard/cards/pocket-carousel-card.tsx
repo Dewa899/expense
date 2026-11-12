@@ -383,17 +383,52 @@ export function PocketCarouselCard({
 				dragConstraints={{ left: -80, right: 80, top: 0, bottom: 22 }}
 				dragElastic={{ top: 0, bottom: 0.02, left: 0.1, right: 0.1 }}
 				dragDirectionLock={true}
-				onDragEnd={(e, info) => {
-					if (pockets.length === 0) return;
-					const vertThreshold = 15;
-					const horizThreshold = 42;
-					if (info.offset.y > vertThreshold) {
-						onPocketSelectClick();
-					} else if (info.offset.x < -horizThreshold) {
-						setActivePocketIdx((activePocketIdx + 1) % carouselPockets.length);
-					} else if (info.offset.x > horizThreshold) {
-						setActivePocketIdx((activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
+				onDirectionLock={(axis) => {
+					lockedDirectionRef.current = axis;
+					if (axis === "x") dragY.set(0);
+					if (axis === "y") dragX.set(0);
+				}}
+				onDragStart={() => {
+					lockedDirectionRef.current = null;
+				}}
+				onDrag={(_e, info) => {
+					if (!lockedDirectionRef.current) {
+						const absX = Math.abs(info.offset.x);
+						const absY = Math.abs(info.offset.y);
+						if (absX > 4 || absY > 4) {
+							// Favor horizontal lock whenever horizontal movement is at least 75% of vertical movement
+							lockedDirectionRef.current = absX >= absY * 0.75 ? "x" : "y";
+						}
 					}
+					if (lockedDirectionRef.current === "x") {
+						dragY.set(0);
+					} else if (lockedDirectionRef.current === "y") {
+						dragX.set(0);
+					}
+				}}
+				onDragEnd={(_e, info) => {
+					const lockedAxis = lockedDirectionRef.current;
+					lockedDirectionRef.current = null;
+					if (pockets.length === 0) return;
+
+					const vertThreshold = 15;
+					const horizThreshold = 38;
+					const absX = Math.abs(info.offset.x);
+					const absY = Math.abs(info.offset.y);
+
+					// If the drag started horizontally or had dominant horizontal travel, ONLY switch pockets (never open All Pockets)
+					const isHorizontalSwipe = lockedAxis === "x" || absX >= absY * 0.8;
+
+					if (isHorizontalSwipe) {
+						if (info.offset.x < -horizThreshold) {
+							setActivePocketIdx((activePocketIdx + 1) % carouselPockets.length);
+						} else if (info.offset.x > horizThreshold) {
+							setActivePocketIdx((activePocketIdx - 1 + carouselPockets.length) % carouselPockets.length);
+						}
+					} else if (lockedAxis === "y" && info.offset.y > vertThreshold && absY > absX * 1.2) {
+						onPocketSelectClick();
+					}
+
 					// Snaps back to 0,0 with smooth critically-damped spring simulation
 					animate(dragX, 0, { type: "spring", stiffness: 420, damping: 32 });
 					animate(dragY, 0, { type: "spring", stiffness: 420, damping: 32 });
