@@ -4,6 +4,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { PocketDef, isInternalTransfer } from "@/hooks/use-dashboard-logic";
 import { useLanguage } from "@/components/language-provider";
+import { Download, FileSpreadsheet, RefreshCw } from "lucide-react";
 
 interface TransactionHistoryTableProps {
 	monthlyTransactions: any[];
@@ -30,6 +31,19 @@ const POCKET_BADGE_STYLES: Record<string, string> = {
 	orange: "bg-orange-500/10 text-orange-700 dark:text-orange-400 font-bold",
 };
 
+function formatShortDate(rawDate: string): string {
+	const datePart = (rawDate || "").split(",")[0].trim();
+	// Strip 4-digit year suffix so "12/11/2026" -> "12/11" and "12 Nov 2026" -> "12 Nov"
+	return datePart.replace(/([/-])\d{4}$/, "").replace(/\s+\d{4}$/, "");
+}
+
+function getCompactAmountClass(formatted: string): string {
+	const len = formatted.length;
+	if (len > 14) return "text-[8.5px] sm:text-xs";
+	if (len > 11) return "text-[9.5px] sm:text-sm";
+	return "text-[10.5px] sm:text-sm";
+}
+
 export function TransactionHistoryTable({
 	monthlyTransactions,
 	pockets,
@@ -40,7 +54,8 @@ export function TransactionHistoryTable({
 	loading,
 	themeColors,
 }: TransactionHistoryTableProps) {
-	const { t, language } = useLanguage();
+	const { language } = useLanguage();
+	const hasPockets = pockets && pockets.length > 0;
 
 	const getPocketBadgeClass = (pocketNameOrId?: string) => {
 		if (!pocketNameOrId) return POCKET_BADGE_STYLES.emerald;
@@ -49,84 +64,119 @@ export function TransactionHistoryTable({
 	};
 
 	return (
-		<section className="glass-card rounded-3xl p-6 space-y-4">
-			<div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+		<section className="glass-card rounded-3xl p-3.5 sm:p-6 space-y-3 sm:space-y-4">
+			<div className="flex items-center justify-between gap-2.5 flex-wrap">
 				<div className="flex items-center gap-2">
 					<div className={`w-1.5 h-5 bg-gradient-to-b ${themeColors.gradient} rounded-full`} />
-					<h4 className="font-bold text-sm uppercase tracking-tight">
+					<h4 className="font-bold text-xs sm:text-sm uppercase tracking-tight">
 						{language === "en" ? "Transaction History" : "Riwayat Transaksi"}
 					</h4>
 				</div>
-				<div className="flex items-center gap-2">
+				<div className="flex items-center gap-1.5 sm:gap-2">
 					<Button 
 						size="sm" 
-						variant="outline" 
+						variant="ghost" 
 						onClick={exportToCSV}
-						className="h-8 text-[10px] font-bold uppercase rounded-full border-zinc-200 dark:border-zinc-800 cursor-pointer"
+						className="h-8 px-3 text-[10px] font-black uppercase tracking-wide rounded-full bg-sky-500/12 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 border-none cursor-pointer flex items-center gap-1.5 transition-colors"
 					>
-						Export CSV
+						<Download size={12} className="shrink-0" />
+						<span>Export CSV</span>
 					</Button>
 					{supabaseUser && (
 						<Button 
 							size="sm" 
-							variant="outline" 
+							variant="ghost" 
 							onClick={exportToGoogleSheets}
 							disabled={loading}
-							className="h-8 text-[10px] font-bold uppercase rounded-full border-zinc-200 dark:border-zinc-800 cursor-pointer"
+							className="h-8 px-3 text-[10px] font-black uppercase tracking-wide rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border-none cursor-pointer flex items-center gap-1.5 transition-colors"
 						>
-							Sync Sheets
+							{loading ? (
+								<RefreshCw size={12} className="shrink-0 animate-spin" />
+							) : (
+								<FileSpreadsheet size={12} className="shrink-0" />
+							)}
+							<span>Sync Sheets</span>
 						</Button>
 					)}
 				</div>
 			</div>
-			<div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-				<table className="w-full text-left text-sm whitespace-nowrap">
-					<thead className="z-10">
+			<div className="max-h-[420px] overflow-y-auto overflow-x-hidden sm:overflow-x-auto">
+				<table className="w-full table-fixed sm:table-auto text-left text-xs sm:text-sm">
+					<thead className="sticky top-0 z-10 bg-white/95 dark:bg-[#222428]/95 backdrop-blur-sm">
 						<tr className="border-b border-zinc-100 dark:border-zinc-800 text-zinc-500 font-medium">
-							<th className="pb-3 px-2 font-bold uppercase tracking-wider text-[10px]">{language === "en" ? "Date" : "Tanggal"}</th>
-							<th className="pb-3 px-2 font-bold uppercase tracking-wider text-[10px]">{language === "en" ? "Name" : "Nama"}</th>
-							<th className="pb-3 px-2 font-bold uppercase tracking-wider text-[10px]">{language === "en" ? "Category" : "Kategori"}</th>
-							{pockets && pockets.length > 0 && (
-								<th className="pb-3 px-2 font-bold uppercase tracking-wider text-[10px]">{language === "en" ? "Pocket" : "Kantong"}</th>
+							<th className={`pb-2.5 px-1 sm:px-2 font-bold uppercase tracking-wider text-[9px] sm:text-[10px] ${hasPockets ? "w-[13%] sm:w-auto" : "w-[14%] sm:w-auto"}`}>
+								<span className="sm:hidden">{language === "en" ? "Date" : "Tgl"}</span>
+								<span className="hidden sm:inline">{language === "en" ? "Date" : "Tanggal"}</span>
+							</th>
+							<th className={`pb-2.5 px-1 sm:px-2 font-bold uppercase tracking-wider text-[9px] sm:text-[10px] ${hasPockets ? "w-[27%] sm:w-auto" : "w-[38%] sm:w-auto"}`}>
+								{language === "en" ? "Name" : "Nama"}
+							</th>
+							<th className={`pb-2.5 px-1 sm:px-2 font-bold uppercase tracking-wider text-[9px] sm:text-[10px] ${hasPockets ? "w-[19%] sm:w-auto" : "w-[22%] sm:w-auto"}`}>
+								<span className="sm:hidden">{language === "en" ? "Cat." : "Kat."}</span>
+								<span className="hidden sm:inline">{language === "en" ? "Category" : "Kategori"}</span>
+							</th>
+							{hasPockets && (
+								<th className="pb-2.5 px-1 sm:px-2 font-bold uppercase tracking-wider text-[9px] sm:text-[10px] w-[18%] sm:w-auto">
+									{language === "en" ? "Pocket" : "Kantong"}
+								</th>
 							)}
-							<th className="pb-3 px-2 text-right font-bold uppercase tracking-wider text-[10px]">{language === "en" ? "Amount" : "Jumlah"}</th>
+							<th className={`pb-2.5 px-1 sm:px-2 text-right font-bold uppercase tracking-wider text-[9px] sm:text-[10px] ${hasPockets ? "w-[23%] sm:w-auto" : "w-[26%] sm:w-auto"}`}>
+								<span className="sm:hidden">{language === "en" ? "Amt" : "Jml"}</span>
+								<span className="hidden sm:inline">{language === "en" ? "Amount" : "Jumlah"}</span>
+							</th>
 						</tr>
 					</thead>
 					<tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/50">
-						{[...monthlyTransactions].reverse().map((t, i) => {
-							const isTransfer = isInternalTransfer(t);
+						{[...monthlyTransactions].reverse().map((tx, i) => {
+							const isTransfer = isInternalTransfer(tx);
+							const amountText = `${tx.amount >= 0 ? "+" : "-"}${formatCurrency(Math.abs(tx.amount))}`;
+							const shortDate = formatShortDate(tx.date);
+							const fullDate = tx.date.split(",")[0] || tx.date;
+							const pocketLabel = tx.pocket || (language === "en" ? "Main" : "Utama");
+							const pocketLabelFull = tx.pocket || (language === "en" ? "Main Pocket" : "Dompet Utama");
+							const categoryLabel = isTransfer ? (language === "en" ? "Transfer" : "Mutasi") : tx.category;
+							const categoryLabelFull = isTransfer ? (language === "en" ? "Transfer" : "Mutasi / Transfer") : tx.category;
+
 							return (
-							<tr key={i} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-								<td className="py-3 px-2 text-zinc-500 text-xs">{t.date.split(',')[0] || t.date}</td>
-								<td className="py-3 px-2 font-medium">{t.name}</td>
-								<td className="py-3 px-2">
-									<span className={`text-[10px] px-2 py-1 rounded-md font-medium ${
-										isTransfer
-											? "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold"
-											: "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"
-									}`}>
-										{isTransfer ? (language === "en" ? "Transfer" : "Mutasi / Transfer") : t.category}
-									</span>
-								</td>
-								{pockets && pockets.length > 0 && (
-									<td className="py-3 px-2">
-										<span className={`${getPocketBadgeClass(t.pocket)} text-[10px] px-2 py-1 rounded-md`}>
-											{t.pocket || (language === "en" ? "Main Pocket" : "Dompet Utama")}
+								<tr key={i} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+									<td className="py-2 px-1 sm:py-3 sm:px-2 text-zinc-500 text-[9.5px] sm:text-xs tabular-nums align-middle">
+										<span className="sm:hidden">{shortDate}</span>
+										<span className="hidden sm:inline">{fullDate}</span>
+									</td>
+									<td className="py-2 px-1 sm:py-3 sm:px-2 font-semibold text-[10px] sm:text-sm leading-tight align-middle">
+										<span className="line-clamp-2 sm:line-clamp-1 break-words">{tx.name}</span>
+									</td>
+									<td className="py-2 px-1 sm:py-3 sm:px-2 align-middle">
+										<span className={`inline-block max-w-full truncate text-[8.5px] sm:text-[10px] px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md font-medium align-middle ${
+											isTransfer
+												? "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold"
+												: "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"
+										}`}>
+											<span className="sm:hidden">{categoryLabel}</span>
+											<span className="hidden sm:inline">{categoryLabelFull}</span>
 										</span>
 									</td>
-								)}
-								<td className={`py-3 px-2 text-right font-bold ${
-									isTransfer
-										? "text-cyan-600 dark:text-cyan-400"
-										: t.amount >= 0 ? "text-emerald-600" : "text-red-500"
-								}`}>
-									{t.amount >= 0 ? "+" : "-"}{formatCurrency(Math.abs(t.amount))}
-								</td>
-							</tr>
-						);})}
+									{hasPockets && (
+										<td className="py-2 px-1 sm:py-3 sm:px-2 align-middle">
+											<span className={`${getPocketBadgeClass(tx.pocket)} inline-block max-w-full truncate text-[8.5px] sm:text-[10px] px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md align-middle`}>
+												<span className="sm:hidden">{pocketLabel}</span>
+												<span className="hidden sm:inline">{pocketLabelFull}</span>
+											</span>
+										</td>
+									)}
+									<td className={`py-2 px-1 sm:py-3 sm:px-2 text-right font-bold tabular-nums whitespace-nowrap align-middle ${getCompactAmountClass(amountText)} ${
+										isTransfer
+											? "text-cyan-600 dark:text-cyan-400"
+											: tx.amount >= 0 ? "text-emerald-600" : "text-red-500"
+									}`}>
+										{amountText}
+									</td>
+								</tr>
+							);
+						})}
 						{monthlyTransactions.length === 0 && (
 							<tr>
-								<td colSpan={pockets && pockets.length > 0 ? 5 : 4} className="py-8 text-center text-zinc-400 text-xs font-medium">
+								<td colSpan={hasPockets ? 5 : 4} className="py-8 text-center text-zinc-400 text-xs font-medium">
 									{language === "en" ? "No transactions this month" : "Belum ada transaksi bulan ini"}
 								</td>
 							</tr>
