@@ -33,6 +33,55 @@ interface UpdateItem {
 
 const UPDATES: UpdateItem[] = [
 	{
+		version: "v3.2.0",
+		type: "minor",
+		date: { en: "Thu, Nov 19, 2026", id: "Kamis, 19 November 2026" },
+		time: "10:00",
+		title: {
+			en: "Share Receipts from Bank & E-Wallet Apps (Auto-Fill with OCR)",
+			id: "Bagikan Struk dari Aplikasi Bank & E-Wallet (Isi Otomatis dengan OCR)"
+		},
+		description: {
+			en: "Expense now appears in your phone's Share menu. Share a transfer/payment receipt from your digital bank or e-wallet and the transaction form is filled in automatically.",
+			id: "Expense kini muncul di menu Bagikan (Share) HP Anda. Bagikan bukti transfer/pembayaran dari aplikasi bank digital atau e-wallet, dan form transaksi langsung terisi otomatis."
+		},
+		details: [
+			{
+				type: "feature",
+				title: {
+					en: "Web Share Target + OCR Auto-Fill",
+					id: "Share Target + Isi Otomatis via OCR"
+				},
+				desc: {
+					en: "Tap Share on a receipt in Livin', BCA mobile, GoPay, DANA, OVO, QRIS apps, etc., then choose Expense. The receipt image (or PDF) is scanned with OCR and the Amount, Name, Date and Category fields are pre-filled — just review and save. If only text is shared, the amount is read from the text (e.g. \"Rp 125.000\").",
+					id: "Tekan Bagikan pada struk di Livin', BCA mobile, GoPay, DANA, OVO, aplikasi QRIS, dll., lalu pilih Expense. Gambar struk (atau PDF) dipindai dengan OCR dan field Jumlah, Nama, Tanggal, serta Kategori langsung terisi — tinggal cek dan simpan. Jika yang dibagikan hanya teks, nominal dibaca dari teks tersebut (mis. \"Rp 125.000\")."
+				}
+			},
+			{
+				type: "improvement",
+				title: {
+					en: "How to Enable",
+					id: "Cara Mengaktifkan"
+				},
+				desc: {
+					en: "Available on Android (Chrome / Edge) with Expense installed to the Home Screen. If the app was installed before this update, open it once (or reinstall it) so it shows up in the Share menu. iOS Safari does not support this feature yet.",
+					id: "Tersedia di Android (Chrome / Edge) dengan Expense yang sudah di-install ke Home Screen. Jika aplikasi sudah ter-install sebelum update ini, buka sekali (atau install ulang) agar muncul di menu Bagikan. iOS Safari belum mendukung fitur ini."
+				}
+			},
+			{
+				type: "improvement",
+				title: {
+					en: "Mobile-Fitted Transaction History & Colorful Export Buttons",
+					id: "Tabel Riwayat Transaksi Pas di Layar HP & Tombol Ekspor Berwarna"
+				},
+				desc: {
+					en: "Transaction History columns now fit on mobile without horizontal scrolling (compact dates and text), and the Export CSV / Sync Sheets buttons got icons and colors so they are easier to spot.",
+					id: "Kolom Riwayat Transaksi kini muat di layar HP tanpa scroll ke samping (tanggal & teks lebih ringkas), serta tombol Export CSV / Sync Sheets diberi ikon dan warna agar lebih mudah ditemukan."
+				}
+			}
+		]
+	},
+	{
 		version: "v3.1.1",
 		type: "minor",
 		date: { en: "Thu, Nov 12, 2026", id: "Kamis, 12 November 2026" },

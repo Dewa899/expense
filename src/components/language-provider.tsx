@@ -121,6 +121,10 @@ const dictionary: Dictionary = {
 		en: "Failed to scan receipt/bill (Beta). Make sure the photo contains a valid receipt of expenses.",
 		id: "Gagal memindai struk/bill (Beta). Pastikan foto yang diambil adalah struk pengeluaran yang valid.",
 	},
+	shareNoData: {
+		en: "No receipt was received from the share. Try sharing the receipt image again.",
+		id: "Tidak ada struk yang diterima dari share. Coba bagikan ulang gambar struknya.",
+	},
 	integrationTitle: {
 		en: "Google Sheets Sync",
 		id: "Sinkronisasi Google Sheets",

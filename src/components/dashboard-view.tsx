@@ -18,6 +18,25 @@ import { useLanguage } from "@/components/language-provider";
 import { useDemo } from "@/components/demo-context";
 import { supabase } from "@/lib/supabase-client";
 
+/**
+ * Extract a transaction amount from shared text (e.g. "Rp 125.000", "IDR 1,250,000.00", "Rp50.000,-").
+ * Prefers numbers prefixed with Rp/IDR; falls back to the largest number with thousand separators.
+ */
+function parseSharedAmount(text: string): number | null {
+	const toNumber = (raw: string) => {
+		let v = raw.replace(/[\s,-]+$/g, "").trim();
+		// Drop decimal part (",00" / ".00") when it is the last 1-2 digits after a separator
+		v = v.replace(/[.,]\d{1,2}$/, "");
+		const n = parseInt(v.replace(/[^\d]/g, ""), 10);
+		return Number.isFinite(n) && n > 0 ? n : null;
+	};
+	const currencyMatches = [...text.matchAll(/(?:rp\.?|idr)\s*([\d.,]+)/gi)].map(m => toNumber(m[1])).filter((n): n is number => !!n);
+	if (currencyMatches.length) return Math.max(...currencyMatches);
+	const grouped = [...text.matchAll(/\b\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,2})?\b/g)].map(m => toNumber(m[0])).filter((n): n is number => !!n);
+	if (grouped.length) return Math.max(...grouped);
+	return null;
+}
+
 interface DashboardViewProps {
 	isTutorialOpen?: boolean;
 	onTutorialClose?: () => void;
@@ -61,14 +80,12 @@ export function DashboardView({
 	const [ocrMessage, setOcrMessage] = React.useState("");
 	const [isOcrPrivacyOpen, setIsOcrPrivacyOpen] = React.useState(false);
 
-	const handleOcrScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		if (!file) return;
+	const processOcrFile = React.useCallback(async (file: File | Blob, fileName = "receipt") => {
 		setOcrLoading(true);
 		setOcrMessage("");
 		try {
 			const formBody = new FormData();
-			formBody.append("file", file);
+			formBody.append("file", file, fileName);
 			formBody.append("categories", JSON.stringify(categories));
 
 			const apiUrl = process.env.NEXT_PUBLIC_OCR_API_URL;
@@ -83,15 +100,100 @@ export function DashboardView({
 			logic.handleInputChange("Type / Tipe", "Pengeluaran / Expense");
 
 			setOcrMessage(t("ocrSuccess"));
+			return true;
 		} catch (err) {
 			console.error("OCR Error:", err);
 			setOcrMessage(t("ocrFailed"));
+			return false;
 		} finally {
 			setOcrLoading(false);
-			if (ocrInputRef.current) ocrInputRef.current.value = "";
-			if (ocrGalleryInputRef.current) ocrGalleryInputRef.current.value = "";
 		}
+	}, [categories, logic.handleInputChange, t]);
+
+	const handleOcrScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		await processOcrFile(file, file.name);
+		if (ocrInputRef.current) ocrInputRef.current.value = "";
+		if (ocrGalleryInputRef.current) ocrGalleryInputRef.current.value = "";
 	};
+
+	// Web Share Target: receipt shared from bank / e-wallet apps (see public/sw.js)
+	const shareHandledRef = React.useRef(false);
+	React.useEffect(() => {
+		if (shareHandledRef.current || typeof window === "undefined") return;
+		const params = new URLSearchParams(window.location.search);
+		if (params.get("from") !== "share") return;
+		shareHandledRef.current = true;
+
+		const cleanUrl = () => window.history.replaceState(null, "", "/");
+
+		(async () => {
+			try {
+				if (!("caches" in window)) {
+					setOcrMessage(t("shareNoData"));
+					return;
+				}
+				const cache = await caches.open("shared-receipts");
+				const fileRes = await cache.match("/__shared/receipt");
+				const textRes = await cache.match("/__shared/text");
+				await cache.delete("/__shared/receipt");
+				await cache.delete("/__shared/text");
+
+				let sharedText: { title?: string; text?: string; url?: string } | null = null;
+				if (textRes) {
+					try { sharedText = await textRes.json(); } catch { sharedText = null; }
+				}
+
+				// Scroll the form into view so the user sees the pre-filled values
+				window.scrollTo({ top: 0, behavior: "smooth" });
+
+				if (fileRes) {
+					const blob = await fileRes.blob();
+					const rawName = fileRes.headers.get("x-file-name");
+					const fileName = rawName ? decodeURIComponent(rawName) : "receipt";
+					const ok = await processOcrFile(blob, fileName);
+					if (ok) return;
+				}
+
+				if (sharedText && applySharedText(sharedText)) {
+					setOcrMessage(t("ocrSuccess"));
+					return;
+				}
+
+				if (!fileRes) setOcrMessage(t("shareNoData"));
+			} catch (err) {
+				console.error("Share target error:", err);
+				setOcrMessage(t("ocrFailed"));
+			} finally {
+				cleanUrl();
+			}
+		})();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	/** Parse amount / name from shared text. Returns true if something was filled. */
+	const applySharedText = (shared: { title?: string; text?: string; url?: string }) => {
+		const combined = [shared.title, shared.text].filter(Boolean).join("\n").trim();
+		if (!combined) return false;
+		let filled = false;
+
+		const amount = parseSharedAmount(combined);
+		if (amount) {
+			logic.handleInputChange("Amount / Jumlah", String(amount));
+			filled = true;
+		}
+		const firstLine = (shared.title || combined.split("\n")[0] || "").replace(/https?:\/\/\S+/g, "").trim();
+		if (firstLine && firstLine.length <= 80) {
+			logic.handleInputChange("Name / Nama", firstLine);
+			filled = true;
+		}
+		if (filled) {
+			logic.handleInputChange("Type / Tipe", "Pengeluaran / Expense");
+		}
+		return filled;
+	};
+
 
 	// UI States for Modals
 	const [isDisconnectModalOpen, setIsDisconnectModalOpen] = React.useState(false);

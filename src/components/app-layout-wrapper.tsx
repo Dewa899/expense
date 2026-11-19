@@ -297,6 +297,14 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
 		isOpen: false, title: "", desc: ""
 	});
 
+	// Register service worker (required for Web Share Target from bank / e-wallet apps)
+	React.useEffect(() => {
+		if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+		navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch((err) => {
+			console.warn("Service worker registration failed:", err);
+		});
+	}, []);
+
 	React.useEffect(() => {
 		setMounted(true);
 		
