@@ -401,8 +401,10 @@ export function FormView(props: FormViewProps) {
 	const cardPullDownY = useMotionValue(0);
 
 	return (
+		<>
 		<motion.div 
 			initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+			transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
 			className="space-y-3"
 		>
 			<PocketCarouselCard
@@ -801,24 +803,33 @@ export function FormView(props: FormViewProps) {
 				</div>
 			</motion.section>
 
-			{/* Backdrop for Quick Hamburger Menu */}
-			<AnimatePresence>
-				{isQuickMenuOpen && (
-					<motion.div
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						exit={{ opacity: 0 }}
-						onClick={() => setIsQuickMenuOpen(false)}
-						className="fixed inset-0 z-40 bg-black/25 backdrop-blur-[1px]"
-					/>
-				)}
-			</AnimatePresence>
+			{/* Extra bottom spacing when mobile keyboard is open */}
+			{isMobile && mobileKbHeader && (
+				<div className="h-[310px] w-full pointer-events-none" />
+			)}
+		</motion.div>
 
-			{/* Sticky Bottom Action Navbar (Borderless layered surface, unified rounded-2xl buttons, subtle shadow) */}
-			<nav
-				aria-label={language === "en" ? "Quick Actions" : "Aksi Cepat"}
-				className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-[#202226]/95 backdrop-blur-xl border-none px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)]"
-			>
+		{/* Backdrop for Quick Hamburger Menu */}
+		<AnimatePresence>
+			{isQuickMenuOpen && (
+				<motion.div
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					exit={{ opacity: 0 }}
+					onClick={() => setIsQuickMenuOpen(false)}
+					className="fixed inset-0 z-40 bg-black/25 backdrop-blur-[1px]"
+				/>
+			)}
+		</AnimatePresence>
+
+		{/* Sticky Bottom Action Navbar (Outside transformed parent to prevent fixed-position jump/blink) */}
+		<motion.nav
+			initial={{ y: 24, opacity: 0 }}
+			animate={{ y: 0, opacity: 1 }}
+			transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+			aria-label={language === "en" ? "Quick Actions" : "Aksi Cepat"}
+			className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-[#202226]/95 backdrop-blur-xl border-none px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)] will-change-transform"
+		>
 				<div className="max-w-md mx-auto flex items-center gap-2.5 relative">
 					{/* Floating Hamburger Menu Popover */}
 					<AnimatePresence>
@@ -990,7 +1001,7 @@ export function FormView(props: FormViewProps) {
 						);
 					})()}
 				</div>
-			</nav>
+			</motion.nav>
 
 			{/* Close mobile keyboard when tapping outside */}
 			{isMobile && mobileKbHeader && (
@@ -1007,11 +1018,6 @@ export function FormView(props: FormViewProps) {
 					}}
 				/>
 			)}
-
-			{/* Extra bottom spacing when mobile keyboard is open */}
-			{isMobile && mobileKbHeader && (
-				<div className="h-[310px] w-full pointer-events-none" />
-			)}
-		</motion.div>
+		</>
 	);
 }
