@@ -336,6 +336,22 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack, mode = "logi
 									: (language === "en" ? "Sign In" : "Masuk")}
 							</Button>
 
+							{/* Toggle login/signup — placed right under the primary button */}
+							<p className="text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 -mt-1">
+								{isSignUp
+									? (language === "en" ? "Already have an account? " : "Sudah punya akun? ")
+									: (language === "en" ? "Don't have an account? " : "Belum punya akun? ")}
+								<button
+									type="button"
+									onClick={() => setIsSignUp(!isSignUp)}
+									className="font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 underline underline-offset-4 decoration-2 decoration-emerald-500/60 cursor-pointer bg-transparent border-none p-0"
+								>
+									{isSignUp
+										? (language === "en" ? "Sign In" : "Masuk")
+										: (language === "en" ? "Sign Up" : "Daftar")}
+								</button>
+							</p>
+
 							{/* Divider */}
 							<div className="relative flex items-center justify-center my-4">
 								<div className="absolute inset-0 flex items-center">
@@ -346,46 +362,47 @@ export function LoginView({ onLoginSuccess, onBypassSheets, onBack, mode = "logi
 								</span>
 							</div>
 
-							{/* Google login OAuth */}
-							<Button
-								type="button"
-								onClick={handleGoogleLogin}
-								disabled={loading}
-								variant="outline"
-								className="w-full h-12 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-950/30 hover:bg-white/70 dark:hover:bg-zinc-950/60 flex items-center justify-center gap-3 transition-all cursor-pointer font-bold text-sm text-zinc-850 dark:text-zinc-200"
-							>
-								<svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
-									<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-									<path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-									<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-									<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-								</svg>
-								{language === "en" ? "Continue with Google" : "Masuk dengan Google"}
-							</Button>
-
-							{/* Toggle login/signup */}
-							<div className="text-center pt-2">
-								<button
+							{/* Google OAuth + Google Sheets direct (no account) side by side */}
+							<div className="grid grid-cols-2 gap-3">
+								<Button
 									type="button"
-									onClick={() => setIsSignUp(!isSignUp)}
-									className="text-[11px] font-semibold text-zinc-400 hover:text-emerald-500 transition-colors"
+									onClick={handleGoogleLogin}
+									disabled={loading}
+									variant="outline"
+									className="w-full h-12 px-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-950/30 hover:bg-white/70 dark:hover:bg-zinc-950/60 flex items-center justify-center gap-2 transition-all cursor-pointer font-bold text-sm text-zinc-800 dark:text-zinc-200"
 								>
-									{isSignUp 
-										? (language === "en" ? "Already have an account? Sign In" : "Sudah punya akun? Masuk")
-										: (language === "en" ? "Don't have an account? Sign Up" : "Belum punya akun? Daftar")}
-								</button>
-							</div>
+									<svg className="w-[18px] h-[18px] flex-shrink-0" viewBox="0 0 24 24">
+										<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+										<path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+										<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+										<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+									</svg>
+									Google
+								</Button>
 
-							{/* Sheets Sync Bypass (Crucial constraint requirement!) */}
-							<div className="border-t border-zinc-100 dark:border-zinc-800/60 pt-4 flex flex-col items-center">
-								<button
+								<Button
 									type="button"
 									onClick={onBypassSheets}
-									className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors underline underline-offset-4 cursor-pointer"
+									disabled={loading}
+									variant="outline"
+									title={language === "en" ? "Use Google Sheets directly (No Account)" : "Gunakan Google Sheets langsung (Tanpa Akun)"}
+									className="w-full h-12 px-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-950/30 hover:bg-white/70 dark:hover:bg-zinc-950/60 flex items-center justify-center gap-2 transition-all cursor-pointer font-bold text-sm text-zinc-800 dark:text-zinc-200"
 								>
-									{language === "en" ? "Use Google Sheets directly (No Account)" : "Gunakan Google Sheets langsung (Tanpa Akun)"}
-								</button>
+									<svg className="w-[14px] h-[18px] flex-shrink-0" viewBox="0 0 48 64" aria-hidden="true">
+										<path fill="#0F9D58" d="M29.5 0H4.5C2 0 0 2 0 4.5v55C0 62 2 64 4.5 64h39c2.5 0 4.5-2 4.5-4.5V18.5L29.5 0z" />
+										<path fill="#87CEAC" d="M29.5 0v14c0 2.5 2 4.5 4.5 4.5h14L29.5 0z" />
+										<path fill="#FFFFFF" d="M10 29h28v23H10z" />
+										<path fill="none" stroke="#0F9D58" strokeWidth="2.2" d="M10 36.6h28M10 44.3h28M19.5 29v23" />
+									</svg>
+									<span>Sheets</span>
+									<span className="px-1.5 py-[2px] rounded-md bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 text-[9px] leading-none font-black uppercase tracking-wider">
+										Beta
+									</span>
+								</Button>
 							</div>
+							<p className="text-center text-[10px] font-medium text-zinc-400 -mt-2">
+								{language === "en" ? "Sheets: sync directly to your Google Sheet without an account" : "Sheets: sinkron langsung ke Google Sheet Anda tanpa akun"}
+							</p>
 						</motion.form>
 					)}
 				</AnimatePresence>
